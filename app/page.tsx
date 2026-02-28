@@ -493,7 +493,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
   // ── ACTIONS ──
   const addTrainer = () => {
     if (!newTrainer.name || !newTrainer.email) return;
-    setTrainers(p => [...p, {
+    setTrainers((p: any[]) => [...p, {
       id: `t${Date.now()}`, name: newTrainer.name, email: newTrainer.email,
       avatar: newTrainer.name.split(" ").map((n:string) => n[0]).join("").toUpperCase().slice(0, 2),
       clients: 0, retention: 0, revenue: 0, sessions: 0, sessionsAssigned: 0,
@@ -507,7 +507,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
 
   const addClient = () => {
     if (!newClient.name || !newClient.trainer) return;
-    setClients(p => [...p, {
+    setClients((p: any[]) => [...p, {
       id: `c${Date.now()}`, name: newClient.name, goal: newClient.goal || "General Fitness",
       weight: Number(newClient.weight) || 70, startWeight: Number(newClient.weight) || 70,
       target: 65, sessions: 0, sessionsAssigned: 12, compliance: 0, payment: "Active",
@@ -517,20 +517,20 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
       lastSession: "None", missedSessions: 0, lateLog: false, active: true
     }]);
     // Update trainer client count
-    setTrainers(p => p.map(t => t.name === newClient.trainer ? { ...t, clients: t.clients + 1 } : t));
+    setTrainers((p: any[]) => p.map(t => t.name === newClient.trainer ? { ...t, clients: t.clients + 1 } : t));
     setNewClient({ name: "", phone: "", trainer: "", goal: "", weight: "", notes: "" });
     setShowAddClient(false);
   };
 
   const saveEditClient = () => {
     if (!editForm.name) return;
-    setClients(p => p.map(c => c.id === editForm.id ? { ...c, ...editForm } : c));
+    setClients((p: any[]) => p.map(c => c.id === editForm.id ? { ...c, ...editForm } : c));
     setShowEditClient(false);
     setSelectedClient({ ...editForm });
   };
 
   const toggleClientStatus = (clientId: string) => {
-    setClients(p => p.map(c => c.id === clientId ? { ...c, active: !c.active } : c));
+    setClients((p: any[]) => p.map(c => c.id === clientId ? { ...c, active: !c.active } : c));
     if (selectedClient?.id === clientId) {
       setSelectedClient((prev: any) => ({ ...prev, active: !prev.active }));
     }
@@ -538,19 +538,19 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
 
   const postInstruction = () => {
     if (!newInstruction.title) return;
-    setInstructions(p => [{ id: `i${Date.now()}`, title: newInstruction.title, body: newInstruction.body, date: "Feb 28", priority: newInstruction.priority, by: "Admin" }, ...p]);
+    setInstructions((p: any[]) => [{ id: `i${Date.now()}`, title: newInstruction.title, body: newInstruction.body, date: "Feb 28", priority: newInstruction.priority, by: "Admin" }, ...p]);
     setNewInstruction({ title: "", body: "", priority: "medium" });
     setShowInstruction(false);
   };
 
   const deleteInstruction = (id: string) => {
-    setInstructions(p => p.filter(i => i.id !== id));
+    setInstructions((p: any[]) => p.filter(i => i.id !== id));
   };
 
   const addWarning = () => {
     if (!newWarning.trainer || !newWarning.note) return;
-    setWarnings(p => [{ trainerId: `t${Date.now()}`, trainer: newWarning.trainer, date: "Feb 28", type: newWarning.type, note: newWarning.note, by: "Admin", followUp: newWarning.followUp }, ...p]);
-    setTrainers(prev => prev.map(tr => tr.name === newWarning.trainer ? { ...tr, warnings: tr.warnings + 1 } : tr));
+    setWarnings((p: any[]) => [{ trainerId: `t${Date.now()}`, trainer: newWarning.trainer, date: "Feb 28", type: newWarning.type, note: newWarning.note, by: "Admin", followUp: newWarning.followUp }, ...p]);
+    setTrainers((prev: any[]) => prev.map((tr: any) => tr.name === newWarning.trainer ? { ...tr, warnings: tr.warnings + 1 } : tr));
     setNewWarning({ trainer: "", type: "Verbal Warning", note: "", followUp: "" });
     setShowWarning(false);
   };
@@ -568,7 +568,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
   };
 
   const toggleTrainerStatus = (trainerId: string) => {
-    setTrainers(p => p.map(t => t.id === trainerId ? { ...t, status: t.status === "active" ? "suspended" : "active" } : t));
+    setTrainers((p: any[]) => p.map(t => t.id === trainerId ? { ...t, status: t.status === "active" ? "suspended" : "active" } : t));
     if (selectedTrainer?.id === trainerId) {
       setSelectedTrainer((prev: any) => ({ ...prev, status: prev.status === "active" ? "suspended" : "active" }));
     }
@@ -598,8 +598,8 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
             <div className="modal-t">Change Password — {pwTarget?.name}</div>
             <div className="fs12 t3 mb16">This will update the trainer's login password. In production this calls the Firebase Admin SDK.</div>
             {pwMsg && <div className={`alert ${pwMsg.startsWith("✓") ? "al-g" : "al-r"} mb12`}>{pwMsg}</div>}
-            <div className="field"><label>New Password</label><input className="fi" type="password" placeholder="Min 6 characters" value={pwForm.newPw} onChange={e => setPwForm(p => ({ ...p, newPw: e.target.value }))} /></div>
-            <div className="field"><label>Confirm Password</label><input className="fi" type="password" placeholder="Re-enter password" value={pwForm.confirmPw} onChange={e => setPwForm(p => ({ ...p, confirmPw: e.target.value }))} /></div>
+            <div className="field"><label>New Password</label><input className="fi" type="password" placeholder="Min 6 characters" value={pwForm.newPw} onChange={e => setPwForm((p: typeof pwForm) => ({ ...p, newPw: e.target.value }))} /></div>
+            <div className="field"><label>Confirm Password</label><input className="fi" type="password" placeholder="Re-enter password" value={pwForm.confirmPw} onChange={e => setPwForm((p: typeof pwForm) => ({ ...p, confirmPw: e.target.value }))} /></div>
             <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => { setShowChangePw(false); setPwMsg(""); }}>Cancel</button><button className="btn btn-p btn-s mla" onClick={changePassword}>Update Password</button></div>
           </div>
         </div>
@@ -653,10 +653,10 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
         <div className="overlay" onClick={() => setShowAddTrainer(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-t">Add New Trainer</div>
-            <div className="field"><label>Full Name</label><input className="fi" placeholder="e.g. Rahul Verma" value={newTrainer.name} onChange={e => setNewTrainer(p => ({ ...p, name: e.target.value }))} /></div>
-            <div className="field"><label>Email</label><input className="fi" type="email" placeholder="trainer@yourtrainer.in" value={newTrainer.email} onChange={e => setNewTrainer(p => ({ ...p, email: e.target.value }))} /></div>
-            <div className="field"><label>Speciality</label><input className="fi" placeholder="e.g. Weight Loss & HIIT" value={newTrainer.speciality} onChange={e => setNewTrainer(p => ({ ...p, speciality: e.target.value }))} /></div>
-            <div className="field"><label>Plan</label><select className="fi" value={newTrainer.plan} onChange={e => setNewTrainer(p => ({ ...p, plan: e.target.value }))}><option>Starter</option><option>Pro</option></select></div>
+            <div className="field"><label>Full Name</label><input className="fi" placeholder="e.g. Rahul Verma" value={newTrainer.name} onChange={e => setNewTrainer((p: typeof newTrainer) => ({ ...p, name: e.target.value }))} /></div>
+            <div className="field"><label>Email</label><input className="fi" type="email" placeholder="trainer@yourtrainer.in" value={newTrainer.email} onChange={e => setNewTrainer((p: typeof newTrainer) => ({ ...p, email: e.target.value }))} /></div>
+            <div className="field"><label>Speciality</label><input className="fi" placeholder="e.g. Weight Loss & HIIT" value={newTrainer.speciality} onChange={e => setNewTrainer((p: typeof newTrainer) => ({ ...p, speciality: e.target.value }))} /></div>
+            <div className="field"><label>Plan</label><select className="fi" value={newTrainer.plan} onChange={e => setNewTrainer((p: typeof newTrainer) => ({ ...p, plan: e.target.value }))}><option>Starter</option><option>Pro</option></select></div>
             <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowAddTrainer(false)}>Cancel</button><button className="btn btn-p btn-s mla" onClick={addTrainer}>Add Trainer</button></div>
           </div>
         </div>
@@ -668,25 +668,25 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-t">Add New Client</div>
             <div className="g2">
-              <div className="field"><label>Full Name *</label><input className="fi" placeholder="Client name" value={newClient.name} onChange={e => setNewClient(p => ({ ...p, name: e.target.value }))} /></div>
-              <div className="field"><label>Phone</label><input className="fi" placeholder="+91 98765 43210" value={newClient.phone} onChange={e => setNewClient(p => ({ ...p, phone: e.target.value }))} /></div>
+              <div className="field"><label>Full Name *</label><input className="fi" placeholder="Client name" value={newClient.name} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, name: e.target.value }))} /></div>
+              <div className="field"><label>Phone</label><input className="fi" placeholder="+91 98765 43210" value={newClient.phone} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, phone: e.target.value }))} /></div>
             </div>
             <div className="g2">
               <div className="field"><label>Assign Trainer *</label>
-                <select className="fi" value={newClient.trainer} onChange={e => setNewClient(p => ({ ...p, trainer: e.target.value }))}>
+                <select className="fi" value={newClient.trainer} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, trainer: e.target.value }))}>
                   <option value="">Select trainer...</option>
                   {trainers.filter(t => t.status === "active").map(t => <option key={t.id}>{t.name}</option>)}
                 </select>
               </div>
               <div className="field"><label>Goal</label>
-                <select className="fi" value={newClient.goal} onChange={e => setNewClient(p => ({ ...p, goal: e.target.value }))}>
+                <select className="fi" value={newClient.goal} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, goal: e.target.value }))}>
                   <option value="">Select goal...</option>
                   <option>Weight Loss</option><option>Muscle Gain</option><option>Athletic Performance</option><option>General Fitness</option><option>Post-Injury Rehab</option>
                 </select>
               </div>
             </div>
-            <div className="field"><label>Current Weight (kg)</label><input className="fi" type="number" placeholder="75" value={newClient.weight} onChange={e => setNewClient(p => ({ ...p, weight: e.target.value }))} /></div>
-            <div className="field"><label>Health Notes / Restrictions</label><textarea className="fi" rows={3} placeholder="Injuries, medications, dietary restrictions..." value={newClient.notes} onChange={e => setNewClient(p => ({ ...p, notes: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="field"><label>Current Weight (kg)</label><input className="fi" type="number" placeholder="75" value={newClient.weight} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, weight: e.target.value }))} /></div>
+            <div className="field"><label>Health Notes / Restrictions</label><textarea className="fi" rows={3} placeholder="Injuries, medications, dietary restrictions..." value={newClient.notes} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, notes: e.target.value }))} style={{ resize: "none" }} /></div>
             <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowAddClient(false)}>Cancel</button><button className="btn btn-p btn-s mla" onClick={addClient}>Add Client</button></div>
           </div>
         </div>
@@ -697,9 +697,9 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
         <div className="overlay" onClick={() => setShowInstruction(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-t">Post Instruction to Trainers</div>
-            <div className="field"><label>Title</label><input className="fi" placeholder="e.g. Holiday Schedule Update" value={newInstruction.title} onChange={e => setNewInstruction(p => ({ ...p, title: e.target.value }))} /></div>
-            <div className="field"><label>Message</label><textarea className="fi" rows={4} placeholder="Full instruction details..." value={newInstruction.body} onChange={e => setNewInstruction(p => ({ ...p, body: e.target.value }))} style={{ resize: "none" }} /></div>
-            <div className="field"><label>Priority</label><select className="fi" value={newInstruction.priority} onChange={e => setNewInstruction(p => ({ ...p, priority: e.target.value }))}><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select></div>
+            <div className="field"><label>Title</label><input className="fi" placeholder="e.g. Holiday Schedule Update" value={newInstruction.title} onChange={e => setNewInstruction((p: typeof newInstruction) => ({ ...p, title: e.target.value }))} /></div>
+            <div className="field"><label>Message</label><textarea className="fi" rows={4} placeholder="Full instruction details..." value={newInstruction.body} onChange={e => setNewInstruction((p: typeof newInstruction) => ({ ...p, body: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="field"><label>Priority</label><select className="fi" value={newInstruction.priority} onChange={e => setNewInstruction((p: typeof newInstruction) => ({ ...p, priority: e.target.value }))}><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select></div>
             <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowInstruction(false)}>Cancel</button><button className="btn btn-p btn-s mla" onClick={postInstruction}>Post Instruction</button></div>
           </div>
         </div>
@@ -710,10 +710,10 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
         <div className="overlay" onClick={() => setShowWarning(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-t">Log Trainer Warning</div>
-            <div className="field"><label>Trainer</label><select className="fi" value={newWarning.trainer} onChange={e => setNewWarning(p => ({ ...p, trainer: e.target.value }))}><option value="">Select trainer...</option>{trainers.map(t => <option key={t.id}>{t.name}</option>)}</select></div>
-            <div className="field"><label>Warning Type</label><select className="fi" value={newWarning.type} onChange={e => setNewWarning(p => ({ ...p, type: e.target.value }))}><option>Verbal Warning</option><option>Written Warning</option><option>Final Warning</option><option>Improvement Plan</option></select></div>
-            <div className="field"><label>Private Note (Admin only)</label><textarea className="fi" rows={4} placeholder="Details of warning, expected improvement..." value={newWarning.note} onChange={e => setNewWarning(p => ({ ...p, note: e.target.value }))} style={{ resize: "none" }} /></div>
-            <div className="field"><label>Follow-up Date</label><input className="fi" type="date" value={newWarning.followUp} onChange={e => setNewWarning(p => ({ ...p, followUp: e.target.value }))} /></div>
+            <div className="field"><label>Trainer</label><select className="fi" value={newWarning.trainer} onChange={e => setNewWarning((p: typeof newWarning) => ({ ...p, trainer: e.target.value }))}><option value="">Select trainer...</option>{trainers.map(t => <option key={t.id}>{t.name}</option>)}</select></div>
+            <div className="field"><label>Warning Type</label><select className="fi" value={newWarning.type} onChange={e => setNewWarning((p: typeof newWarning) => ({ ...p, type: e.target.value }))}><option>Verbal Warning</option><option>Written Warning</option><option>Final Warning</option><option>Improvement Plan</option></select></div>
+            <div className="field"><label>Private Note (Admin only)</label><textarea className="fi" rows={4} placeholder="Details of warning, expected improvement..." value={newWarning.note} onChange={e => setNewWarning((p: typeof newWarning) => ({ ...p, note: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="field"><label>Follow-up Date</label><input className="fi" type="date" value={newWarning.followUp} onChange={e => setNewWarning((p: typeof newWarning) => ({ ...p, followUp: e.target.value }))} /></div>
             <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowWarning(false)}>Cancel</button><button className="btn btn-dn btn-s mla" onClick={addWarning}>Log Warning</button></div>
           </div>
         </div>
@@ -786,10 +786,10 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                 onClick={() => toggleTrainerStatus(selectedTrainer.id)}>
                 {selectedTrainer.status === "active" ? "Suspend" : "Activate"}
               </button>
-              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning(p => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Log Warning</button>
+              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning((p: typeof newWarning) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Log Warning</button>
               <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>🔑 Change Password</button>
               <button className="btn btn-g btn-s" onClick={() => { setTrainerFilter(selectedTrainer.name); setClientSearch(""); setClientStatusFilter("all"); setSelectedTrainer(null); setTab("clients"); }}>View All Clients</button>
-              <button className="btn btn-p btn-s mla" onClick={() => { setNewClient((p:any) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowAddClient(true); }}>+ Add Client</button>
+              <button className="btn btn-p btn-s mla" onClick={() => { setNewClient((p: typeof newClient) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowAddClient(true); }}>+ Add Client</button>
             </div>
           </div>
         </div>
@@ -994,7 +994,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                             <td><span className={t.warnings > 0 ? "tr fw7" : "tg"}>{t.warnings === 0 ? "✓ Clean" : `${t.warnings} ⚠`}</span></td>
                             <td onClick={e => e.stopPropagation()}>
                               <div className="row gap4">
-                                <button className="btn btn-warn btn-xs" onClick={() => { setNewWarning(p => ({ ...p, trainer: t.name })); setShowWarning(true); }}>Warn</button>
+                                <button className="btn btn-warn btn-xs" onClick={() => { setNewWarning((p: typeof newWarning) => ({ ...p, trainer: t.name })); setShowWarning(true); }}>Warn</button>
                                 <button className="btn btn-g btn-xs" onClick={() => { setPwTarget(t); setShowChangePw(true); }}>🔑</button>
                               </div>
                             </td>
@@ -1419,7 +1419,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                       ))}
                     </div>
                     <div className="row gap8 mt12" onClick={e => e.stopPropagation()}>
-                      <button className="btn btn-g btn-xs" onClick={() => { setNewClient((p:any) => ({ ...p, trainer: t.name })); setShowAddClient(true); }}>+ Client</button>
+                      <button className="btn btn-g btn-xs" onClick={() => { setNewClient((p: typeof newClient) => ({ ...p, trainer: t.name })); setShowAddClient(true); }}>+ Client</button>
                       <button className="btn btn-g btn-xs" onClick={() => { setPwTarget(t); setShowChangePw(true); }}>🔑 Password</button>
                       <button className={`btn btn-xs mla ${t.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(t.id)}>
                         {t.status === "active" ? "Suspend" : "Activate"}
@@ -1719,10 +1719,10 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                             <div className="fs12 fw6 t1">{ex.name}</div>
                             <div className="fs10 t3">{ex.muscles}</div>
                           </div>
-                          <input className="log-inp" type="number" placeholder="3" value={ex.sets} onChange={e => setSessionExercises(p => p.map((x,j) => j===i ? {...x, sets: e.target.value} : x))} />
-                          <input className="log-inp" type="number" placeholder="10" value={ex.reps} onChange={e => setSessionExercises(p => p.map((x,j) => j===i ? {...x, reps: e.target.value} : x))} />
-                          <input className="log-inp" type="number" placeholder="0" value={ex.weight} onChange={e => setSessionExercises(p => p.map((x,j) => j===i ? {...x, weight: e.target.value} : x))} />
-                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:0}} onClick={() => setSessionExercises(p => p.filter((_,j) => j !== i))} title="Remove">✕</button>
+                          <input className="log-inp" type="number" placeholder="3" value={ex.sets} onChange={e => setSessionExercises((p: any[]) => p.map((x: any, j: number) => j===i ? {...x, sets: e.target.value} : x))} />
+                          <input className="log-inp" type="number" placeholder="10" value={ex.reps} onChange={e => setSessionExercises((p: any[]) => p.map((x: any, j: number) => j===i ? {...x, reps: e.target.value} : x))} />
+                          <input className="log-inp" type="number" placeholder="0" value={ex.weight} onChange={e => setSessionExercises((p: any[]) => p.map((x: any, j: number) => j===i ? {...x, weight: e.target.value} : x))} />
+                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:0}} onClick={() => setSessionExercises((p: any[]) => p.filter((_: any, j: number) => j !== i))} title="Remove">✕</button>
                         </div>
                       ))}
                     </div>
@@ -1802,7 +1802,7 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                     </div>
                     <div className="row gap8">
                       <span className={`badge fs10 ${ex.level === "Beginner" ? "bg" : ex.level === "Intermediate" ? "by" : "br"}`}>{ex.level}</span>
-                      <button className="btn btn-p btn-xs" onClick={() => { setSessionExercises(p => [...p, { ...ex, sets: "3", reps: "10", weight: "0" }]); setTab("log"); }}>+ Add to Session</button>
+                      <button className="btn btn-p btn-xs" onClick={() => { setSessionExercises((p: any[]) => [...p, { ...ex, sets: "3", reps: "10", weight: "0" }]); setTab("log"); }}>+ Add to Session</button>
                     </div>
                   </div>
                 ))}
@@ -1826,19 +1826,19 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                       <div>
                         <div className="fs10 t3 mb12" style={{textTransform:"uppercase",letterSpacing:1}}>Body Weight & Composition</div>
                         {[["Weight (kg)","weight"],["Body Fat %","bf"]].map(([l,k])=>(
-                          <div key={k} className="field"><label>{l}</label><input className="fi" type="number" placeholder={`e.g. ${last[k]}`} value={(newProgress as any)[k]} onChange={e=>setNewProgress(p=>({...p,[k]:e.target.value}))}/></div>
+                          <div key={k} className="field"><label>{l}</label><input className="fi" type="number" placeholder={`e.g. ${last[k]}`} value={(newProgress as any)[k]} onChange={e=>setNewProgress((p: typeof newProgress)=>({...p,[k]:e.target.value}))}/></div>
                         ))}
                         <div className="fs10 t3 mb12 mt12" style={{textTransform:"uppercase",letterSpacing:1}}>Measurements (cm)</div>
                         {[["Chest","chest"],["Waist","waist"],["Hips","hips"],["Arms","arms"],["Thighs","thighs"]].map(([l,k])=>(
-                          <div key={k} className="field"><label>{l}</label><input className="fi" type="number" placeholder={`e.g. ${(last as any)[k]}`} value={(newProgress as any)[k]} onChange={e=>setNewProgress(p=>({...p,[k]:e.target.value}))}/></div>
+                          <div key={k} className="field"><label>{l}</label><input className="fi" type="number" placeholder={`e.g. ${(last as any)[k]}`} value={(newProgress as any)[k]} onChange={e=>setNewProgress((p: typeof newProgress)=>({...p,[k]:e.target.value}))}/></div>
                         ))}
                       </div>
                       <div>
                         <div className="fs10 t3 mb12" style={{textTransform:"uppercase",letterSpacing:1}}>Strength Numbers (kg lifted)</div>
                         {[["Squat","squat"],["Bench Press","bench"],["Deadlift","deadlift"],["Pull-ups (reps)","pullup"]].map(([l,k])=>(
-                          <div key={k} className="field"><label>{l}</label><input className="fi" type="number" placeholder={`e.g. ${(last as any)[k]}`} value={(newProgress as any)[k]} onChange={e=>setNewProgress(p=>({...p,[k]:e.target.value}))}/></div>
+                          <div key={k} className="field"><label>{l}</label><input className="fi" type="number" placeholder={`e.g. ${(last as any)[k]}`} value={(newProgress as any)[k]} onChange={e=>setNewProgress((p: typeof newProgress)=>({...p,[k]:e.target.value}))}/></div>
                         ))}
-                        <div className="field mt12"><label>Photos (link or notes)</label><textarea className="fi" rows={2} placeholder="Google Drive link, or note: front/back/side taken" value={newProgress.notes} onChange={e=>setNewProgress(p=>({...p,notes:e.target.value}))} style={{resize:"none"}}/></div>
+                        <div className="field mt12"><label>Photos (link or notes)</label><textarea className="fi" rows={2} placeholder="Google Drive link, or note: front/back/side taken" value={newProgress.notes} onChange={e=>setNewProgress((p: typeof newProgress)=>({...p,notes:e.target.value}))} style={{resize:"none"}}/></div>
                         <div className="alert al-b mt8 fs11">📸 Progress photos show clients what numbers can't. Remind them every 4 weeks.</div>
                       </div>
                     </div>
@@ -2178,31 +2178,31 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                   <div className="g2">
                     <div className="field">
                       <label>Protein (g)</label>
-                      <input className="fi" type="number" placeholder={`Target: ${proteinTarget}g`} value={newDiet.protein} onChange={e=>setNewDiet(p=>({...p,protein:e.target.value}))}/>
+                      <input className="fi" type="number" placeholder={`Target: ${proteinTarget}g`} value={newDiet.protein} onChange={e=>setNewDiet((p: typeof newDiet)=>({...p,protein:e.target.value}))}/>
                       {newDiet.protein && Number(newDiet.protein)<proteinTarget*0.7 && <div className="fs10 tr mt4">⚠ Below 70% of target</div>}
                     </div>
                     <div className="field">
                       <label>Water (Litres)</label>
-                      <input className="fi" type="number" step="0.1" placeholder={`Target: ${waterTarget}L`} value={newDiet.water} onChange={e=>setNewDiet(p=>({...p,water:e.target.value}))}/>
+                      <input className="fi" type="number" step="0.1" placeholder={`Target: ${waterTarget}L`} value={newDiet.water} onChange={e=>setNewDiet((p: typeof newDiet)=>({...p,water:e.target.value}))}/>
                     </div>
                     <div className="field">
                       <label>Steps</label>
-                      <input className="fi" type="number" placeholder={`Target: ${stepsTarget}`} value={newDiet.steps} onChange={e=>setNewDiet(p=>({...p,steps:e.target.value}))}/>
+                      <input className="fi" type="number" placeholder={`Target: ${stepsTarget}`} value={newDiet.steps} onChange={e=>setNewDiet((p: typeof newDiet)=>({...p,steps:e.target.value}))}/>
                     </div>
                     <div className="field">
                       <label>Sleep (hours)</label>
-                      <input className="fi" type="number" step="0.5" placeholder={`Target: ${sleepTarget}h`} value={newDiet.sleep} onChange={e=>setNewDiet(p=>({...p,sleep:e.target.value}))}/>
+                      <input className="fi" type="number" step="0.5" placeholder={`Target: ${sleepTarget}h`} value={newDiet.sleep} onChange={e=>setNewDiet((p: typeof newDiet)=>({...p,sleep:e.target.value}))}/>
                     </div>
                   </div>
                   <div className="field">
                     <label>Sleep Quality</label>
-                    <select className="fi" value={newDiet.sleepQuality} onChange={e=>setNewDiet(p=>({...p,sleepQuality:e.target.value}))}>
+                    <select className="fi" value={newDiet.sleepQuality} onChange={e=>setNewDiet((p: typeof newDiet)=>({...p,sleepQuality:e.target.value}))}>
                       <option>Great</option><option>Good</option><option>Average</option><option>Poor</option>
                     </select>
                   </div>
                   <div className="field">
                     <label>Notes (optional)</label>
-                    <textarea className="fi" rows={2} placeholder="Ate out, stress, travel, period, illness..." value={newDiet.notes} onChange={e=>setNewDiet(p=>({...p,notes:e.target.value}))} style={{resize:"none"}}/>
+                    <textarea className="fi" rows={2} placeholder="Ate out, stress, travel, period, illness..." value={newDiet.notes} onChange={e=>setNewDiet((p: typeof newDiet)=>({...p,notes:e.target.value}))} style={{resize:"none"}}/>
                   </div>
                   <button className="btn btn-p btn-s mt8" style={{width:"100%"}} onClick={()=>{setDietSaved(true);setNewDiet({protein:"",water:"",steps:"",sleep:"",sleepQuality:"Good",notes:""});setTimeout(()=>setDietSaved(false),3000);}}>Save Habit Log</button>
                 </div>
