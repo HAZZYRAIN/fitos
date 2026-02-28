@@ -884,29 +884,7 @@ function Admin({ name, logout, sharedClients, sharedTrainers, sharedInstructions
         ? { ...client, status: newStatus }
         : client
     )
-  );
-}
-       
-
-      {/* ── SIDEBAR ── */}
-      <div className="sb">
-        <div className="sb-logo">
-          <div className="logo-yt">Your<span>Trainer</span></div>
-          <div className="logo-tag">Admin Control Panel</div>
-          <div className="rp rp-a">⚡ Super Admin</div>
-        </div>
-        <div className="sb-nav">
-          {navItems.map(item => (
-            <div key={item.id} className={`ni ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
-              <span className="ni-ic">{item.icon}</span>
-              <span>{item.label}</span>
-              {(item as any).badge > 0 ? <span className={`ni-b ${(item as any).badgeColor || ""}`}>{(item as any).badge}</span> : null}
-            </div>
-          ))}
-        </div>
-        <div className="sb-foot">
-          <div className="uc"><div className="av av-a">SA</div><div><div className="uc-n">{name}</div><div className="uc-r">Super Admin</div></div></div>
-          <button className="btn-so" onClick={logout}>Sign Out</button>
+  Name="btn-so" onClick={logout}>Sign Out</button>
         </div>
       </div>
 
