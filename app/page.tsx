@@ -1,178 +1,341 @@
 "use client";
-
 import { useState } from "react";
 import { useAuth } from "../lib/AuthContext";
 
-const mockData = {
-  trainers: [
-    { id: 1, name: "Gokul", email: "gokul@yourtrainer.com", avatar: "GK", clients: 18, retention: 84, revenue: 12400, sessions: 67, status: "active" },
-    { id: 2, name: "Sreekanta", email: "sreekanta@yourtrainer.com", avatar: "SK", clients: 22, retention: 91, revenue: 16800, sessions: 89, status: "active" },
-    { id: 3, name: "Aman", email: "aman@yourtrainer.com", avatar: "AM", clients: 14, retention: 71, revenue: 9200, sessions: 51, status: "active" },
+// ============================================================
+// DATA
+// ============================================================
+const WORKOUT_LIBRARY = {
+  Chest: [
+    { name: "Barbell Bench Press", muscles: "Pecs, Triceps, Delts", equipment: "Barbell", level: "Intermediate" },
+    { name: "Incline Dumbbell Press", muscles: "Upper Pecs, Delts", equipment: "Dumbbell", level: "Intermediate" },
+    { name: "Cable Flye", muscles: "Pecs", equipment: "Cable", level: "Beginner" },
+    { name: "Push-Up", muscles: "Pecs, Triceps", equipment: "Bodyweight", level: "Beginner" },
+    { name: "Decline Bench Press", muscles: "Lower Pecs", equipment: "Barbell", level: "Intermediate" },
+    { name: "Dumbbell Pullover", muscles: "Pecs, Lats", equipment: "Dumbbell", level: "Intermediate" },
   ],
-  clients: [
-    { id: 1, name: "Chris Park", trainer: "Gokul", goal: "Weight Loss", weight: 94, sessions: 24, compliance: 87, payment: "Active" },
-    { id: 2, name: "Emma Davis", trainer: "Sreekanta", goal: "Muscle Gain", weight: 62, sessions: 31, compliance: 93, payment: "Active" },
-    { id: 3, name: "Luis Gomez", trainer: "Gokul", goal: "Athletic Performance", weight: 78, sessions: 18, compliance: 71, payment: "Expiring" },
-    { id: 4, name: "Zoe Kim", trainer: "Aman", goal: "Weight Loss", weight: 71, sessions: 42, compliance: 96, payment: "Active" },
+  Back: [
+    { name: "Deadlift", muscles: "Full Back, Hamstrings, Glutes", equipment: "Barbell", level: "Advanced" },
+    { name: "Pull-Up", muscles: "Lats, Biceps", equipment: "Bodyweight", level: "Intermediate" },
+    { name: "Barbell Row", muscles: "Lats, Rhomboids, Biceps", equipment: "Barbell", level: "Intermediate" },
+    { name: "Lat Pulldown", muscles: "Lats, Biceps", equipment: "Cable", level: "Beginner" },
+    { name: "Seated Cable Row", muscles: "Mid Back, Biceps", equipment: "Cable", level: "Beginner" },
+    { name: "Face Pull", muscles: "Rear Delts, Traps", equipment: "Cable", level: "Beginner" },
   ],
-  activityLogs: [
-    { id: 1, actor: "Gokul", action: "Created workout plan", target: "Chris Park", time: "2 min ago", type: "create" },
-    { id: 2, actor: "Sreekanta", action: "Logged payment received", target: "Emma Davis", time: "18 min ago", type: "payment" },
-    { id: 3, actor: "Aman", action: "Updated body measurements", target: "Zoe Kim", time: "34 min ago", type: "update" },
-    { id: 4, actor: "Admin", action: "Added new trainer", target: "Aman", time: "1 hr ago", type: "admin" },
+  Legs: [
+    { name: "Barbell Squat", muscles: "Quads, Glutes, Hamstrings", equipment: "Barbell", level: "Intermediate" },
+    { name: "Romanian Deadlift", muscles: "Hamstrings, Glutes", equipment: "Barbell", level: "Intermediate" },
+    { name: "Leg Press", muscles: "Quads, Glutes", equipment: "Machine", level: "Beginner" },
+    { name: "Walking Lunges", muscles: "Quads, Glutes, Balance", equipment: "Bodyweight", level: "Beginner" },
+    { name: "Leg Curl", muscles: "Hamstrings", equipment: "Machine", level: "Beginner" },
+    { name: "Calf Raises", muscles: "Calves", equipment: "Machine", level: "Beginner" },
+    { name: "Bulgarian Split Squat", muscles: "Quads, Glutes", equipment: "Dumbbell", level: "Intermediate" },
   ],
-  trainerClients: [
-    { id: 1, name: "Chris Park", goal: "Weight Loss", compliance: 87, nextSession: "Mon 9am", payment: "Active", weight: 94, delta: -14, sessions: 24 },
-    { id: 2, name: "Luis Gomez", goal: "Athletic Perf.", compliance: 71, nextSession: "Tue 7am", payment: "Expiring", weight: 78, delta: -2, sessions: 18 },
-    { id: 3, name: "Felix Ito", goal: "Weight Loss", compliance: 91, nextSession: "Thu 8am", payment: "Active", weight: 88, delta: -8, sessions: 29 },
+  Shoulders: [
+    { name: "Overhead Press", muscles: "All Delts, Triceps", equipment: "Barbell", level: "Intermediate" },
+    { name: "Lateral Raise", muscles: "Side Delts", equipment: "Dumbbell", level: "Beginner" },
+    { name: "Front Raise", muscles: "Front Delts", equipment: "Dumbbell", level: "Beginner" },
+    { name: "Arnold Press", muscles: "All Delts", equipment: "Dumbbell", level: "Intermediate" },
+    { name: "Upright Row", muscles: "Traps, Side Delts", equipment: "Barbell", level: "Intermediate" },
+    { name: "Rear Delt Flye", muscles: "Rear Delts", equipment: "Dumbbell", level: "Beginner" },
   ],
-  clientProgress: [
-    { week: "W1", weight: 94, strength: 60 }, { week: "W2", weight: 93.2, strength: 63 },
-    { week: "W3", weight: 92.1, strength: 65 }, { week: "W4", weight: 91.4, strength: 68 },
-    { week: "W5", weight: 90.8, strength: 71 }, { week: "W6", weight: 89.5, strength: 74 },
-    { week: "W7", weight: 88.9, strength: 76 }, { week: "W8", weight: 88.1, strength: 79 },
-  ]
+  Arms: [
+    { name: "Barbell Curl", muscles: "Biceps", equipment: "Barbell", level: "Beginner" },
+    { name: "Tricep Dip", muscles: "Triceps, Chest", equipment: "Bodyweight", level: "Intermediate" },
+    { name: "Hammer Curl", muscles: "Biceps, Brachialis", equipment: "Dumbbell", level: "Beginner" },
+    { name: "Skull Crusher", muscles: "Triceps", equipment: "Barbell", level: "Intermediate" },
+    { name: "Cable Curl", muscles: "Biceps", equipment: "Cable", level: "Beginner" },
+    { name: "Tricep Pushdown", muscles: "Triceps", equipment: "Cable", level: "Beginner" },
+  ],
+  Core: [
+    { name: "Plank", muscles: "Core, Shoulders", equipment: "Bodyweight", level: "Beginner" },
+    { name: "Cable Crunch", muscles: "Abs", equipment: "Cable", level: "Beginner" },
+    { name: "Hanging Leg Raise", muscles: "Lower Abs, Hip Flexors", equipment: "Bodyweight", level: "Intermediate" },
+    { name: "Russian Twist", muscles: "Obliques", equipment: "Bodyweight", level: "Beginner" },
+    { name: "Ab Wheel Rollout", muscles: "Full Core", equipment: "Equipment", level: "Advanced" },
+    { name: "Side Plank", muscles: "Obliques, Core", equipment: "Bodyweight", level: "Beginner" },
+  ],
+  Cardio: [
+    { name: "Treadmill Run", muscles: "Full Body", equipment: "Machine", level: "Beginner" },
+    { name: "Cycling", muscles: "Legs, Cardio", equipment: "Machine", level: "Beginner" },
+    { name: "Jump Rope", muscles: "Full Body, Calves", equipment: "Equipment", level: "Beginner" },
+    { name: "Box Jump", muscles: "Legs, Power", equipment: "Bodyweight", level: "Intermediate" },
+    { name: "Battle Ropes", muscles: "Full Body", equipment: "Equipment", level: "Intermediate" },
+    { name: "Rowing Machine", muscles: "Back, Arms, Legs", equipment: "Machine", level: "Beginner" },
+  ],
 };
 
-const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+const APPROVED_TEMPLATES = [
+  { id: "t1", name: "Beginner Fat Loss", category: "Fat Loss", days: "3x/week", duration: "45 min", exercises: 8, level: "Beginner", description: "Full body circuit focusing on calorie burn and basic movements" },
+  { id: "t2", name: "Senior Mobility & Strength", category: "Mobility", days: "3x/week", duration: "40 min", exercises: 6, level: "Beginner", description: "Low-impact movements, joint mobility, light resistance" },
+  { id: "t3", name: "Strength Basics", category: "Strength", days: "4x/week", duration: "60 min", exercises: 6, level: "Intermediate", description: "Compound lifts with progressive overload — squat, bench, deadlift" },
+  { id: "t4", name: "Athletic Performance", category: "Performance", days: "5x/week", duration: "70 min", exercises: 9, level: "Advanced", description: "Power, agility, speed — suited for sport-specific athletes" },
+  { id: "t5", name: "Post-Rehab Recovery", category: "Rehab", days: "3x/week", duration: "35 min", exercises: 5, level: "Beginner", description: "Gentle progressive loading post-injury — admin approved protocol" },
+];
+
+const MOCK_CLIENTS = [
+  { id: "c1", name: "Rajesh Kumar", goal: "Weight Loss", weight: 94, startWeight: 110, target: 80, sessions: 28, sessionsAssigned: 32, compliance: 87, payment: "Active", paymentExpiry: "Apr 30", sessionsRemaining: 8, planTotal: 12, nextSession: "Mon 9am", delta: -16, trainer: "Gokul", phone: "+91 98765 43210", joined: "Aug 2025", notes: "Has lower back issue. No heavy deadlifts.", progressLastUpdated: "7 days ago", injuries: ["Lower Back"], riskFlag: false, lastSession: "Feb 26", missedSessions: 2, lateLog: false, active: true },
+  { id: "c2", name: "Priya Sharma", goal: "Muscle Gain", weight: 58, startWeight: 54, target: 65, sessions: 31, sessionsAssigned: 32, compliance: 93, payment: "Active", paymentExpiry: "Jun 30", sessionsRemaining: 18, planTotal: 24, nextSession: "Tue 7am", delta: 4, trainer: "Gokul", phone: "+91 87654 32109", joined: "Jun 2025", notes: "Vegetarian. Supplement with protein powder.", progressLastUpdated: "3 days ago", injuries: [], riskFlag: false, lastSession: "Feb 27", missedSessions: 1, lateLog: false, active: true },
+  { id: "c3", name: "Arjun Mehta", goal: "Athletic Performance", weight: 78, startWeight: 80, target: 75, sessions: 18, sessionsAssigned: 24, compliance: 71, payment: "Expiring", paymentExpiry: "Mar 3", sessionsRemaining: 3, planTotal: 12, nextSession: "Wed 6am", delta: -2, trainer: "Sreekanta", phone: "+91 76543 21098", joined: "Oct 2025", notes: "Cricket player. Focus on agility and power.", progressLastUpdated: "14 days ago", injuries: [], riskFlag: false, lastSession: "Feb 24", missedSessions: 4, lateLog: true, active: true },
+  { id: "c4", name: "Ananya Iyer", goal: "Weight Loss", weight: 71, startWeight: 86, target: 62, sessions: 44, sessionsAssigned: 48, compliance: 96, payment: "Active", paymentExpiry: "May 15", sessionsRemaining: 22, planTotal: 24, nextSession: "Thu 8am", delta: -15, trainer: "Sreekanta", phone: "+91 65432 10987", joined: "Apr 2025", notes: "Excellent compliance. Ready for advanced training.", progressLastUpdated: "2 days ago", injuries: [], riskFlag: false, lastSession: "Feb 27", missedSessions: 1, lateLog: false, active: true },
+  { id: "c5", name: "Vikram Nair", goal: "General Fitness", weight: 82, startWeight: 87, target: 78, sessions: 15, sessionsAssigned: 24, compliance: 68, payment: "Overdue", paymentExpiry: "Feb 14", sessionsRemaining: 0, planTotal: 12, nextSession: "Fri 7am", delta: -5, trainer: "Aman", phone: "+91 54321 09876", joined: "Nov 2025", notes: "Busy schedule. Prefers home workouts.", progressLastUpdated: "21 days ago", injuries: [], riskFlag: false, lastSession: "Feb 20", missedSessions: 6, lateLog: true, active: true },
+  { id: "c6", name: "Deepika Singh", goal: "Post-Injury Rehab", weight: 59, startWeight: 62, target: 57, sessions: 22, sessionsAssigned: 24, compliance: 89, payment: "Active", paymentExpiry: "Mar 10", sessionsRemaining: 4, planTotal: 12, nextSession: "Mon 10am", delta: -3, trainer: "Aman", phone: "+91 43210 98765", joined: "Jul 2025", notes: "Knee surgery recovery. No high-impact exercises.", progressLastUpdated: "5 days ago", injuries: ["Knee"], riskFlag: true, lastSession: "Feb 26", missedSessions: 2, lateLog: false, active: true },
+];
+
+const MOCK_TRAINERS = [
+  { id: "t1", name: "Gokul", email: "gokul@yourtrainer.in", avatar: "GK", clients: 18, retention: 84, revenue: 42400, sessions: 67, sessionsAssigned: 80, missedSessions: 3, pendingLogs: 1, status: "active", plan: "Pro", speciality: "Weight Loss & Hypertrophy", joined: "Jan 2025", rating: 4.8, accountabilityScore: 88, warnings: 0, progressUpdatesThisMonth: 14, lateSubmissions: 1 },
+  { id: "t2", name: "Sreekanta", email: "sreekanta@yourtrainer.in", avatar: "SK", clients: 22, retention: 91, revenue: 58800, sessions: 89, sessionsAssigned: 96, missedSessions: 1, pendingLogs: 0, status: "active", plan: "Pro", speciality: "Athletic Performance", joined: "Nov 2024", rating: 4.9, accountabilityScore: 96, warnings: 0, progressUpdatesThisMonth: 18, lateSubmissions: 0 },
+  { id: "t3", name: "Aman", email: "aman@yourtrainer.in", avatar: "AM", clients: 14, retention: 71, revenue: 31200, sessions: 51, sessionsAssigned: 64, missedSessions: 7, pendingLogs: 3, status: "active", plan: "Starter", speciality: "General Fitness & Rehab", joined: "Mar 2025", rating: 4.6, accountabilityScore: 64, warnings: 1, progressUpdatesThisMonth: 6, lateSubmissions: 4 },
+];
+
+const SESSION_LOGS = [
+  { id: "s1", client: "Rajesh Kumar", trainer: "Gokul", date: "Feb 27", status: "completed", type: "Strength Training", duration: 65, notes: "Good form on squats. Increased bench by 2.5kg.", loggedAt: "10 min after", late: false },
+  { id: "s2", client: "Priya Sharma", trainer: "Gokul", date: "Feb 27", status: "completed", type: "Hypertrophy", duration: 70, notes: "Added incline press. Client reported mild DOMS.", loggedAt: "30 min after", late: false },
+  { id: "s3", client: "Arjun Mehta", trainer: "Sreekanta", date: "Feb 26", status: "missed", type: "Athletic", duration: 0, notes: "Client no-show. Called but no answer.", loggedAt: "2 hrs after", late: true },
+  { id: "s4", client: "Ananya Iyer", trainer: "Sreekanta", date: "Feb 27", status: "completed", type: "Fat Loss", duration: 60, notes: "Excellent energy. Pushed cardio to 20 min.", loggedAt: "15 min after", late: false },
+  { id: "s5", client: "Vikram Nair", trainer: "Aman", date: "Feb 20", status: "cancelled", type: "General", duration: 0, notes: "Client cancelled — work emergency.", loggedAt: "Next day", late: true },
+  { id: "s6", client: "Deepika Singh", trainer: "Aman", date: "Feb 26", status: "modified", type: "Rehab", duration: 40, notes: "Reduced intensity. Client reported knee pain.", loggedAt: "1 hr after", late: false },
+];
+
+const ADMIN_INSTRUCTIONS = [
+  { id: "i1", title: "Holi Holiday — Mar 14", body: "No sessions on March 14. Inform all clients by March 10.", date: "Feb 28", priority: "high", by: "Admin" },
+  { id: "i2", title: "New Progress Protocol", body: "Progress photos must be logged every 4 weeks minimum. Use the progress tab. Non-compliance = accountability score deduction.", date: "Feb 25", priority: "high", by: "Admin" },
+  { id: "i3", title: "Session Log Deadline", body: "All session logs must be submitted within 2 hours of session end. Late logs will be flagged automatically.", date: "Feb 20", priority: "medium", by: "Admin" },
+  { id: "i4", title: "New Client Onboarding", body: "All new clients must complete the medical history form before first session. No exceptions.", date: "Feb 15", priority: "medium", by: "Admin" },
+];
+
+const TRAINER_WARNINGS = [
+  { trainerId: "t3", trainer: "Aman", date: "Feb 10", type: "Verbal Warning", note: "3 late session log submissions in Jan. Discussed importance of timely logging.", by: "Admin", followUp: "Mar 10" },
+];
+
+const PROGRESS_DATA = [
+  { week: "W1", weight: 94, strength: 60, bf: 28 },
+  { week: "W2", weight: 93.2, strength: 63, bf: 27.8 },
+  { week: "W3", weight: 92.1, strength: 65, bf: 27.2 },
+  { week: "W4", weight: 91.4, strength: 68, bf: 26.9 },
+  { week: "W5", weight: 90.8, strength: 71, bf: 26.3 },
+  { week: "W6", weight: 89.5, strength: 74, bf: 25.8 },
+  { week: "W7", weight: 88.9, strength: 76, bf: 25.2 },
+  { week: "W8", weight: 88.1, strength: 79, bf: 24.7 },
+];
+
+// ============================================================
+// STYLES
+// ============================================================
+const S = `
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0a0a0f; --surface: #111118; --surface2: #1a1a24; --surface3: #22222f;
-    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
-    --text: #f0f0f8; --text2: #9090a8; --text3: #5a5a70;
-    --accent: #6c63ff; --green: #22c55e; --yellow: #f59e0b; --red: #ef4444; --cyan: #06b6d4;
-    --font-display: 'Syne', sans-serif; --font-body: 'DM Sans', sans-serif;
-    --radius: 12px; --radius-sm: 8px;
+    --bg: #050508; --s1: #0d0d14; --s2: #13131d; --s3: #1a1a28; --s4: #222233;
+    --b1: rgba(255,255,255,0.06); --b2: rgba(255,255,255,0.10); --b3: rgba(255,255,255,0.16);
+    --t1: #ffffff; --t2: #a0a0b8; --t3: #606078; --t4: #3a3a52;
+    --brand: #ff4d00; --brand2: #ff7733; --green: #00d084; --green2: rgba(0,208,132,0.15);
+    --blue: #4d9fff; --blue2: rgba(77,159,255,0.15); --yellow: #ffb020; --yellow2: rgba(255,176,32,0.15);
+    --red: #ff4466; --red2: rgba(255,68,102,0.15); --purple: #9d6fff; --purple2: rgba(157,111,255,0.15);
+    --fd: 'Outfit',sans-serif; --fb: 'Outfit',sans-serif; --r: 14px; --rs: 10px;
   }
-  body { background: var(--bg); color: var(--text); font-family: var(--font-body); }
-  .app { display: flex; height: 100vh; overflow: hidden; }
-  .sidebar { width: 240px; min-width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-  .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
-  .logo-mark { font-family: var(--font-display); font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #6c63ff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .logo-sub { font-size: 10px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
-  .role-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
-  .role-admin { background: rgba(108,99,255,0.2); color: #a78bfa; border: 1px solid rgba(108,99,255,0.3); }
-  .role-trainer { background: rgba(6,182,212,0.2); color: #67e8f9; border: 1px solid rgba(6,182,212,0.3); }
-  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
-  .nav-section { padding: 8px 12px 4px; font-size: 10px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
-  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; cursor: pointer; border-radius: var(--radius-sm); margin: 1px 8px; font-size: 13.5px; color: var(--text2); transition: all 0.15s; font-weight: 500; border: 1px solid transparent; }
-  .nav-item:hover { background: var(--surface2); color: var(--text); }
-  .nav-item.active { background: rgba(108,99,255,0.15); color: #a78bfa; border-color: rgba(108,99,255,0.25); }
-  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
-  .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
-  .user-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface2); border-radius: var(--radius-sm); border: 1px solid var(--border); }
-  .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-  .avatar-admin { background: linear-gradient(135deg, #6c63ff, #a78bfa); color: white; }
-  .avatar-trainer { background: linear-gradient(135deg, #06b6d4, #0284c7); color: white; }
-  .avatar-client { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
-  .user-name { font-size: 13px; font-weight: 600; }
-  .user-role { font-size: 11px; color: var(--text3); }
-  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  .topbar { height: 60px; min-height: 60px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 16px; }
-  .topbar-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; flex: 1; }
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font-body); transition: all 0.15s; border: none; }
-  .btn-primary { background: var(--accent); color: white; }
-  .btn-primary:hover { background: #7c73ff; }
-  .btn-ghost { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
-  .btn-ghost:hover { background: var(--surface3); color: var(--text); }
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
-  .btn-logout { width: 100%; margin-top: 8px; background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); padding: 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-body); transition: all 0.15s; }
-  .btn-logout:hover { background: rgba(239,68,68,0.2); }
-  .content { flex: 1; overflow-y: auto; padding: 24px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-  .card-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
-  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-  .grid-2-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
-  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-  .stat-card.purple::before { background: linear-gradient(90deg, #6c63ff, #a78bfa); }
-  .stat-card.cyan::before { background: linear-gradient(90deg, #06b6d4, #0ea5e9); }
-  .stat-card.green::before { background: linear-gradient(90deg, #22c55e, #16a34a); }
-  .stat-card.orange::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
-  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-bottom: 8px; }
-  .stat-value { font-family: var(--font-display); font-size: 30px; font-weight: 800; line-height: 1; }
-  .stat-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; margin-top: 6px; }
-  .delta-up { color: var(--green); }
-  .delta-down { color: var(--red); }
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; padding: 10px 14px; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid var(--border); font-weight: 600; }
-  td { padding: 12px 14px; font-size: 13.5px; border-bottom: 1px solid var(--border); color: var(--text2); }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,0.02); }
-  .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .badge-green { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.2); }
-  .badge-red { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
-  .badge-yellow { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.2); }
-  .badge-purple { background: rgba(108,99,255,0.15); color: #a78bfa; border: 1px solid rgba(108,99,255,0.2); }
-  .badge-gray { background: rgba(255,255,255,0.08); color: var(--text3); border: 1px solid var(--border); }
-  .progress-wrap { background: var(--surface3); border-radius: 4px; overflow: hidden; height: 6px; }
-  .progress-bar { height: 100%; border-radius: 4px; }
-  .pb-green { background: linear-gradient(90deg, #22c55e, #16a34a); }
-  .pb-yellow { background: linear-gradient(90deg, #f59e0b, #d97706); }
-  .pb-purple { background: linear-gradient(90deg, #6c63ff, #a78bfa); }
-  .tabs { display: flex; gap: 4px; background: var(--surface2); padding: 4px; border-radius: var(--radius-sm); border: 1px solid var(--border); width: fit-content; margin-bottom: 16px; }
-  .tab { padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text2); transition: all 0.15s; }
-  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-  .activity-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .activity-item:last-child { border-bottom: none; }
-  .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-  .activity-dot.create { background: var(--green); }
-  .activity-dot.payment { background: var(--cyan); }
-  .activity-dot.update { background: var(--accent); }
-  .activity-dot.admin { background: var(--red); }
-  .mini-chart { height: 100px; display: flex; align-items: flex-end; gap: 4px; }
-  .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .chart-bar { width: 100%; border-radius: 3px 3px 0 0; }
-  .chart-label { font-size: 9px; color: var(--text3); }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
-  .gap-16 { display: flex; flex-direction: column; gap: 16px; }
-  .gap-12 { display: flex; flex-direction: column; gap: 12px; }
-  .gap-8 { display: flex; flex-direction: column; gap: 8px; }
-  .row { display: flex; align-items: center; gap: 8px; }
-  .section-title { font-family: var(--font-display); font-size: 22px; font-weight: 800; margin-bottom: 4px; }
-  .section-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
-  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: radial-gradient(ellipse at 60% 20%, rgba(108,99,255,0.12) 0%, transparent 60%), #0a0a0f; }
-  .login-card { width: 420px; background: #111118; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 40px; box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
-  .login-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: #f0f0f8; margin: 28px 0 6px; }
-  .login-sub { font-size: 13px; color: #9090a8; margin-bottom: 28px; }
-  .field { margin-bottom: 16px; }
-  .field label { display: block; font-size: 12px; color: #9090a8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-  .field input { width: 100%; padding: 12px 14px; background: #1a1a24; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #f0f0f8; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; }
-  .field input:focus { border-color: rgba(108,99,255,0.5); }
-  .field input::placeholder { color: #5a5a70; }
-  .btn-login { width: 100%; padding: 13px; background: #6c63ff; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
-  .btn-login:hover { background: #7c73ff; }
-  .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
-  .error-box { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #fca5a5; margin-bottom: 16px; }
-  .login-hint { font-size: 12px; color: #5a5a70; text-align: center; margin-top: 20px; }
+  html,body { background:var(--bg); color:var(--t1); font-family:var(--fb); height:100%; }
+  .app { display:flex; height:100vh; overflow:hidden; }
+  .sb { width:256px; min-width:256px; background:var(--s1); border-right:1px solid var(--b1); display:flex; flex-direction:column; overflow:hidden; position:relative; }
+  .sb::before { content:''; position:absolute; top:-60px; left:-60px; width:180px; height:180px; background:radial-gradient(circle,rgba(255,77,0,0.1) 0%,transparent 70%); pointer-events:none; }
+  .sb-logo { padding:24px 20px 18px; border-bottom:1px solid var(--b1); }
+  .logo-yt { font-family:var(--fd); font-size:22px; font-weight:900; letter-spacing:-0.5px; }
+  .logo-yt span { color:var(--brand); }
+  .logo-tag { font-size:10px; color:var(--t3); letter-spacing:2px; text-transform:uppercase; margin-top:3px; }
+  .rp { display:inline-flex; align-items:center; gap:5px; margin-top:10px; padding:3px 10px; border-radius:20px; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+  .rp-a { background:rgba(255,77,0,0.15); color:var(--brand2); border:1px solid rgba(255,77,0,0.3); }
+  .rp-t { background:var(--blue2); color:var(--blue); border:1px solid rgba(77,159,255,0.3); }
+  .sb-nav { flex:1; padding:12px 10px; overflow-y:auto; display:flex; flex-direction:column; gap:1px; }
+  .ng { font-size:10px; color:var(--t4); letter-spacing:2px; text-transform:uppercase; font-weight:700; padding:10px 10px 5px; }
+  .ni { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--rs); cursor:pointer; color:var(--t3); font-size:13px; font-weight:500; transition:all 0.15s; border:1px solid transparent; position:relative; }
+  .ni:hover { background:var(--s2); color:var(--t2); }
+  .ni.on { background:rgba(255,77,0,0.1); color:var(--brand2); border-color:rgba(255,77,0,0.2); }
+  .ni.on::before { content:''; position:absolute; left:0; top:20%; bottom:20%; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .ni-ic { font-size:15px; width:20px; text-align:center; flex-shrink:0; }
+  .ni-b { margin-left:auto; background:var(--brand); color:white; font-size:10px; font-weight:800; padding:1px 6px; border-radius:10px; }
+  .ni-b.red { background:var(--red); }
+  .ni-b.yellow { background:var(--yellow); color:#000; }
+  .sb-foot { padding:14px; border-top:1px solid var(--b1); }
+  .uc { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--s2); border-radius:var(--rs); border:1px solid var(--b1); }
+  .av { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; }
+  .av-a { background:linear-gradient(135deg,var(--brand),var(--brand2)); color:white; }
+  .av-t { background:linear-gradient(135deg,#4d9fff,#0066cc); color:white; }
+  .av-c { background:linear-gradient(135deg,#00d084,#00a066); color:white; }
+  .uc-n { font-size:13px; font-weight:600; }
+  .uc-r { font-size:11px; color:var(--t3); }
+  .btn-so { width:100%; margin-top:8px; background:var(--red2); color:var(--red); border:1px solid rgba(255,68,102,0.2); padding:8px; border-radius:var(--rs); font-size:12px; font-weight:700; cursor:pointer; font-family:var(--fb); transition:all 0.15s; }
+  .btn-so:hover { background:rgba(255,68,102,0.25); }
+  .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .topbar { height:60px; min-height:60px; background:var(--s1); border-bottom:1px solid var(--b1); display:flex; align-items:center; padding:0 24px; gap:14px; }
+  .tb-t { font-family:var(--fd); font-size:17px; font-weight:800; flex:1; letter-spacing:-0.3px; }
+  .content { flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:20px; }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:var(--rs); font-size:13px; font-weight:700; cursor:pointer; font-family:var(--fb); transition:all 0.15s; border:none; letter-spacing:0.2px; }
+  .btn-p { background:var(--brand); color:white; }
+  .btn-p:hover { background:var(--brand2); box-shadow:0 4px 16px rgba(255,77,0,0.3); }
+  .btn-g { background:var(--s2); color:var(--t2); border:1px solid var(--b2); }
+  .btn-g:hover { background:var(--s3); color:var(--t1); }
+  .btn-s { padding:6px 14px; font-size:12px; }
+  .btn-xs { padding:4px 10px; font-size:11px; }
+  .btn-dn { background:var(--red2); color:var(--red); border:1px solid rgba(255,68,102,0.2); }
+  .btn-dn:hover { background:rgba(255,68,102,0.25); }
+  .btn-ok { background:var(--green2); color:var(--green); border:1px solid rgba(0,208,132,0.2); }
+  .btn-warn { background:var(--yellow2); color:var(--yellow); border:1px solid rgba(255,176,32,0.2); }
+  .card { background:var(--s1); border:1px solid var(--b1); border-radius:var(--r); padding:20px; }
+  .card-sm { background:var(--s2); border:1px solid var(--b1); border-radius:var(--rs); padding:14px; }
+  .ch { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .ct { font-family:var(--fd); font-size:12px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:1px; }
+  .sc { background:var(--s1); border:1px solid var(--b1); border-radius:var(--r); padding:20px; position:relative; overflow:hidden; transition:border-color 0.2s; }
+  .sc:hover { border-color:var(--b2); }
+  .sc-bar { position:absolute; top:0; left:0; right:0; height:3px; border-radius:3px 3px 0 0; }
+  .sl { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:1.5px; font-weight:700; margin-bottom:8px; }
+  .sv { font-family:var(--fd); font-size:32px; font-weight:900; line-height:1; letter-spacing:-1px; }
+  .ss { font-size:11px; color:var(--t3); margin-top:5px; }
+  .sd { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700; margin-top:5px; }
+  .sup { color:var(--green); }
+  .sdn { color:var(--red); }
+  .g4 { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .g3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  .g23 { display:grid; grid-template-columns:2fr 1fr; gap:14px; }
+  .g32 { display:grid; grid-template-columns:3fr 2fr; gap:14px; }
+  .tw { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; padding:10px 14px; font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:1.5px; border-bottom:1px solid var(--b1); font-weight:700; white-space:nowrap; }
+  td { padding:12px 14px; font-size:13px; border-bottom:1px solid var(--b1); color:var(--t2); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(255,255,255,0.015); }
+  .badge { display:inline-flex; align-items:center; padding:3px 9px; border-radius:20px; font-size:10px; font-weight:700; white-space:nowrap; }
+  .bg { background:var(--green2); color:var(--green); border:1px solid rgba(0,208,132,0.2); }
+  .br { background:var(--red2); color:var(--red); border:1px solid rgba(255,68,102,0.2); }
+  .by { background:var(--yellow2); color:var(--yellow); border:1px solid rgba(255,176,32,0.2); }
+  .bb { background:var(--blue2); color:var(--blue); border:1px solid rgba(77,159,255,0.2); }
+  .bp { background:var(--purple2); color:var(--purple); border:1px solid rgba(157,111,255,0.2); }
+  .bgr { background:rgba(255,255,255,0.06); color:var(--t3); border:1px solid var(--b1); }
+  .bo { background:rgba(255,77,0,0.12); color:var(--brand2); border:1px solid rgba(255,77,0,0.25); }
+  .pw { background:var(--s4); border-radius:4px; overflow:hidden; height:5px; }
+  .pb { height:100%; border-radius:4px; }
+  .pb-g { background:linear-gradient(90deg,var(--green),#00a066); }
+  .pb-y { background:linear-gradient(90deg,var(--yellow),#cc8800); }
+  .pb-r { background:linear-gradient(90deg,var(--red),#cc0033); }
+  .pb-o { background:linear-gradient(90deg,var(--brand),var(--brand2)); }
+  .pb-b { background:linear-gradient(90deg,var(--blue),#0055cc); }
+  .tabs { display:flex; gap:2px; background:var(--s2); padding:4px; border-radius:var(--rs); border:1px solid var(--b1); width:fit-content; flex-wrap:wrap; }
+  .tab { padding:7px 16px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; color:var(--t3); transition:all 0.15s; white-space:nowrap; }
+  .tab.on { background:var(--s1); color:var(--t1); box-shadow:0 1px 6px rgba(0,0,0,0.5); }
+  .ai { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--b1); }
+  .ai:last-child { border-bottom:none; }
+  .ad { width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-top:6px; }
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-thumb { background:var(--s4); border-radius:4px; }
+  .row { display:flex; align-items:center; gap:8px; }
+  .col { display:flex; flex-direction:column; }
+  .flex-wrap { flex-wrap:wrap; }
+  .gap6 { gap:6px; }
+  .ml8 { margin-left:8px; }
+  .gap4 { gap:4px; }
+  .gap8 { gap:8px; }
+  .gap12 { gap:12px; }
+  .gap16 { gap:16px; }
+  .gap20 { gap:20px; }
+  .mla { margin-left:auto; }
+  .flex-wrap { flex-wrap:wrap; }
+  .gap6 { gap:6px; }
+  .ml8 { margin-left:8px; }
+  .mt4 { margin-top:4px; }
+  .mt8 { margin-top:8px; }
+  .mt12 { margin-top:12px; }
+  .mt16 { margin-top:16px; }
+  .mb8 { margin-bottom:8px; }
+  .mb12 { margin-bottom:12px; }
+  .mb16 { margin-bottom:16px; }
+  .tg { color:var(--green); }
+  .tr { color:var(--red); }
+  .ty { color:var(--yellow); }
+  .tb { color:var(--blue); }
+  .to { color:var(--brand2); }
+  .tp { color:var(--purple); }
+  .fw6 { font-weight:600; }
+  .fw7 { font-weight:700; }
+  .fw8 { font-weight:800; }
+  .t1 { color:var(--t1); }
+  .t2 { color:var(--t2); }
+  .t3 { color:var(--t3); }
+  .fs10 { font-size:10px; }
+  .fs11 { font-size:11px; }
+  .fs12 { font-size:12px; }
+  .fs13 { font-size:13px; }
+  .fs14 { font-size:14px; }
+  .ffd { font-family:var(--fd); }
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .modal { background:var(--s1); border:1px solid var(--b2); border-radius:var(--r); padding:26px; width:540px; max-height:85vh; overflow-y:auto; }
+  .modal-lg { width:680px; }
+  .modal-t { font-family:var(--fd); font-size:18px; font-weight:800; margin-bottom:18px; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:10px; color:var(--t3); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
+  .fi { width:100%; padding:9px 12px; background:var(--s2); border:1px solid var(--b2); border-radius:var(--rs); color:var(--t1); font-size:13px; font-family:var(--fb); outline:none; transition:border-color 0.2s; }
+  .fi:focus { border-color:rgba(255,77,0,0.4); }
+  .fi::placeholder { color:var(--t4); }
+  .fi option { background:var(--s2); }
+  .sh { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .sh-l h2 { font-family:var(--fd); font-size:21px; font-weight:900; letter-spacing:-0.5px; }
+  .sh-l p { font-size:12px; color:var(--t3); margin-top:3px; }
+  .alert { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:var(--rs); font-size:12px; }
+  .al-y { background:var(--yellow2); border:1px solid rgba(255,176,32,0.2); color:var(--yellow); }
+  .al-r { background:var(--red2); border:1px solid rgba(255,68,102,0.2); color:var(--red); }
+  .al-g { background:var(--green2); border:1px solid rgba(0,208,132,0.2); color:var(--green); }
+  .al-b { background:var(--blue2); border:1px solid rgba(77,159,255,0.2); color:var(--blue); }
+  .cc { background:var(--s1); border:1px solid var(--b1); border-radius:var(--r); padding:16px; cursor:pointer; transition:all 0.15s; }
+  .cc:hover { border-color:rgba(255,77,0,0.3); background:rgba(255,77,0,0.02); }
+  .score-ring { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .ex-card { background:var(--s2); border:1px solid var(--b1); border-radius:var(--rs); padding:12px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; transition:all 0.15s; }
+  .ex-card:hover { border-color:rgba(255,77,0,0.25); }
+  .bc { height:100px; display:flex; align-items:flex-end; gap:4px; }
+  .bw { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .bb2 { width:100%; border-radius:3px 3px 0 0; min-height:4px; }
+  .bl { font-size:9px; color:var(--t3); }
+  .log-row { display:grid; grid-template-columns:1fr 72px 72px 72px; gap:6px; align-items:center; padding:7px 0; border-bottom:1px solid var(--b1); }
+  .log-row:last-child { border-bottom:none; }
+  .log-inp { background:var(--s3); border:1px solid var(--b2); border-radius:6px; padding:6px 8px; color:var(--t1); font-size:12px; font-family:var(--fb); outline:none; width:100%; text-align:center; }
+  .log-inp:focus { border-color:rgba(255,77,0,0.4); }
+  .flag-card { background:var(--s2); border-radius:var(--rs); padding:12px 14px; border-left:3px solid; }
+  .lw { min-height:100vh; display:flex; align-items:center; justify-content:center; background:radial-gradient(ellipse at 50% 0%,rgba(255,77,0,0.08) 0%,transparent 60%),var(--bg); }
+  .lc { width:420px; background:var(--s1); border:1px solid var(--b1); border-radius:18px; padding:40px; box-shadow:0 32px 80px rgba(0,0,0,0.8); }
+  .lt { font-family:var(--fd); font-size:22px; font-weight:900; margin:22px 0 5px; }
+  .ls { font-size:12px; color:var(--t3); margin-bottom:24px; }
+  .li { width:100%; padding:12px 14px; background:var(--s2); border:1px solid var(--b2); border-radius:var(--rs); color:var(--t1); font-size:13px; font-family:var(--fb); outline:none; transition:border-color 0.2s; margin-bottom:10px; }
+  .li:focus { border-color:rgba(255,77,0,0.5); }
+  .li::placeholder { color:var(--t4); }
+  .lb { font-size:10px; color:var(--t3); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; display:block; }
+  .lbtn { width:100%; padding:13px; background:var(--brand); color:white; border:none; border-radius:var(--rs); font-size:14px; font-weight:800; font-family:var(--fb); cursor:pointer; transition:all 0.2s; margin-top:4px; }
+  .lbtn:hover { background:var(--brand2); box-shadow:0 8px 24px rgba(255,77,0,0.35); }
+  .lbtn:disabled { opacity:0.5; cursor:not-allowed; }
+  .lerr { background:var(--red2); border:1px solid rgba(255,68,102,0.25); border-radius:var(--rs); padding:10px 12px; font-size:12px; color:var(--red); margin-bottom:14px; }
+  .overdue-tag { background:var(--red2); color:var(--red); font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; text-transform:uppercase; }
 `;
 
-function LineChart({ data, color = "#6c63ff" }: { data: number[]; color?: string }) {
-  const w = 300, h = 80, pad = 8;
+// ============================================================
+// CHARTS
+// ============================================================
+function LineChart({ data, color = "#ff4d00" }: { data: number[]; color?: string }) {
+  const w = 340, h = 85, pad = 10;
   const max = Math.max(...data), min = Math.min(...data), range = max - min || 1;
   const pts = data.map((v, i) => {
     const x = pad + (i / (data.length - 1)) * (w - pad * 2);
     const y = h - pad - ((v - min) / range) * (h - pad * 2);
     return `${x},${y}`;
   });
-  const gid = `g${color.replace("#", "")}`;
+  const gid = `g${color.replace(/[^a-z0-9]/gi, "")}`;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", overflow: "visible" }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={`M${pts[0]} L${pts.join(" L")} L${pad + (w - pad * 2)},${h} L${pad},${h} Z`} fill={`url(#${gid})`} />
-      <path d={`M${pts[0]} L${pts.join(" L")}`} stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
-      {pts.map((pt, i) => <circle key={i} cx={pt.split(",")[0]} cy={pt.split(",")[1]} r="3" fill={color} />)}
+      <path d={`M${pts[0]} L${pts.join(" L")}`} stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((pt, i) => <circle key={i} cx={pt.split(",")[0]} cy={pt.split(",")[1]} r="4" fill={color} stroke="var(--s1)" strokeWidth="2" />)}
     </svg>
   );
 }
@@ -180,359 +343,1972 @@ function LineChart({ data, color = "#6c63ff" }: { data: number[]; color?: string
 function BarChart({ data, color }: { data: { l: string; v: number }[]; color: string }) {
   const max = Math.max(...data.map(d => d.v));
   return (
-    <div className="mini-chart">
+    <div className="bc">
       {data.map((d, i) => (
-        <div key={i} className="chart-bar-wrap">
-          <div className="chart-bar" style={{ height: `${(d.v / max) * 85}px`, background: `linear-gradient(180deg, ${color}, ${color}66)` }} />
-          <div className="chart-label">{d.l}</div>
+        <div key={i} className="bw">
+          <div className="bb2" style={{ height: `${(d.v / max) * 85}px`, background: `linear-gradient(180deg,${color},${color}44)` }} title={`${d.l}: ${d.v}`} />
+          <div className="bl">{d.l}</div>
         </div>
       ))}
     </div>
   );
 }
 
+function ScoreRing({ score, size = 70 }: { score: number; size?: number }) {
+  const r = size * 0.38, circ = 2 * Math.PI * r;
+  const color = score >= 85 ? "#00d084" : score >= 70 ? "#ffb020" : "#ff4466";
+  return (
+    <div className="score-ring">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={size * 0.1} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={size * 0.1}
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - score / 100)}
+          strokeLinecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+        <text x={size / 2} y={size / 2 + 5} textAnchor="middle" fill="white" fontSize={size * 0.22} fontFamily="'Outfit',sans-serif" fontWeight="800">{score}</text>
+      </svg>
+      <span style={{ fontSize: 10, color: "var(--t3)" }}>Score</span>
+    </div>
+  );
+}
+
+function Donut({ value, color, label }: { value: number; color: string; label: string }) {
+  const r = 30, circ = 2 * Math.PI * r;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+      <svg width={76} height={76} viewBox="0 0 76 76">
+        <circle cx="38" cy="38" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+        <circle cx="38" cy="38" r={r} fill="none" stroke={color} strokeWidth="8"
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - value / 100)}
+          strokeLinecap="round" transform="rotate(-90 38 38)" />
+        <text x="38" y="43" textAnchor="middle" fill="white" fontSize="14" fontFamily="'Outfit',sans-serif" fontWeight="800">{value}%</text>
+      </svg>
+      <span style={{ fontSize: 10, color: "var(--t3)" }}>{label}</span>
+    </div>
+  );
+}
+
+// ============================================================
 // LOGIN
-function LoginPage() {
+// ============================================================
+function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [pass, setPass] = useState("");
+  const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(""); setLoading(true);
-    try { await login(email, password); }
-    catch (err: any) { setError(err.message || "Login failed. Check your credentials."); }
+  const go = async (e: React.FormEvent) => {
+    e.preventDefault(); setErr(""); setLoading(true);
+    try { await login(email, pass); }
+    catch (ex: any) { setErr(ex.message || "Invalid credentials."); }
     finally { setLoading(false); }
   };
-
   return (
-    <div className="login-wrap">
-      <div className="login-card">
-        <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, background: "linear-gradient(135deg, #6c63ff, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FitOS</div>
-        <div style={{ fontSize: 11, color: "#5a5a70", letterSpacing: 2, textTransform: "uppercase", marginTop: 4 }}>Trainer Platform</div>
-        <div className="login-title">Welcome back</div>
-        <div className="login-sub">Sign in to access your dashboard</div>
-        {error && <div className="error-box">⚠ {error}</div>}
-        <form onSubmit={handleLogin}>
-          <div className="field">
-            <label>Email Address</label>
-            <input type="email" placeholder="you@yourtrainer.com" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
-          </div>
-          <div className="field">
-            <label>Password</label>
-            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
-          </div>
-          <button className="btn-login" type="submit" disabled={loading}>{loading ? "Signing in..." : "Sign In →"}</button>
+    <div className="lw">
+      <div className="lc">
+        <div className="logo-yt">Your<span>Trainer</span></div>
+        <div className="logo-tag" style={{ marginTop: 4 }}>India's Trainer Platform</div>
+        <div className="lt">Sign in</div>
+        <div className="ls">Role detected automatically on login</div>
+        {err && <div className="lerr">⚠ {err}</div>}
+        <form onSubmit={go}>
+          <label className="lb">Email</label>
+          <input className="li" type="email" placeholder="you@yourtrainer.in" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
+          <label className="lb">Password</label>
+          <input className="li" type="password" placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} required />
+          <button className="lbtn" type="submit" disabled={loading}>{loading ? "Signing in..." : "Sign In →"}</button>
         </form>
-        <div className="login-hint">Admin · Trainer · Client — role auto-detected on login</div>
+        <div style={{ fontSize: 11, color: "var(--t4)", textAlign: "center", marginTop: 18 }}>Admin · Trainer · Client — one login</div>
       </div>
     </div>
   );
 }
 
-// ADMIN
-function AdminDashboard({ name, onLogout }: { name: string; onLogout: () => void }) {
+// ============================================================
+// ADMIN DASHBOARD
+// ============================================================
+function Admin({ name, logout }: { name: string; logout: () => void }) {
   const [tab, setTab] = useState("overview");
-  const revData = [{ l: "Sep", v: 61000 }, { l: "Oct", v: 68000 }, { l: "Nov", v: 72000 }, { l: "Dec", v: 65000 }, { l: "Jan", v: 78000 }, { l: "Feb", v: 84200 }];
-  const navItems = [{ id: "overview", icon: "⬛", label: "Dashboard" }, { id: "trainers", icon: "🏋", label: "Trainers" }, { id: "clients", icon: "👥", label: "All Clients" }, { id: "activity", icon: "📋", label: "Activity Logs" }];
+  const [trainers, setTrainers] = useState(MOCK_TRAINERS);
+  const [clients, setClients] = useState(MOCK_CLIENTS);
+  const [sessionLogs] = useState(SESSION_LOGS);
+  const [instructions, setInstructions] = useState(ADMIN_INSTRUCTIONS);
+  const [warnings, setWarnings] = useState(TRAINER_WARNINGS);
+
+  // Modal visibility
+  const [showAddTrainer, setShowAddTrainer] = useState(false);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [showInstruction, setShowInstruction] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [showEditClient, setShowEditClient] = useState(false);
+
+  // Selected items
+  const [selectedTrainer, setSelectedTrainer] = useState<any>(null);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [pwTarget, setPwTarget] = useState<any>(null);
+
+
+  // Form state
+  const [newTrainer, setNewTrainer] = useState({ name: "", email: "", speciality: "", plan: "Starter" });
+  const [newClient, setNewClient] = useState({ name: "", phone: "", trainer: "", goal: "", weight: "", notes: "" });
+  const [newInstruction, setNewInstruction] = useState({ title: "", body: "", priority: "medium" });
+  const [newWarning, setNewWarning] = useState({ trainer: "", type: "Verbal Warning", note: "", followUp: "" });
+  const [pwForm, setPwForm] = useState({ newPw: "", confirmPw: "" });
+  const [pwMsg, setPwMsg] = useState("");
+  const [editForm, setEditForm] = useState<any>({});
+
+  // Filters
+  const [clientSearch, setClientSearch] = useState("");
+  const [trainerFilter, setTrainerFilter] = useState("all");
+  const [clientStatusFilter, setClientStatusFilter] = useState("all");
+
+  // Derived
+  const totalRevenue = trainers.reduce((s, t) => s + t.revenue, 0);
+  const pendingLogs = trainers.reduce((s, t) => s + t.pendingLogs, 0);
+  const flaggedClients = clients.filter(c => c.riskFlag || c.injuries.length > 0);
+  const atRiskClients = clients.filter(c => c.compliance < 75 || c.payment === "Overdue" || c.sessionsRemaining <= 2);
+  const lowAttendance = clients.filter(c => c.compliance < 70);
+  const todaySessions = sessionLogs.filter(s => s.date === "Feb 27" || s.date === "Feb 28");
+  const avgAccountability = Math.round(trainers.reduce((s, t) => s + t.accountabilityScore, 0) / trainers.length);
+  const revData = [{ l: "Sep", v: 98000 }, { l: "Oct", v: 112000 }, { l: "Nov", v: 128000 }, { l: "Dec", v: 118000 }, { l: "Jan", v: 142000 }, { l: "Feb", v: 162400 }];
+
+  const navItems = [
+    { id: "overview", icon: "◼", label: "Control Room" },
+    { id: "trainer-perf", icon: "📊", label: "Trainer Performance" },
+    { id: "clients", icon: "👥", label: "Client Oversight", badge: atRiskClients.length, badgeColor: "red" },
+    { id: "sessions", icon: "📝", label: "Session Logs", badge: pendingLogs, badgeColor: "yellow" },
+    { id: "flags", icon: "🚨", label: "Flags & Alerts", badge: flaggedClients.length + lowAttendance.length, badgeColor: "red" },
+    { id: "revenue", icon: "₹", label: "Revenue & Plans" },
+    { id: "templates", icon: "🏋", label: "Workout Templates" },
+    { id: "comms", icon: "📣", label: "Instructions Feed" },
+    { id: "warnings", icon: "⚠", label: "Warnings Log" },
+    { id: "audit", icon: "🔒", label: "Audit Trail" },
+    { id: "reports", icon: "📋", label: "Weekly Report" },
+    { id: "trainers-list", icon: "👤", label: "Trainers" },
+  ];
+
+  // ── ACTIONS ──
+  const addTrainer = () => {
+    if (!newTrainer.name || !newTrainer.email) return;
+    setTrainers(p => [...p, {
+      id: `t${Date.now()}`, name: newTrainer.name, email: newTrainer.email,
+      avatar: newTrainer.name.split(" ").map((n:string) => n[0]).join("").toUpperCase().slice(0, 2),
+      clients: 0, retention: 0, revenue: 0, sessions: 0, sessionsAssigned: 0,
+      missedSessions: 0, pendingLogs: 0, status: "active", plan: newTrainer.plan,
+      speciality: newTrainer.speciality, joined: "Feb 2026", rating: 0,
+      accountabilityScore: 100, warnings: 0, progressUpdatesThisMonth: 0, lateSubmissions: 0
+    }]);
+    setNewTrainer({ name: "", email: "", speciality: "", plan: "Starter" });
+    setShowAddTrainer(false);
+  };
+
+  const addClient = () => {
+    if (!newClient.name || !newClient.trainer) return;
+    setClients(p => [...p, {
+      id: `c${Date.now()}`, name: newClient.name, goal: newClient.goal || "General Fitness",
+      weight: Number(newClient.weight) || 70, startWeight: Number(newClient.weight) || 70,
+      target: 65, sessions: 0, sessionsAssigned: 12, compliance: 0, payment: "Active",
+      paymentExpiry: "Jun 30", sessionsRemaining: 12, planTotal: 12, nextSession: "TBD",
+      delta: 0, trainer: newClient.trainer, phone: newClient.phone, joined: "Feb 2026",
+      notes: newClient.notes, progressLastUpdated: "Never", injuries: [], riskFlag: false,
+      lastSession: "None", missedSessions: 0, lateLog: false, active: true
+    }]);
+    // Update trainer client count
+    setTrainers(p => p.map(t => t.name === newClient.trainer ? { ...t, clients: t.clients + 1 } : t));
+    setNewClient({ name: "", phone: "", trainer: "", goal: "", weight: "", notes: "" });
+    setShowAddClient(false);
+  };
+
+  const saveEditClient = () => {
+    if (!editForm.name) return;
+    setClients(p => p.map(c => c.id === editForm.id ? { ...c, ...editForm } : c));
+    setShowEditClient(false);
+    setSelectedClient({ ...editForm });
+  };
+
+  const toggleClientStatus = (clientId: string) => {
+    setClients(p => p.map(c => c.id === clientId ? { ...c, active: !c.active } : c));
+    if (selectedClient?.id === clientId) {
+      setSelectedClient((prev: any) => ({ ...prev, active: !prev.active }));
+    }
+  };
+
+  const postInstruction = () => {
+    if (!newInstruction.title) return;
+    setInstructions(p => [{ id: `i${Date.now()}`, title: newInstruction.title, body: newInstruction.body, date: "Feb 28", priority: newInstruction.priority, by: "Admin" }, ...p]);
+    setNewInstruction({ title: "", body: "", priority: "medium" });
+    setShowInstruction(false);
+  };
+
+  const deleteInstruction = (id: string) => {
+    setInstructions(p => p.filter(i => i.id !== id));
+  };
+
+  const addWarning = () => {
+    if (!newWarning.trainer || !newWarning.note) return;
+    setWarnings(p => [{ trainerId: `t${Date.now()}`, trainer: newWarning.trainer, date: "Feb 28", type: newWarning.type, note: newWarning.note, by: "Admin", followUp: newWarning.followUp }, ...p]);
+    setTrainers(prev => prev.map(tr => tr.name === newWarning.trainer ? { ...tr, warnings: tr.warnings + 1 } : tr));
+    setNewWarning({ trainer: "", type: "Verbal Warning", note: "", followUp: "" });
+    setShowWarning(false);
+  };
+
+  const changePassword = () => {
+    if (!pwForm.newPw || pwForm.newPw !== pwForm.confirmPw) {
+      setPwMsg(pwForm.newPw ? "Passwords do not match." : "Enter a new password.");
+      return;
+    }
+    if (pwForm.newPw.length < 6) { setPwMsg("Password must be at least 6 characters."); return; }
+    // In production: call Firebase Admin SDK / auth update here
+    setPwMsg(`✓ Password updated for ${pwTarget?.name}. (Firebase update required in production)`);
+    setPwForm({ newPw: "", confirmPw: "" });
+    setTimeout(() => { setShowChangePw(false); setPwMsg(""); setPwTarget(null); }, 2000);
+  };
+
+  const toggleTrainerStatus = (trainerId: string) => {
+    setTrainers(p => p.map(t => t.id === trainerId ? { ...t, status: t.status === "active" ? "suspended" : "active" } : t));
+    if (selectedTrainer?.id === trainerId) {
+      setSelectedTrainer((prev: any) => ({ ...prev, status: prev.status === "active" ? "suspended" : "active" }));
+    }
+  };
+
+  // Filtered clients
+  const filteredClients = clients.filter(c => {
+    const matchSearch = c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.trainer.toLowerCase().includes(clientSearch.toLowerCase());
+    const matchTrainer = trainerFilter === "all" || c.trainer === trainerFilter;
+    const matchStatus = clientStatusFilter === "all" || (clientStatusFilter === "active" ? c.active !== false : c.active === false);
+    return matchSearch && matchTrainer && matchStatus;
+  });
+
+  const openEditClient = (c: any) => {
+    setEditForm({ ...c });
+    setShowEditClient(true);
+  };
 
   return (
     <div className="app">
-      <div className="sidebar">
-        <div className="sidebar-logo">
-          <div className="logo-mark">FitOS</div>
-          <div className="logo-sub">Trainer Platform</div>
-          <div className="role-badge role-admin">⚡ Super Admin</div>
+      <style>{S}</style>
+
+      {/* ── CHANGE PASSWORD MODAL ── */}
+      {showChangePw && (
+        <div className="overlay" onClick={() => { setShowChangePw(false); setPwMsg(""); }}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-t">Change Password — {pwTarget?.name}</div>
+            <div className="fs12 t3 mb16">This will update the trainer's login password. In production this calls the Firebase Admin SDK.</div>
+            {pwMsg && <div className={`alert ${pwMsg.startsWith("✓") ? "al-g" : "al-r"} mb12`}>{pwMsg}</div>}
+            <div className="field"><label>New Password</label><input className="fi" type="password" placeholder="Min 6 characters" value={pwForm.newPw} onChange={e => setPwForm(p => ({ ...p, newPw: e.target.value }))} /></div>
+            <div className="field"><label>Confirm Password</label><input className="fi" type="password" placeholder="Re-enter password" value={pwForm.confirmPw} onChange={e => setPwForm(p => ({ ...p, confirmPw: e.target.value }))} /></div>
+            <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => { setShowChangePw(false); setPwMsg(""); }}>Cancel</button><button className="btn btn-p btn-s mla" onClick={changePassword}>Update Password</button></div>
+          </div>
         </div>
-        <div className="sidebar-nav">
-          <div className="nav-section">Platform</div>
+      )}
+
+      {/* ── EDIT CLIENT MODAL ── */}
+      {showEditClient && editForm && (
+        <div className="overlay" onClick={() => setShowEditClient(false)}>
+          <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+            <div className="modal-t">Edit Client — {editForm.name}</div>
+            <div className="g2">
+              <div className="field"><label>Full Name</label><input className="fi" value={editForm.name || ""} onChange={e => setEditForm((p:any) => ({ ...p, name: e.target.value }))} /></div>
+              <div className="field"><label>Phone</label><input className="fi" value={editForm.phone || ""} onChange={e => setEditForm((p:any) => ({ ...p, phone: e.target.value }))} /></div>
+            </div>
+            <div className="g2">
+              <div className="field"><label>Assign Trainer</label>
+                <select className="fi" value={editForm.trainer || ""} onChange={e => setEditForm((p:any) => ({ ...p, trainer: e.target.value }))}>
+                  {trainers.map(t => <option key={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div className="field"><label>Goal</label>
+                <select className="fi" value={editForm.goal || ""} onChange={e => setEditForm((p:any) => ({ ...p, goal: e.target.value }))}>
+                  <option>Weight Loss</option><option>Muscle Gain</option><option>Athletic Performance</option><option>General Fitness</option><option>Post-Injury Rehab</option>
+                </select>
+              </div>
+            </div>
+            <div className="g2">
+              <div className="field"><label>Current Weight (kg)</label><input className="fi" type="number" value={editForm.weight || ""} onChange={e => setEditForm((p:any) => ({ ...p, weight: Number(e.target.value) }))} /></div>
+              <div className="field"><label>Target Weight (kg)</label><input className="fi" type="number" value={editForm.target || ""} onChange={e => setEditForm((p:any) => ({ ...p, target: Number(e.target.value) }))} /></div>
+            </div>
+            <div className="field"><label>Internal Notes</label><textarea className="fi" rows={3} value={editForm.notes || ""} onChange={e => setEditForm((p:any) => ({ ...p, notes: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="g2">
+              <div className="field"><label>Payment Status</label>
+                <select className="fi" value={editForm.payment || "Active"} onChange={e => setEditForm((p:any) => ({ ...p, payment: e.target.value }))}>
+                  <option>Active</option><option>Expiring</option><option>Overdue</option>
+                </select>
+              </div>
+              <div className="field"><label>Account Status</label>
+                <select className="fi" value={editForm.active === false ? "inactive" : "active"} onChange={e => setEditForm((p:any) => ({ ...p, active: e.target.value === "active" }))}>
+                  <option value="active">Active</option><option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+            <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowEditClient(false)}>Cancel</button><button className="btn btn-p btn-s mla" onClick={saveEditClient}>Save Changes</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ADD TRAINER ── */}
+      {showAddTrainer && (
+        <div className="overlay" onClick={() => setShowAddTrainer(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-t">Add New Trainer</div>
+            <div className="field"><label>Full Name</label><input className="fi" placeholder="e.g. Rahul Verma" value={newTrainer.name} onChange={e => setNewTrainer(p => ({ ...p, name: e.target.value }))} /></div>
+            <div className="field"><label>Email</label><input className="fi" type="email" placeholder="trainer@yourtrainer.in" value={newTrainer.email} onChange={e => setNewTrainer(p => ({ ...p, email: e.target.value }))} /></div>
+            <div className="field"><label>Speciality</label><input className="fi" placeholder="e.g. Weight Loss & HIIT" value={newTrainer.speciality} onChange={e => setNewTrainer(p => ({ ...p, speciality: e.target.value }))} /></div>
+            <div className="field"><label>Plan</label><select className="fi" value={newTrainer.plan} onChange={e => setNewTrainer(p => ({ ...p, plan: e.target.value }))}><option>Starter</option><option>Pro</option></select></div>
+            <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowAddTrainer(false)}>Cancel</button><button className="btn btn-p btn-s mla" onClick={addTrainer}>Add Trainer</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ADD CLIENT ── */}
+      {showAddClient && (
+        <div className="overlay" onClick={() => setShowAddClient(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-t">Add New Client</div>
+            <div className="g2">
+              <div className="field"><label>Full Name *</label><input className="fi" placeholder="Client name" value={newClient.name} onChange={e => setNewClient(p => ({ ...p, name: e.target.value }))} /></div>
+              <div className="field"><label>Phone</label><input className="fi" placeholder="+91 98765 43210" value={newClient.phone} onChange={e => setNewClient(p => ({ ...p, phone: e.target.value }))} /></div>
+            </div>
+            <div className="g2">
+              <div className="field"><label>Assign Trainer *</label>
+                <select className="fi" value={newClient.trainer} onChange={e => setNewClient(p => ({ ...p, trainer: e.target.value }))}>
+                  <option value="">Select trainer...</option>
+                  {trainers.filter(t => t.status === "active").map(t => <option key={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div className="field"><label>Goal</label>
+                <select className="fi" value={newClient.goal} onChange={e => setNewClient(p => ({ ...p, goal: e.target.value }))}>
+                  <option value="">Select goal...</option>
+                  <option>Weight Loss</option><option>Muscle Gain</option><option>Athletic Performance</option><option>General Fitness</option><option>Post-Injury Rehab</option>
+                </select>
+              </div>
+            </div>
+            <div className="field"><label>Current Weight (kg)</label><input className="fi" type="number" placeholder="75" value={newClient.weight} onChange={e => setNewClient(p => ({ ...p, weight: e.target.value }))} /></div>
+            <div className="field"><label>Health Notes / Restrictions</label><textarea className="fi" rows={3} placeholder="Injuries, medications, dietary restrictions..." value={newClient.notes} onChange={e => setNewClient(p => ({ ...p, notes: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowAddClient(false)}>Cancel</button><button className="btn btn-p btn-s mla" onClick={addClient}>Add Client</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* ── POST INSTRUCTION ── */}
+      {showInstruction && (
+        <div className="overlay" onClick={() => setShowInstruction(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-t">Post Instruction to Trainers</div>
+            <div className="field"><label>Title</label><input className="fi" placeholder="e.g. Holiday Schedule Update" value={newInstruction.title} onChange={e => setNewInstruction(p => ({ ...p, title: e.target.value }))} /></div>
+            <div className="field"><label>Message</label><textarea className="fi" rows={4} placeholder="Full instruction details..." value={newInstruction.body} onChange={e => setNewInstruction(p => ({ ...p, body: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="field"><label>Priority</label><select className="fi" value={newInstruction.priority} onChange={e => setNewInstruction(p => ({ ...p, priority: e.target.value }))}><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select></div>
+            <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowInstruction(false)}>Cancel</button><button className="btn btn-p btn-s mla" onClick={postInstruction}>Post Instruction</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ADD WARNING ── */}
+      {showWarning && (
+        <div className="overlay" onClick={() => setShowWarning(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-t">Log Trainer Warning</div>
+            <div className="field"><label>Trainer</label><select className="fi" value={newWarning.trainer} onChange={e => setNewWarning(p => ({ ...p, trainer: e.target.value }))}><option value="">Select trainer...</option>{trainers.map(t => <option key={t.id}>{t.name}</option>)}</select></div>
+            <div className="field"><label>Warning Type</label><select className="fi" value={newWarning.type} onChange={e => setNewWarning(p => ({ ...p, type: e.target.value }))}><option>Verbal Warning</option><option>Written Warning</option><option>Final Warning</option><option>Improvement Plan</option></select></div>
+            <div className="field"><label>Private Note (Admin only)</label><textarea className="fi" rows={4} placeholder="Details of warning, expected improvement..." value={newWarning.note} onChange={e => setNewWarning(p => ({ ...p, note: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="field"><label>Follow-up Date</label><input className="fi" type="date" value={newWarning.followUp} onChange={e => setNewWarning(p => ({ ...p, followUp: e.target.value }))} /></div>
+            <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowWarning(false)}>Cancel</button><button className="btn btn-dn btn-s mla" onClick={addWarning}>Log Warning</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TRAINER DETAIL MODAL ── */}
+      {selectedTrainer && !showChangePw && (
+        <div className="overlay" onClick={() => setSelectedTrainer(null)}>
+          <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+            <div className="row mb16">
+              <div className="av av-t" style={{ width: 48, height: 48, fontSize: 16 }}>{selectedTrainer.avatar}</div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{selectedTrainer.name}</div>
+                <div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedTrainer.speciality} · {selectedTrainer.email}</div>
+                <span className={`badge fs10 mt4 ${selectedTrainer.status === "active" ? "bg" : "br"}`}>{selectedTrainer.status}</span>
+              </div>
+              <div className="mla"><ScoreRing score={selectedTrainer.accountabilityScore} size={60} /></div>
+              <button className="btn btn-g btn-xs" onClick={() => setSelectedTrainer(null)}>✕</button>
+            </div>
+            <div className="g4 mb16">
+              {[
+                { l: "Clients", v: clients.filter(c => c.trainer === selectedTrainer.name).length },
+                { l: "Sessions Done/Assigned", v: `${selectedTrainer.sessions}/${selectedTrainer.sessionsAssigned}` },
+                { l: "Missed Sessions", v: selectedTrainer.missedSessions },
+                { l: "Pending Logs", v: selectedTrainer.pendingLogs }
+              ].map((m, i) => (
+                <div key={i} className="card-sm">
+                  <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: 1 }}>{m.l}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--fd)", marginTop: 4, color: i === 2 && Number(m.v) > 3 ? "var(--red)" : i === 3 && Number(m.v) > 0 ? "var(--yellow)" : "var(--t1)" }}>{m.v}</div>
+                </div>
+              ))}
+            </div>
+            <div className="g2 mb16">
+              <div>
+                <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Their Clients</div>
+                {clients.filter(c => c.trainer === selectedTrainer.name).map(c => (
+                  <div key={c.id} className="row" style={{ padding: "8px 0", borderBottom: "1px solid var(--b1)", cursor: "pointer" }}
+                    onClick={() => { setSelectedTrainer(null); setSelectedClient(c); }}>
+                    <span className="fs13 fw6 t1">{c.name}</span>
+                    <span className={`badge fs10 ${c.active === false ? "bgr" : "bg"} ml8`} style={{ marginLeft: 8 }}>{c.active === false ? "inactive" : "active"}</span>
+                    <div className="pw" style={{ flex: 1, margin: "0 10px" }}><div className={`pb ${c.compliance >= 85 ? "pb-g" : c.compliance >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance}%` }} /></div>
+                    <span className="fs11 t3">{c.compliance}%</span>
+                    <span className={`badge fs10 mla ${c.payment === "Active" ? "bg" : c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span>
+                  </div>
+                ))}
+                {clients.filter(c => c.trainer === selectedTrainer.name).length === 0 && (
+                  <div className="fs12 t3">No clients assigned yet</div>
+                )}
+              </div>
+              <div>
+                <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Accountability Breakdown</div>
+                {[
+                  { l: "Log Consistency", v: Math.max(0, 100 - selectedTrainer.lateSubmissions * 8) },
+                  { l: "Client Attendance", v: selectedTrainer.retention },
+                  { l: "Progress Updates", v: Math.min(100, selectedTrainer.progressUpdatesThisMonth * 5) }
+                ].map((m, i) => (
+                  <div key={i} className="row" style={{ padding: "8px 0", borderBottom: "1px solid var(--b1)" }}>
+                    <span className="fs12">{m.l}</span>
+                    <div className="pw mla" style={{ width: 80 }}><div className={`pb ${m.v >= 85 ? "pb-g" : m.v >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${m.v}%` }} /></div>
+                    <span className="fs11 fw7" style={{ marginLeft: 8 }}>{m.v}%</span>
+                  </div>
+                ))}
+                {warnings.filter(w => w.trainer === selectedTrainer.name).length > 0 && (
+                  <div className="alert al-r mt8">⚠ {warnings.filter(w => w.trainer === selectedTrainer.name).length} warning(s) on record</div>
+                )}
+              </div>
+            </div>
+            <div className="row gap8 flex-wrap">
+              <button className={`btn btn-s ${selectedTrainer.status === "active" ? "btn-dn" : "btn-ok"}`}
+                onClick={() => toggleTrainerStatus(selectedTrainer.id)}>
+                {selectedTrainer.status === "active" ? "Suspend" : "Activate"}
+              </button>
+              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning(p => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Log Warning</button>
+              <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>🔑 Change Password</button>
+              <button className="btn btn-g btn-s" onClick={() => { setTrainerFilter(selectedTrainer.name); setClientSearch(""); setClientStatusFilter("all"); setSelectedTrainer(null); setTab("clients"); }}>View All Clients</button>
+              <button className="btn btn-p btn-s mla" onClick={() => { setShowAddClient(true); setNewClient(p => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); }}>+ Add Client</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CLIENT DETAIL MODAL ── */}
+      {selectedClient && !showEditClient && (
+        <div className="overlay" onClick={() => setSelectedClient(null)}>
+          <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+            <div className="row mb16">
+              <div className="av av-c" style={{ width: 48, height: 48, fontSize: 15 }}>{selectedClient.name.split(" ").map((n: string) => n[0]).join("")}</div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{selectedClient.name}</div>
+                <div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedClient.goal} · Trainer: {selectedClient.trainer} · {selectedClient.phone}</div>
+                <div className="row gap8 mt4">
+                  <span className={`badge fs10 ${selectedClient.payment === "Active" ? "bg" : selectedClient.payment === "Expiring" ? "by" : "br"}`}>{selectedClient.payment}</span>
+                  <span className={`badge fs10 ${selectedClient.active === false ? "br" : "bg"}`}>{selectedClient.active === false ? "inactive" : "active"}</span>
+                </div>
+              </div>
+              <button className="btn btn-g btn-xs mla" onClick={() => setSelectedClient(null)}>✕</button>
+            </div>
+            {selectedClient.riskFlag && <div className="alert al-r mb12">🚨 RISK FLAG ACTIVE — review before next session</div>}
+            {selectedClient.injuries.length > 0 && <div className="alert al-y mb12">🩹 Injury Notes: {selectedClient.injuries.join(", ")}</div>}
+            <div className="g4 mb16">
+              {[
+                { l: "Attendance", v: `${selectedClient.compliance}%` },
+                { l: "Sessions Done/Assigned", v: `${selectedClient.sessions}/${selectedClient.sessionsAssigned}` },
+                { l: "Sessions Remaining", v: selectedClient.sessionsRemaining },
+                { l: "Missed Sessions", v: selectedClient.missedSessions }
+              ].map((m, i) => (
+                <div key={i} className="card-sm">
+                  <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: 1 }}>{m.l}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--fd)", marginTop: 4, color: i === 0 && selectedClient.compliance < 75 ? "var(--red)" : i === 3 && selectedClient.missedSessions > 3 ? "var(--red)" : "var(--t1)" }}>{m.v}</div>
+                </div>
+              ))}
+            </div>
+            <div className="g2 mb16">
+              <div>
+                <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Plan Consumption</div>
+                <div className="row gap8 mb8"><span className="fs12 t2">Sessions used</span><span className="fs12 fw7 mla">{selectedClient.sessions} / {selectedClient.sessionsAssigned}</span></div>
+                <div className="pw" style={{ height: 8 }}>
+                  <div className={`pb ${selectedClient.sessionsRemaining > 5 ? "pb-g" : selectedClient.sessionsRemaining > 2 ? "pb-y" : "pb-r"}`}
+                    style={{ height: "100%", width: `${selectedClient.sessionsAssigned > 0 ? (selectedClient.sessions / selectedClient.sessionsAssigned) * 100 : 0}%`, borderRadius: 4 }} />
+                </div>
+                <div className="row mt8"><span className="fs11 t3">{selectedClient.sessionsRemaining} remaining</span><span className="fs11 t3 mla">Expires: {selectedClient.paymentExpiry}</span></div>
+                <div className="fs10 t3 mt12" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Progress Last Updated</div>
+                <div className={`row mt4 ${selectedClient.progressLastUpdated === "Never" || selectedClient.progressLastUpdated.includes("21") ? "tr" : selectedClient.progressLastUpdated.includes("14") ? "ty" : "tg"}`}>
+                  <span className="fs13 fw7">{selectedClient.progressLastUpdated}</span>
+                  {(selectedClient.progressLastUpdated === "Never" || selectedClient.progressLastUpdated.includes("21")) && <span className="overdue-tag mla">OVERDUE</span>}
+                </div>
+              </div>
+              <div>
+                {selectedClient.notes && <div className="card-sm mb8"><div className="fs10 t3 mb4" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Internal Notes</div><div className="fs12 t2">{selectedClient.notes}</div></div>}
+                <div className="card-sm"><div className="fs10 t3 mb4" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Weight Progress</div>
+                  <div className="row"><span className="fs12 t2">Start: {selectedClient.startWeight}kg</span><span className="fs12 fw7 mla">Now: {selectedClient.weight}kg</span></div>
+                  <div className={`fs12 fw7 mt4 ${selectedClient.delta < 0 ? "tg" : "ty"}`}>{selectedClient.delta > 0 ? "+" : ""}{selectedClient.delta}kg total</div>
+                </div>
+              </div>
+            </div>
+            <div className="row gap8">
+              <button className={`btn btn-s ${selectedClient.active === false ? "btn-ok" : "btn-dn"}`}
+                onClick={() => toggleClientStatus(selectedClient.id)}>
+                {selectedClient.active === false ? "Activate Client" : "Deactivate Client"}
+              </button>
+              <button className="btn btn-warn btn-s" onClick={() => openEditClient(selectedClient)}>Edit Client</button>
+              <button className="btn btn-g btn-s" onClick={() => { setTab("clients"); setSelectedClient(null); }}>View in Table</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SIDEBAR ── */}
+      <div className="sb">
+        <div className="sb-logo">
+          <div className="logo-yt">Your<span>Trainer</span></div>
+          <div className="logo-tag">Admin Control Panel</div>
+          <div className="rp rp-a">⚡ Super Admin</div>
+        </div>
+        <div className="sb-nav">
           {navItems.map(item => (
-            <div key={item.id} className={`nav-item ${tab === item.id ? "active" : ""}`} onClick={() => setTab(item.id)}>
-              <span className="nav-icon">{item.icon}</span>{item.label}
+            <div key={item.id} className={`ni ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
+              <span className="ni-ic">{item.icon}</span>
+              <span>{item.label}</span>
+              {(item as any).badge > 0 ? <span className={`ni-b ${(item as any).badgeColor || ""}`}>{(item as any).badge}</span> : null}
             </div>
           ))}
         </div>
-        <div className="sidebar-footer">
-          <div className="user-card">
-            <div className="avatar avatar-admin">SA</div>
-            <div><div className="user-name">{name}</div><div className="user-role">Super Admin</div></div>
-          </div>
-          <button className="btn-logout" onClick={onLogout}>Sign Out</button>
+        <div className="sb-foot">
+          <div className="uc"><div className="av av-a">SA</div><div><div className="uc-n">{name}</div><div className="uc-r">Super Admin</div></div></div>
+          <button className="btn-so" onClick={logout}>Sign Out</button>
         </div>
       </div>
+
+      {/* ── MAIN ── */}
       <div className="main">
         <div className="topbar">
-          <div className="topbar-title">{navItems.find(n => n.id === tab)?.label}</div>
+          <div className="tb-t">{navItems.find(n => n.id === tab)?.label || "Dashboard"}</div>
+          {tab === "trainers-list" && <button className="btn btn-p btn-s" onClick={() => setShowAddTrainer(true)}>+ Add Trainer</button>}
+          {tab === "clients" && <button className="btn btn-p btn-s" onClick={() => setShowAddClient(true)}>+ Add Client</button>}
+          {tab === "comms" && <button className="btn btn-p btn-s" onClick={() => setShowInstruction(true)}>+ Post Instruction</button>}
+          {tab === "warnings" && <button className="btn btn-dn btn-s" onClick={() => setShowWarning(true)}>+ Log Warning</button>}
         </div>
         <div className="content">
+
+          {/* CONTROL ROOM */}
           {tab === "overview" && (
-            <div className="gap-16">
-              <div><div className="section-title">Command Center</div><div className="section-sub">Full platform overview — yourtrainer.in</div></div>
-              <div className="grid-4">
+            <>
+              <div className="sh"><div className="sh-l"><h2>Control Room</h2><p>Live platform overview — Feb 28, 2026</p></div></div>
+              <div className="g4">
                 {[
-                  { label: "Total Revenue", value: "₹84.2K", delta: "+12.4%", up: true, color: "purple" },
-                  { label: "Active Clients", value: "147", delta: "+23 this month", up: true, color: "cyan" },
-                  { label: "Avg Retention", value: "78%", delta: "-2% MoM", up: false, color: "green" },
-                  { label: "Sessions Done", value: "312", delta: "+41 vs last", up: true, color: "orange" },
+                  { l: "Total Revenue (Feb)", v: `₹${(totalRevenue / 1000).toFixed(0)}K`, s: "All trainers combined", d: "+14.2%", up: true, c: "var(--brand)" },
+                  { l: "Active Clients", v: clients.filter(c => c.active !== false).length, s: `${clients.filter(c => c.payment === "Active").length} paid active`, d: "+4 this month", up: true, c: "var(--blue)" },
+                  { l: "Pending Session Logs", v: pendingLogs, s: "Must be logged today", d: pendingLogs > 0 ? "Action needed" : "All clear", up: pendingLogs === 0, c: pendingLogs > 0 ? "var(--red)" : "var(--green)" },
+                  { l: "Avg Accountability", v: `${avgAccountability}%`, s: "Across all trainers", d: "+2% vs last month", up: true, c: "var(--purple)" },
                 ].map((s, i) => (
-                  <div key={i} className={`stat-card ${s.color}`}>
-                    <div className="stat-label">{s.label}</div>
-                    <div className="stat-value">{s.value}</div>
-                    <div className={`stat-delta ${s.up ? "delta-up" : "delta-down"}`}>{s.up ? "▲" : "▼"} {s.delta}</div>
+                  <div key={i} className="sc" style={{ cursor: i === 1 ? "pointer" : "default" }} onClick={i === 1 ? () => setTab("clients") : undefined}>
+                    <div className="sc-bar" style={{ background: `linear-gradient(90deg,${s.c},${s.c}55)` }} />
+                    <div className="sl">{s.l}</div>
+                    <div className="sv" style={{ color: s.c }}>{s.v}</div>
+                    <div className="ss">{s.s}</div>
+                    <div className={`sd ${s.up ? "sup" : "sdn"}`}>{s.up ? "▲" : "▼"} {s.d}</div>
                   </div>
                 ))}
               </div>
-              <div className="grid-2-3">
+              <div className="g2">
                 <div className="card">
-                  <div className="card-header"><span className="card-title">Monthly Revenue</span><span className="badge badge-green">+12.4%</span></div>
-                  <BarChart data={revData} color="#6c63ff" />
-                </div>
-                <div className="card">
-                  <div className="card-header"><span className="card-title">Live Activity</span></div>
-                  {mockData.activityLogs.map(log => (
-                    <div key={log.id} className="activity-item">
-                      <div className={`activity-dot ${log.type}`} />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{log.actor}</div>
-                        <div style={{ fontSize: 12, color: "var(--text2)" }}>{log.action} → <span style={{ color: "var(--accent)" }}>{log.target}</span></div>
-                        <div style={{ fontSize: 11, color: "var(--text3)" }}>{log.time}</div>
+                  <div className="ch"><span className="ct">Today's Sessions</span><span className="badge bb">{todaySessions.length} total</span></div>
+                  {todaySessions.map(s => (
+                    <div key={s.id} className="ai">
+                      <div className="ad" style={{ background: s.status === "completed" ? "var(--green)" : s.status === "missed" ? "var(--red)" : s.status === "cancelled" ? "var(--yellow)" : "var(--blue)" }} />
+                      <div style={{ flex: 1 }}>
+                        <div className="row gap8">
+                          <span className="fw6 fs13 t1" style={{ cursor: "pointer" }} onClick={() => { const c = clients.find(cl => cl.name === s.client); if (c) setSelectedClient(c); }}>{s.client}</span>
+                          <span className="fs10 t3">→</span>
+                          <span className="fs10 t3" style={{ cursor: "pointer" }} onClick={() => { const t = trainers.find(tr => tr.name === s.trainer); if (t) setSelectedTrainer(t); }}>{s.trainer}</span>
+                          <span className={`badge fs10 mla ${s.status === "completed" ? "bg" : s.status === "missed" ? "br" : s.status === "cancelled" ? "by" : "bb"}`}>{s.status}</span>
+                        </div>
+                        <div className="fs11 t3 mt4">{s.type} · {s.date} · Logged: {s.loggedAt} {s.late && <span className="overdue-tag" style={{ marginLeft: 4 }}>LATE LOG</span>}</div>
                       </div>
                     </div>
                   ))}
                 </div>
+                <div className="card">
+                  <div className="ch"><span className="ct">Urgent Alerts</span><span className="badge br">{atRiskClients.length + pendingLogs} items</span></div>
+                  <div className="col gap8">
+                    {pendingLogs > 0 && <div className="alert al-r" style={{ cursor: "pointer" }} onClick={() => setTab("sessions")}>📝 {pendingLogs} session logs pending — tap to view</div>}
+                    {clients.filter(c => c.payment === "Overdue").map(c => <div key={c.id} className="alert al-r" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>💳 {c.name} — payment overdue since {c.paymentExpiry}</div>)}
+                    {clients.filter(c => c.payment === "Expiring").map(c => <div key={c.id} className="alert al-y" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>⏳ {c.name} — expires {c.paymentExpiry} ({c.sessionsRemaining} left)</div>)}
+                    {clients.filter(c => c.compliance < 70).map(c => <div key={c.id} className="alert al-y" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>📉 {c.name} — {c.compliance}% attendance</div>)}
+                    {trainers.filter(t => t.accountabilityScore < 70).map(t => <div key={t.id} className="alert al-r" style={{ cursor: "pointer" }} onClick={() => setSelectedTrainer(t)}>⚠ {t.name} — accountability {t.accountabilityScore}%</div>)}
+                  </div>
+                </div>
               </div>
-            </div>
+              <div className="g32">
+                <div className="card">
+                  <div className="ch"><span className="ct">Revenue Trend</span><span className="badge bg">₹{(totalRevenue / 1000).toFixed(0)}K MTD</span></div>
+                  <BarChart data={revData} color="var(--brand)" />
+                </div>
+                <div className="card">
+                  <div className="ch"><span className="ct">Platform Health</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-around", padding: "4px 0" }}>
+                    <Donut value={Math.round(trainers.reduce((s, t) => s + t.retention, 0) / trainers.length)} color="var(--green)" label="Retention" />
+                    <Donut value={avgAccountability} color="var(--brand)" label="Accountability" />
+                    <Donut value={Math.round(clients.reduce((s, c) => s + c.compliance, 0) / clients.length)} color="var(--blue)" label="Compliance" />
+                  </div>
+                </div>
+              </div>
+            </>
           )}
-          {tab === "trainers" && (
-            <div className="gap-16">
-              <div><div className="section-title">Trainers</div><div className="section-sub">{mockData.trainers.length} trainers on platform</div></div>
+
+          {/* TRAINER PERFORMANCE */}
+          {tab === "trainer-perf" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Trainer Performance</h2><p>Click any row to open trainer profile</p></div></div>
               <div className="card" style={{ padding: 0 }}>
-                <div className="table-wrap">
+                <div className="tw">
                   <table>
-                    <thead><tr><th>Trainer</th><th>Clients</th><th>Retention</th><th>Revenue</th><th>Sessions</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Trainer</th><th>Score</th><th>Sessions Done/Assigned</th><th>Missed</th><th>Pending Logs</th><th>Avg Compliance</th><th>Progress Updates</th><th>Late Logs</th><th>Warnings</th><th>Action</th></tr></thead>
                     <tbody>
-                      {mockData.trainers.map(t => (
-                        <tr key={t.id}>
-                          <td>
-                            <div className="row">
-                              <div className="avatar avatar-trainer">{t.avatar}</div>
-                              <div>
-                                <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 13 }}>{t.name}</div>
-                                <div style={{ fontSize: 11, color: "var(--text3)" }}>{t.email}</div>
+                      {trainers.map(t => {
+                        const tClients = clients.filter(c => c.trainer === t.name);
+                        const avgComp = tClients.length ? Math.round(tClients.reduce((s, c) => s + c.compliance, 0) / tClients.length) : 0;
+                        return (
+                          <tr key={t.id} style={{ cursor: "pointer" }} onClick={() => setSelectedTrainer(t)}>
+                            <td>
+                              <div className="row gap8">
+                                <div className="av av-t" style={{ width: 28, height: 28, fontSize: 10 }}>{t.avatar}</div>
+                                <div>
+                                  <div className="t1 fw6 fs13">{t.name}</div>
+                                  <div className="fs10 t3">{t.speciality}</div>
+                                </div>
+                                {t.status === "suspended" && <span className="badge br fs10">suspended</span>}
                               </div>
-                            </div>
-                          </td>
-                          <td style={{ fontWeight: 600 }}>{t.clients}</td>
-                          <td>
-                            <div className="row">
-                              <div className="progress-wrap" style={{ width: 60 }}>
-                                <div className={`progress-bar ${t.retention >= 80 ? "pb-green" : "pb-yellow"}`} style={{ width: `${t.retention}%` }} />
+                            </td>
+                            <td><ScoreRing score={t.accountabilityScore} size={44} /></td>
+                            <td><span className={`fw7 ${t.sessions < t.sessionsAssigned * 0.9 ? "tr" : "tg"}`}>{t.sessions}/{t.sessionsAssigned}</span></td>
+                            <td><span className={t.missedSessions > 3 ? "tr fw7" : "t2"}>{t.missedSessions}</span></td>
+                            <td><span className={t.pendingLogs > 0 ? "ty fw7" : "tg"}>{t.pendingLogs === 0 ? "✓ Clear" : `${t.pendingLogs} pending`}</span></td>
+                            <td><div className="row gap8"><div className="pw" style={{ width: 50 }}><div className={`pb ${avgComp >= 85 ? "pb-g" : avgComp >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${avgComp}%` }} /></div><span className="fs11 fw7">{avgComp}%</span></div></td>
+                            <td><span className={t.progressUpdatesThisMonth < 10 ? "ty" : "tg"}>{t.progressUpdatesThisMonth}</span></td>
+                            <td><span className={t.lateSubmissions > 2 ? "tr fw7" : t.lateSubmissions > 0 ? "ty" : "tg"}>{t.lateSubmissions === 0 ? "✓ None" : `${t.lateSubmissions}`}</span></td>
+                            <td><span className={t.warnings > 0 ? "tr fw7" : "tg"}>{t.warnings === 0 ? "✓ Clean" : `${t.warnings} ⚠`}</span></td>
+                            <td onClick={e => e.stopPropagation()}>
+                              <div className="row gap4">
+                                <button className="btn btn-warn btn-xs" onClick={() => { setNewWarning(p => ({ ...p, trainer: t.name })); setShowWarning(true); }}>Warn</button>
+                                <button className="btn btn-g btn-xs" onClick={() => { setPwTarget(t); setShowChangePw(true); }}>🔑</button>
                               </div>
-                              <span style={{ fontSize: 12 }}>{t.retention}%</span>
-                            </div>
-                          </td>
-                          <td style={{ fontWeight: 600, color: "var(--cyan)" }}>₹{t.revenue.toLocaleString()}</td>
-                          <td>{t.sessions}</td>
-                          <td><span className="badge badge-green">{t.status}</span></td>
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
-          )}
-          {tab === "clients" && (
-            <div className="gap-16">
-              <div><div className="section-title">All Clients</div><div className="section-sub">Across all trainers</div></div>
-              <div className="card" style={{ padding: 0 }}>
-                <div className="table-wrap">
-                  <table>
-                    <thead><tr><th>Client</th><th>Trainer</th><th>Goal</th><th>Weight</th><th>Compliance</th><th>Payment</th></tr></thead>
-                    <tbody>
-                      {mockData.clients.map(c => (
-                        <tr key={c.id}>
-                          <td style={{ color: "var(--text)", fontWeight: 600 }}>{c.name}</td>
-                          <td>{c.trainer}</td>
-                          <td><span className="badge badge-gray">{c.goal}</span></td>
-                          <td>{c.weight}kg</td>
-                          <td>
-                            <div className="row">
-                              <div className="progress-wrap" style={{ width: 50 }}>
-                                <div className={`progress-bar ${c.compliance >= 85 ? "pb-green" : "pb-yellow"}`} style={{ width: `${c.compliance}%` }} />
-                              </div>
-                              <span style={{ fontSize: 12 }}>{c.compliance}%</span>
-                            </div>
-                          </td>
-                          <td><span className={`badge ${c.payment === "Active" ? "badge-green" : c.payment === "Expiring" ? "badge-yellow" : "badge-red"}`}>{c.payment}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-          {tab === "activity" && (
-            <div className="gap-16">
-              <div><div className="section-title">Activity Logs</div><div className="section-sub">All platform actions</div></div>
               <div className="card">
-                {mockData.activityLogs.map(log => (
-                  <div key={log.id} className="activity-item">
-                    <div className={`activity-dot ${log.type}`} />
-                    <div style={{ flex: 1, display: "flex", justifyContent: "space-between" }}>
-                      <div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{log.actor}</span>
-                        <span style={{ fontSize: 12, color: "var(--text2)" }}> {log.action} → </span>
-                        <span style={{ color: "var(--accent)", fontSize: 12 }}>{log.target}</span>
+                <div className="ch"><span className="ct">Client Drop-off Risk by Trainer</span></div>
+                <div className="g3">
+                  {trainers.map(t => {
+                    const mine = clients.filter(c => c.trainer === t.name);
+                    const atRisk = mine.filter(c => c.missedSessions > 3 || c.compliance < 70);
+                    return (
+                      <div key={t.id} className="card-sm">
+                        <div className="row mb8">
+                          <div className="av av-t" style={{ width: 26, height: 26, fontSize: 10 }}>{t.avatar}</div>
+                          <span className="fw7 fs13" style={{ marginLeft: 8, cursor: "pointer" }} onClick={() => setSelectedTrainer(t)}>{t.name}</span>
+                          <span className={`badge fs10 mla ${atRisk.length > 0 ? "br" : "bg"}`}>{atRisk.length > 0 ? `${atRisk.length} at risk` : "All good"}</span>
+                        </div>
+                        {atRisk.map(c => (
+                          <div key={c.id} className="fs11 t3 mt4" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>• {c.name} — {c.compliance}% · {c.missedSessions} missed</div>
+                        ))}
+                        {atRisk.length === 0 && <div className="fs11 tg">No drop-off risks</div>}
                       </div>
-                      <span style={{ fontSize: 11, color: "var(--text3)" }}>{log.time}</span>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* CLIENT OVERSIGHT */}
+          {tab === "clients" && (
+            <>
+              <div className="sh">
+                <div className="sh-l"><h2>Client Oversight</h2><p>{filteredClients.length} of {clients.length} clients</p></div>
+                <div className="row gap8">
+                  <input className="fi" style={{ width: 180 }} placeholder="Search name or trainer..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} />
+                  <select className="fi" style={{ width: 120 }} value={trainerFilter} onChange={e => setTrainerFilter(e.target.value)}>
+                    <option value="all">All Trainers</option>
+                    {trainers.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                  </select>
+                  <select className="fi" style={{ width: 110 }} value={clientStatusFilter} onChange={e => setClientStatusFilter(e.target.value)}>
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                  <button className="btn btn-p btn-s" onClick={() => setShowAddClient(true)}>+ Add Client</button>
+                </div>
+              </div>
+              <div className="card" style={{ padding: 0 }}>
+                <div className="tw">
+                  <table>
+                    <thead><tr><th>Client</th><th>Status</th><th>Trainer</th><th>Attendance</th><th>Missed</th><th>Sessions Left</th><th>Progress</th><th>Payment</th><th>Expires</th><th>Risk</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {filteredClients.map(c => (
+                        <tr key={c.id} style={{ cursor: "pointer", opacity: c.active === false ? 0.6 : 1 }} onClick={() => setSelectedClient(c)}>
+                          <td><div className="col gap4"><span className="t1 fw6 fs13">{c.name}</span><span className="fs10 t3">{c.goal} · {c.phone}</span></div></td>
+                          <td><span className={`badge fs10 ${c.active === false ? "bgr" : "bg"}`}>{c.active === false ? "inactive" : "active"}</span></td>
+                          <td className="fs12">{c.trainer}</td>
+                          <td><div className="row gap8"><div className="pw" style={{ width: 44 }}><div className={`pb ${c.compliance >= 85 ? "pb-g" : c.compliance >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance}%` }} /></div><span className={`fs11 fw7 ${c.compliance < 70 ? "tr" : c.compliance < 85 ? "ty" : "tg"}`}>{c.compliance}%</span></div></td>
+                          <td><span className={c.missedSessions > 3 ? "tr fw7" : "t2"}>{c.missedSessions}</span></td>
+                          <td><span className={c.sessionsRemaining <= 2 ? "tr fw7" : c.sessionsRemaining <= 5 ? "ty fw7" : "tg"}>{c.sessionsRemaining}</span></td>
+                          <td><span className={c.progressLastUpdated === "Never" || c.progressLastUpdated.includes("21") ? "tr fs11" : c.progressLastUpdated.includes("14") ? "ty fs11" : "tg fs11"}>{c.progressLastUpdated}{(c.progressLastUpdated === "Never" || c.progressLastUpdated.includes("21")) && <span className="overdue-tag" style={{ marginLeft: 4 }}>OVERDUE</span>}</span></td>
+                          <td><span className={`badge ${c.payment === "Active" ? "bg" : c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span></td>
+                          <td className="fs11 t3">{c.paymentExpiry}</td>
+                          <td>{c.riskFlag ? <span className="badge br">🚨</span> : c.injuries.length > 0 ? <span className="badge by">🩹</span> : <span className="tg fs11">✓</span>}</td>
+                          <td onClick={e => e.stopPropagation()}>
+                            <div className="row gap4">
+                              <button className="btn btn-g btn-xs" onClick={() => setSelectedClient(c)}>View</button>
+                              <button className="btn btn-warn btn-xs" onClick={() => openEditClient(c)}>Edit</button>
+                              <button className={`btn btn-xs ${c.active === false ? "btn-ok" : "btn-dn"}`} onClick={() => toggleClientStatus(c.id)}>
+                                {c.active === false ? "On" : "Off"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* SESSION LOGS */}
+          {tab === "sessions" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Session Logs</h2><p>All trainer submissions — late logs flagged</p></div></div>
+              {pendingLogs > 0 && <div className="alert al-r">🚨 {pendingLogs} session logs NOT submitted. Trainers must log within 2 hours.</div>}
+              <div className="card" style={{ padding: 0 }}>
+                <div className="tw">
+                  <table>
+                    <thead><tr><th>Client</th><th>Trainer</th><th>Date</th><th>Type</th><th>Status</th><th>Duration</th><th>Logged</th><th>Late?</th><th>Notes</th></tr></thead>
+                    <tbody>
+                      {sessionLogs.map(s => (
+                        <tr key={s.id}>
+                          <td className="t1 fw6" style={{ cursor: "pointer" }} onClick={() => { const c = clients.find(cl => cl.name === s.client); if (c) setSelectedClient(c); }}>{s.client}</td>
+                          <td className="fs12" style={{ cursor: "pointer" }} onClick={() => { const t = trainers.find(tr => tr.name === s.trainer); if (t) setSelectedTrainer(t); }}>{s.trainer}</td>
+                          <td className="fs11 t3">{s.date}</td>
+                          <td><span className="badge bgr fs10">{s.type}</span></td>
+                          <td><span className={`badge fs10 ${s.status === "completed" ? "bg" : s.status === "missed" ? "br" : s.status === "cancelled" ? "by" : "bb"}`}>{s.status}</span></td>
+                          <td className="fs12">{s.duration > 0 ? `${s.duration} min` : "—"}</td>
+                          <td className="fs11 t3">{s.loggedAt}</td>
+                          <td>{s.late ? <span className="overdue-tag">LATE</span> : <span className="tg fs11">✓</span>}</td>
+                          <td className="fs11 t2" style={{ maxWidth: 180 }}>{s.notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* FLAGS & ALERTS */}
+          {tab === "flags" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Flags & Alerts</h2><p>Click any item to open client or trainer profile</p></div></div>
+              <div className="g2">
+                <div className="card">
+                  <div className="ch"><span className="ct">🚨 Risk Flags</span><span className="badge br">{flaggedClients.length}</span></div>
+                  <div className="col gap8">
+                    {flaggedClients.map(c => (
+                      <div key={c.id} className="flag-card" style={{ borderColor: c.riskFlag ? "var(--red)" : "var(--yellow)", cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
+                        <div className="row"><span className="fw6 fs13 t1">{c.name}</span><span className="fs11 t3 mla">{c.trainer}</span></div>
+                        <div className="fs11 t3 mt4">{c.injuries.map((i:string) => `⚠ ${i}`).join(" · ")} {c.riskFlag ? "· 🚨 Risk flag" : ""}</div>
+                      </div>
+                    ))}
+                    {flaggedClients.length === 0 && <div className="fs12 tg">No active risk flags</div>}
+                  </div>
+                </div>
+                <div className="card">
+                  <div className="ch"><span className="ct">📉 Low Attendance</span><span className="badge by">{lowAttendance.length}</span></div>
+                  <div className="col gap8">
+                    {lowAttendance.map(c => (
+                      <div key={c.id} className="flag-card" style={{ borderColor: "var(--yellow)", cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
+                        <div className="row"><span className="fw6 fs13 t1">{c.name}</span><span className="badge by fs10 mla">{c.compliance}%</span></div>
+                        <div className="fs11 t3 mt4">{c.trainer} · {c.missedSessions} missed</div>
+                      </div>
+                    ))}
+                    {lowAttendance.length === 0 && <div className="fs12 tg">All clients above 70%</div>}
+                  </div>
+                </div>
+              </div>
+              <div className="g2">
+                <div className="card">
+                  <div className="ch"><span className="ct">⏰ Late Log Submissions</span></div>
+                  <div className="col gap8">
+                    {sessionLogs.filter(s => s.late).map(s => (
+                      <div key={s.id} className="flag-card" style={{ borderColor: "var(--yellow)", cursor: "pointer" }} onClick={() => { const t = trainers.find(tr => tr.name === s.trainer); if (t) setSelectedTrainer(t); }}>
+                        <div className="row"><span className="fw6 fs13 t1">{s.trainer}</span><span className="overdue-tag mla">LATE</span></div>
+                        <div className="fs11 t3 mt4">Session with {s.client} on {s.date} — logged {s.loggedAt}</div>
+                      </div>
+                    ))}
+                    {sessionLogs.filter(s => s.late).length === 0 && <div className="fs12 tg">No late submissions</div>}
+                  </div>
+                </div>
+                <div className="card">
+                  <div className="ch"><span className="ct">📅 Progress Overdue</span></div>
+                  <div className="col gap8">
+                    {clients.filter(c => c.progressLastUpdated === "Never" || c.progressLastUpdated.includes("21")).map(c => (
+                      <div key={c.id} className="flag-card" style={{ borderColor: "var(--red)", cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
+                        <div className="row"><span className="fw6 fs13 t1">{c.name}</span><span className="overdue-tag mla">OVERDUE</span></div>
+                        <div className="fs11 t3 mt4">Last: {c.progressLastUpdated} · {c.trainer}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* REVENUE & PLANS */}
+          {tab === "revenue" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Revenue & Plan Tracker</h2><p>Sessions sold vs delivered · Renewal risk</p></div></div>
+              <div className="g4">
+                {[
+                  { l: "Sessions Sold (Feb)", v: clients.reduce((s, c) => s + c.planTotal, 0), c: "var(--brand)" },
+                  { l: "Sessions Delivered", v: clients.reduce((s, c) => s + c.sessions, 0), c: "var(--green)" },
+                  { l: "Renewal Risk", v: clients.filter(c => c.sessionsRemaining <= 3 || c.payment === "Expiring" || c.compliance < 70).length, c: "var(--red)" },
+                  { l: "Overdue Payments", v: clients.filter(c => c.payment === "Overdue").length, c: "var(--yellow)" },
+                ].map((s, i) => (
+                  <div key={i} className="sc">
+                    <div className="sc-bar" style={{ background: `linear-gradient(90deg,${s.c},${s.c}55)` }} />
+                    <div className="sl">{s.l}</div>
+                    <div className="sv" style={{ color: s.c, fontSize: 28 }}>{s.v}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="g2">
+                <div className="card">
+                  <div className="ch"><span className="ct">Plan Consumption</span></div>
+                  {clients.map(c => (
+                    <div key={c.id} className="row" style={{ padding: "10px 0", borderBottom: "1px solid var(--b1)", cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
+                      <div style={{ minWidth: 120 }}><div className="fw6 fs13 t1">{c.name}</div><div className="fs10 t3">{c.trainer}</div></div>
+                      <div style={{ flex: 1, margin: "0 12px" }}>
+                        <div className="pw" style={{ height: 6 }}><div className={`pb ${c.sessionsRemaining <= 2 ? "pb-r" : c.sessionsRemaining <= 5 ? "pb-y" : "pb-g"}`} style={{ height: "100%", width: `${c.sessionsAssigned > 0 ? (c.sessions / c.sessionsAssigned) * 100 : 0}%`, borderRadius: 4 }} /></div>
+                        <div className="row mt4"><span className="fs10 t3">{c.sessions} used</span><span className="fs10 t3 mla">{c.sessionsRemaining} left</span></div>
+                      </div>
+                      <span className={`badge fs10 ${c.sessionsRemaining <= 2 ? "br" : c.sessionsRemaining <= 5 ? "by" : "bg"}`}>{c.sessionsRemaining}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="card">
+                  <div className="ch"><span className="ct">🔄 Renewal Risk List</span><span className="badge br">{clients.filter(c => c.sessionsRemaining <= 3 || c.payment === "Expiring" || c.compliance < 70).length}</span></div>
+                  <div className="col gap8">
+                    {clients.filter(c => c.sessionsRemaining <= 3 || c.payment === "Expiring" || c.compliance < 70).map(c => (
+                      <div key={c.id} className="card-sm" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
+                        <div className="row"><span className="fw7 fs13 t1">{c.name}</span><span className={`badge fs10 mla ${c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span></div>
+                        <div className="col gap4 mt4">
+                          {c.sessionsRemaining <= 3 && <span className="fs11 tr">• {c.sessionsRemaining} sessions left</span>}
+                          {c.compliance < 70 && <span className="fs11 ty">• Attendance: {c.compliance}%</span>}
+                          {c.payment === "Expiring" && <span className="fs11 ty">• Expires: {c.paymentExpiry}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* WORKOUT TEMPLATES */}
+          {tab === "templates" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Workout Templates</h2><p>Admin-approved — trainers choose from these</p></div>
+                <button className="btn btn-p btn-s">+ Create Template</button>
+              </div>
+              <div className="col gap12">
+                {APPROVED_TEMPLATES.map(t => (
+                  <div key={t.id} className="card">
+                    <div className="row">
+                      <div style={{ flex: 1 }}>
+                        <div className="row gap12 mb8">
+                          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>{t.name}</span>
+                          <span className={`badge fs10 ${t.category === "Fat Loss" ? "by" : t.category === "Strength" ? "bo" : t.category === "Rehab" ? "bb" : t.category === "Performance" ? "bp" : "bg"}`}>{t.category}</span>
+                          <span className={`badge fs10 ${t.level === "Beginner" ? "bg" : t.level === "Intermediate" ? "by" : "br"}`}>{t.level}</span>
+                        </div>
+                        <div className="fs12 t2 mb8">{t.description}</div>
+                        <div className="row gap16"><span className="fs11 t3">📅 {t.days}</span><span className="fs11 t3">⏱ {t.duration}</span><span className="fs11 t3">🏋 {t.exercises} exercises</span></div>
+                      </div>
+                      <div className="row gap8">
+                        <button className="btn btn-g btn-s">Edit</button>
+                        <button className="btn btn-g btn-s">View</button>
+                        <button className="btn btn-dn btn-xs">Deactivate</button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </>
           )}
+
+          {/* INSTRUCTIONS FEED */}
+          {tab === "comms" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Instructions Feed</h2><p>Trainers see this — they can't say "I didn't know"</p></div>
+                <button className="btn btn-p btn-s" onClick={() => setShowInstruction(true)}>+ Post Instruction</button>
+              </div>
+              <div className="col gap12">
+                {instructions.map(ins => (
+                  <div key={ins.id} className="card" style={{ borderLeft: `3px solid ${ins.priority === "high" ? "var(--red)" : ins.priority === "medium" ? "var(--yellow)" : "var(--blue)"}` }}>
+                    <div className="row mb8">
+                      <span style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)" }}>{ins.title}</span>
+                      <span className={`badge fs10 mla ${ins.priority === "high" ? "br" : ins.priority === "medium" ? "by" : "bb"}`}>{ins.priority}</span>
+                      <span className="fs11 t3" style={{ marginLeft: 10 }}>{ins.date} · {ins.by}</span>
+                    </div>
+                    <div className="fs13 t2">{ins.body}</div>
+                    <div className="row mt12 gap8">
+                      <button className="btn btn-dn btn-xs" onClick={() => deleteInstruction(ins.id)}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* WARNINGS LOG */}
+          {tab === "warnings" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Trainer Warnings Log</h2><p>Private admin-only record</p></div>
+                <button className="btn btn-dn btn-s" onClick={() => setShowWarning(true)}>+ Log Warning</button>
+              </div>
+              {warnings.length === 0 && <div className="alert al-g">✓ No warnings on record.</div>}
+              <div className="col gap12">
+                {warnings.map((w, i) => (
+                  <div key={i} className="card" style={{ borderLeft: "3px solid var(--red)", cursor: "pointer" }} onClick={() => { const t = trainers.find(tr => tr.name === w.trainer); if (t) setSelectedTrainer(t); }}>
+                    <div className="row mb8">
+                      <span style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)" }}>{w.trainer}</span>
+                      <span className="badge br fs10">{w.type}</span>
+                      <span className="fs11 t3 mla">{w.date} · by {w.by}</span>
+                    </div>
+                    <div className="fs13 t2 mb8">{w.note}</div>
+                    {w.followUp && <div className="fs11 t3">Follow-up: <span className="ty fw7">{w.followUp}</span></div>}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* AUDIT TRAIL */}
+          {tab === "audit" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Audit Trail</h2><p>Every change logged</p></div><button className="btn btn-g btn-s">Export CSV</button></div>
+              <div className="card">
+                {[
+                  { actor: "Gokul", action: "Logged session for", target: "Rajesh Kumar", detail: "Strength Training · 65 min", time: "Feb 27, 10:12am", type: "log" },
+                  { actor: "Sreekanta", action: "Updated progress for", target: "Ananya Iyer", detail: "Weight: 71kg → updated", time: "Feb 27, 9:44am", type: "update" },
+                  { actor: "Admin", action: "Posted instruction:", target: "Holi Holiday Mar 14", detail: "Priority: High", time: "Feb 28, 9:00am", type: "admin" },
+                  { actor: "Aman", action: "Logged session for", target: "Deepika Singh", detail: "Modified — reduced intensity", time: "Feb 26, 6:15pm", type: "modified" },
+                  { actor: "Gokul", action: "Created plan for", target: "Priya Sharma", detail: "Hypertrophy Block — 8 weeks", time: "Feb 25, 11:30am", type: "create" },
+                  { actor: "Admin", action: "Logged warning for", target: "Aman", detail: "Late log submissions", time: "Feb 10, 3:00pm", type: "warning" },
+                  { actor: "Admin", action: "Added new client:", target: "Vikram Nair", detail: "Assigned to Aman · General Fitness", time: "Nov 1, 10:00am", type: "admin" },
+                ].map((log, i) => (
+                  <div key={i} className="ai">
+                    <div className="ad" style={{ background: log.type === "warning" ? "var(--red)" : log.type === "admin" ? "var(--brand)" : log.type === "flag" ? "var(--yellow)" : log.type === "modified" ? "var(--purple)" : "var(--green)" }} />
+                    <div style={{ flex: 1 }}>
+                      <div className="row gap8">
+                        <span className="fw6 fs13 t1">{log.actor}</span>
+                        <span className="fs12 t3">{log.action}</span>
+                        <span className="fs12 to fw6">{log.target}</span>
+                      </div>
+                      <div className="fs11 t3 mt4">{log.detail}</div>
+                    </div>
+                    <span className="fs10 t3" style={{ whiteSpace: "nowrap" }}>{log.time}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* WEEKLY REPORT */}
+          {tab === "reports" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Weekly Review Report</h2><p>Auto-generated — your 10 minute review</p></div>
+                <div className="row gap8"><button className="btn btn-g btn-s">Export PDF</button><button className="btn btn-p btn-s">Email to Self</button></div>
+              </div>
+              <div className="alert al-b mb16">📋 Report period: Feb 21 – Feb 28, 2026</div>
+              <div className="g3">
+                {[
+                  { l: "Sessions This Week", v: sessionLogs.length, sub: `${sessionLogs.filter(s => s.status === "completed").length} completed`, c: "var(--blue)" },
+                  { l: "On-Time Logs", v: `${sessionLogs.filter(s => !s.late).length}/${sessionLogs.length}`, sub: `${sessionLogs.filter(s => s.late).length} late`, c: "var(--green)" },
+                  { l: "At-Risk Clients", v: atRiskClients.length, sub: "Low compliance or expiring", c: "var(--red)" },
+                ].map((s, i) => (
+                  <div key={i} className="sc">
+                    <div className="sc-bar" style={{ background: `linear-gradient(90deg,${s.c},${s.c}55)` }} />
+                    <div className="sl">{s.l}</div>
+                    <div className="sv" style={{ color: s.c, fontSize: 28 }}>{s.v}</div>
+                    <div className="ss">{s.sub}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="g2">
+                <div className="card">
+                  <div className="ch"><span className="ct">Trainer Summary</span></div>
+                  {trainers.map(t => (
+                    <div key={t.id} className="row" style={{ padding: "10px 0", borderBottom: "1px solid var(--b1)", cursor: "pointer" }} onClick={() => setSelectedTrainer(t)}>
+                      <div className="av av-t" style={{ width: 28, height: 28, fontSize: 10 }}>{t.avatar}</div>
+                      <div style={{ flex: 1, marginLeft: 8 }}>
+                        <div className="fw6 fs13 t1">{t.name}</div>
+                        <div className="fs11 t3">Sessions: {t.sessions}/{t.sessionsAssigned} · Missed: {t.missedSessions} · Pending: {t.pendingLogs}</div>
+                      </div>
+                      <ScoreRing score={t.accountabilityScore} size={40} />
+                    </div>
+                  ))}
+                </div>
+                <div className="card">
+                  <div className="ch"><span className="ct">Exception Report</span></div>
+                  <div className="col gap8">
+                    {[
+                      { t: "3 extra sessions given (unlogged)", c: "al-y" },
+                      { t: "Aman modified 2 workouts without reason", c: "al-y" },
+                      { t: "Arjun Mehta: 3rd no-show this month", c: "al-r" },
+                      { t: "Vikram Nair: payment overdue 14 days", c: "al-r" },
+                    ].map((a, i) => (
+                      <div key={i} className={`alert ${a.c}`}>⚠ {a.t}</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* TRAINERS LIST */}
+          {tab === "trainers-list" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Trainers</h2><p>{trainers.length} trainers — click any to manage</p></div>
+                <button className="btn btn-p btn-s" onClick={() => setShowAddTrainer(true)}>+ Add Trainer</button>
+              </div>
+              <div className="g3">
+                {trainers.map(t => (
+                  <div key={t.id} className="cc" style={{ opacity: t.status === "suspended" ? 0.6 : 1 }} onClick={() => setSelectedTrainer(t)}>
+                    <div className="row mb12">
+                      <div className="av av-t" style={{ width: 40, height: 40 }}>{t.avatar}</div>
+                      <div style={{ marginLeft: 10 }}>
+                        <div className="fw7 fs14 t1">{t.name}</div>
+                        <div className="fs11 t3">{t.speciality}</div>
+                      </div>
+                      <div className="mla"><ScoreRing score={t.accountabilityScore} size={44} /></div>
+                    </div>
+                    <div className="row mb12 gap8">
+                      <span className={`badge fs10 ${t.status === "active" ? "bg" : "br"}`}>{t.status}</span>
+                      <span className={`badge fs10 ${t.plan === "Pro" ? "bo" : "bgr"}`}>{t.plan}</span>
+                      {t.warnings > 0 && <span className="badge br fs10">⚠ {t.warnings}</span>}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
+                      {[
+                        { v: clients.filter(c => c.trainer === t.name).length, k: "Clients" },
+                        { v: `${t.retention}%`, k: "Retention" },
+                        { v: `₹${(t.revenue / 1000).toFixed(0)}K`, k: "Revenue" }
+                      ].map((s, i) => (
+                        <div key={i} style={{ background: "var(--s2)", borderRadius: "var(--rs)", padding: "8px", textAlign: "center" }}>
+                          <div style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 800, color: i === 2 ? "var(--green)" : "var(--t1)" }}>{s.v}</div>
+                          <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>{s.k}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="row gap8 mt12" onClick={e => e.stopPropagation()}>
+                      <button className="btn btn-g btn-xs" onClick={() => { setNewClient((p:any) => ({ ...p, trainer: t.name })); setShowAddClient(true); }}>+ Client</button>
+                      <button className="btn btn-g btn-xs" onClick={() => { setPwTarget(t); setShowChangePw(true); }}>🔑 Password</button>
+                      <button className={`btn btn-xs mla ${t.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(t.id)}>
+                        {t.status === "active" ? "Suspend" : "Activate"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
         </div>
       </div>
     </div>
   );
 }
 
-// TRAINER
-function TrainerDashboard({ name, email, onLogout }: { name: string; email: string; onLogout: () => void }) {
+// ============================================================
+// TRAINER DASHBOARD
+// ============================================================
+function Trainer({ name, email, logout }: { name: string; email: string; logout: () => void }) {
   const [tab, setTab] = useState("clients");
+  const [libCat, setLibCat] = useState("Chest");
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [sessionExercises, setSessionExercises] = useState(
+    WORKOUT_LIBRARY["Chest"].slice(0, 3).map(e => ({ ...e, sets: "3", reps: "10", weight: "0" }))
+  );
+  const [logClient, setLogClient] = useState("");
+  const [sessionSaved, setSessionSaved] = useState(false);
+  const [injuryFlag, setInjuryFlag] = useState("");
+  const [progressClient, setProgressClient] = useState("");
+  const [dietClient, setDietClient] = useState("");
+  const [progressTab, setProgressTab] = useState("overview");
+  const [showLogProgress, setShowLogProgress] = useState(false);
+  const [progressSaved, setProgressSaved] = useState(false);
+  const [dietSaved, setDietSaved] = useState(false);
+  const [newProgress, setNewProgress] = useState({ weight: "", bf: "", chest: "", waist: "", hips: "", arms: "", thighs: "", squat: "", bench: "", deadlift: "", pullup: "", notes: "" });
+  const [newDiet, setNewDiet] = useState({ protein: "", water: "", steps: "", sleep: "", sleepQuality: "Good", notes: "" });
+
+  const PROGRESS_HISTORY: Record<string, any[]> = {
+    "Rajesh Kumar": [
+      { date: "Aug 1", weight: 110, bf: 34, chest: 112, waist: 104, hips: 114, arms: 38, squat: 60, bench: 50, deadlift: 70, pullup: 0 },
+      { date: "Sep 1", weight: 106, bf: 32, chest: 110, waist: 101, hips: 112, arms: 38, squat: 70, bench: 57, deadlift: 80, pullup: 2 },
+      { date: "Oct 1", weight: 102, bf: 30, chest: 107, waist: 97, hips: 110, arms: 39, squat: 80, bench: 62, deadlift: 90, pullup: 4 },
+      { date: "Nov 1", weight: 99, bf: 28.5, chest: 104, waist: 94, hips: 108, arms: 39, squat: 90, bench: 67, deadlift: 100, pullup: 5 },
+      { date: "Dec 1", weight: 97, bf: 27, chest: 102, waist: 92, hips: 107, arms: 40, squat: 95, bench: 70, deadlift: 110, pullup: 6 },
+      { date: "Jan 1", weight: 95.5, bf: 26, chest: 101, waist: 91, hips: 106, arms: 40, squat: 100, bench: 72, deadlift: 115, pullup: 7 },
+      { date: "Feb 28", weight: 94, bf: 24.7, chest: 99, waist: 90, hips: 104, arms: 41, squat: 105, bench: 75, deadlift: 120, pullup: 8 },
+    ],
+    "Priya Sharma": [
+      { date: "Jun 1", weight: 54, bf: 26, chest: 82, waist: 68, hips: 90, arms: 27, squat: 30, bench: 22, deadlift: 35, pullup: 0 },
+      { date: "Aug 1", weight: 55, bf: 25, chest: 83, waist: 66, hips: 90, arms: 28, squat: 40, bench: 28, deadlift: 47, pullup: 1 },
+      { date: "Oct 1", weight: 56.5, bf: 24, chest: 84, waist: 65, hips: 91, arms: 29, squat: 50, bench: 35, deadlift: 58, pullup: 3 },
+      { date: "Feb 28", weight: 58, bf: 23, chest: 85, waist: 63, hips: 92, arms: 30, squat: 60, bench: 42, deadlift: 68, pullup: 5 },
+    ],
+  };
+
+  const DIET_HISTORY: Record<string, any[]> = {
+    "Rajesh Kumar": [
+      { date: "Feb 22", protein: 80, water: 2.5, steps: 7200, sleep: 6.5, sleepQuality: "Poor", notes: "Skipped dinner protein" },
+      { date: "Feb 23", protein: 110, water: 3.0, steps: 9400, sleep: 7, sleepQuality: "Good", notes: "" },
+      { date: "Feb 24", protein: 95, water: 2.8, steps: 8100, sleep: 7.5, sleepQuality: "Good", notes: "" },
+      { date: "Feb 25", protein: 70, water: 2.0, steps: 5200, sleep: 5.5, sleepQuality: "Poor", notes: "Work stress, ate out" },
+      { date: "Feb 26", protein: 120, water: 3.2, steps: 10500, sleep: 8, sleepQuality: "Great", notes: "Best day this week" },
+      { date: "Feb 27", protein: 105, water: 3.0, steps: 9800, sleep: 7.5, sleepQuality: "Good", notes: "" },
+    ],
+    "Priya Sharma": [
+      { date: "Feb 22", protein: 90, water: 2.5, steps: 8000, sleep: 7, sleepQuality: "Good", notes: "Vegetarian sources only" },
+      { date: "Feb 23", protein: 85, water: 2.8, steps: 8500, sleep: 7.5, sleepQuality: "Good", notes: "" },
+      { date: "Feb 24", protein: 95, water: 3.0, steps: 9000, sleep: 8, sleepQuality: "Great", notes: "Added paneer + eggs" },
+      { date: "Feb 25", protein: 78, water: 2.2, steps: 6500, sleep: 6.5, sleepQuality: "Average", notes: "Period fatigue" },
+      { date: "Feb 26", protein: 100, water: 3.0, steps: 9200, sleep: 7.5, sleepQuality: "Good", notes: "" },
+      { date: "Feb 27", protein: 98, water: 3.1, steps: 9600, sleep: 8, sleepQuality: "Great", notes: "PR on squat today!" },
+    ],
+  };
+
   const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase();
-  const navItems = [{ id: "clients", icon: "👥", label: "My Clients" }, { id: "progress", icon: "📈", label: "Progress" }, { id: "payments", icon: "₹", label: "Payments" }];
+  const myClients = MOCK_CLIENTS.filter(c => c.trainer === name);
+  const myInstructions = ADMIN_INSTRUCTIONS;
+
+  const navItems = [
+    { id: "clients", icon: "👥", label: "My Clients" },
+    { id: "log", icon: "📝", label: "Log Session" },
+    { id: "plans", icon: "📋", label: "Workout Plans" },
+    { id: "library", icon: "🏋", label: "Exercise Library" },
+    { id: "progress", icon: "📈", label: "Progress Tracking" },
+    { id: "diet", icon: "🥗", label: "Diet & Habits" },
+    { id: "payments", icon: "₹", label: "Payments" },
+    { id: "instructions", icon: "📣", label: "Instructions", badge: myInstructions.filter(i => i.priority === "high").length },
+  ];
+
+  const saveSession = () => {
+    setSessionSaved(true);
+    setTimeout(() => setSessionSaved(false), 3000);
+  };
 
   return (
     <div className="app">
-      <div className="sidebar">
-        <div className="sidebar-logo">
-          <div className="logo-mark">FitOS</div>
-          <div className="logo-sub">Trainer Platform</div>
-          <div className="role-badge role-trainer">🏋 Trainer</div>
+      <style>{S}</style>
+
+      {selectedClient && (
+        <div className="overlay" onClick={() => setSelectedClient(null)}>
+          <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+            <div className="row mb16">
+              <div className="av av-c" style={{ width: 48, height: 48, fontSize: 15 }}>{selectedClient.name.split(" ").map((n: string) => n[0]).join("")}</div>
+              <div><div style={{ fontSize: 18, fontWeight: 800 }}>{selectedClient.name}</div><div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedClient.goal} · {selectedClient.phone}</div></div>
+              <button className="btn btn-g btn-xs mla" onClick={() => setSelectedClient(null)}>✕</button>
+            </div>
+            {selectedClient.riskFlag && <div className="alert al-r mb12">🚨 Risk flag active — check with admin before proceeding</div>}
+            {selectedClient.injuries.length > 0 && <div className="alert al-y mb12">🩹 Injury: {selectedClient.injuries.join(", ")} — modify exercises accordingly</div>}
+            <div className="g4 mb16">
+              {[{ l: "Current Weight", v: `${selectedClient.weight}kg` }, { l: "Weight Change", v: `${selectedClient.delta}kg` }, { l: "Sessions Done", v: `${selectedClient.sessions}/${selectedClient.sessionsAssigned}` }, { l: "Compliance", v: `${selectedClient.compliance}%` }].map((m, i) => (
+                <div key={i} className="card-sm" style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--fd)", color: i === 1 && selectedClient.delta < 0 ? "var(--green)" : i === 3 && selectedClient.compliance < 70 ? "var(--red)" : "var(--t1)" }}>{m.v}</div>
+                  <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 4 }}>{m.l}</div>
+                </div>
+              ))}
+            </div>
+            {selectedClient.notes && <div className="card-sm mb12"><div className="fs10 t3 mb4" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Internal Notes</div><div className="fs12 t2">{selectedClient.notes}</div></div>}
+            <div className="mt8">
+              <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Weight Progress</div>
+              <LineChart data={PROGRESS_DATA.map(p => p.weight)} color="var(--brand)" />
+            </div>
+            <div className="row gap8 mt16">
+              <button className="btn btn-p btn-s" onClick={() => { setSelectedClient(null); setLogClient(selectedClient.name); setTab("log"); }}>Log Session</button>
+              <button className="btn btn-g btn-s" onClick={() => { setSelectedClient(null); setProgressClient(selectedClient.name); setProgressTab("overview"); setTab("progress"); }}>📈 Progress</button>
+              <button className="btn btn-g btn-s" onClick={() => { setSelectedClient(null); setDietClient(selectedClient.name); setTab("diet"); }}>🥗 Diet</button>
+              <button className="btn btn-g btn-s mla" onClick={() => setSelectedClient(null)}>Close</button>
+            </div>
+          </div>
         </div>
-        <div className="sidebar-nav">
-          <div className="nav-section">Manage</div>
+      )}
+
+      <div className="sb">
+        <div className="sb-logo">
+          <div className="logo-yt">Your<span>Trainer</span></div>
+          <div className="logo-tag">Trainer Dashboard</div>
+          <div className="rp rp-t">🏋 Trainer</div>
+        </div>
+        <div className="sb-nav">
           {navItems.map(item => (
-            <div key={item.id} className={`nav-item ${tab === item.id ? "active" : ""}`} onClick={() => setTab(item.id)}>
-              <span className="nav-icon">{item.icon}</span>{item.label}
+            <div key={item.id} className={`ni ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
+              <span className="ni-ic">{item.icon}</span><span>{item.label}</span>
+              {(item as any).badge > 0 && <span className="ni-b red">{(item as any).badge}</span>}
             </div>
           ))}
         </div>
-        <div className="sidebar-footer">
-          <div className="user-card">
-            <div className="avatar avatar-trainer">{initials}</div>
-            <div><div className="user-name">{name}</div><div className="user-role">Trainer</div></div>
-          </div>
-          <button className="btn-logout" onClick={onLogout}>Sign Out</button>
+        <div className="sb-foot">
+          <div className="uc"><div className="av av-t">{initials}</div><div><div className="uc-n">{name}</div><div className="uc-r">Personal Trainer</div></div></div>
+          <button className="btn-so" onClick={logout}>Sign Out</button>
         </div>
       </div>
+
       <div className="main">
         <div className="topbar">
-          <div className="topbar-title">{navItems.find(n => n.id === tab)?.label}</div>
+          <div className="tb-t">{navItems.find(n => n.id === tab)?.label}</div>
+          {tab === "log" && sessionSaved && <div className="alert al-g" style={{ padding: "6px 14px" }}>✓ Session logged successfully!</div>}
         </div>
+
         <div className="content">
           {tab === "clients" && (
-            <div className="gap-16">
-              <div><div className="section-title">My Clients</div><div className="section-sub">Logged in as {email}</div></div>
-              <div className="grid-4">
+            <>
+              <div className="sh"><div className="sh-l"><h2>My Clients</h2><p>{myClients.length} clients · {email}</p></div></div>
+              <div className="g4">
                 {[
-                  { label: "Active Clients", value: "18", color: "cyan" },
-                  { label: "Today Sessions", value: "4", color: "purple" },
-                  { label: "Avg Compliance", value: "83%", color: "green" },
-                  { label: "Revenue Feb", value: "₹12.4K", color: "orange" },
+                  { l: "Active Clients", v: myClients.length, c: "var(--blue)" },
+                  { l: "Avg Compliance", v: `${Math.round(myClients.reduce((s, c) => s + c.compliance, 0) / (myClients.length || 1))}%`, c: "var(--green)" },
+                  { l: "Pending Logs", v: MOCK_TRAINERS.find(t => t.name === name)?.pendingLogs || 0, c: "var(--red)" },
+                  { l: "Alerts", v: myClients.filter(c => c.payment !== "Active" || c.compliance < 75 || c.missedSessions > 3).length, c: "var(--yellow)" },
                 ].map((s, i) => (
-                  <div key={i} className={`stat-card ${s.color}`}>
-                    <div className="stat-label">{s.label}</div>
-                    <div className="stat-value" style={{ fontSize: 26 }}>{s.value}</div>
+                  <div key={i} className="sc">
+                    <div className="sc-bar" style={{ background: `linear-gradient(90deg,${s.c},${s.c}55)` }} />
+                    <div className="sl">{s.l}</div>
+                    <div className="sv" style={{ color: s.c, fontSize: 28 }}>{s.v}</div>
                   </div>
                 ))}
               </div>
-              <div className="grid-2">
-                {mockData.trainerClients.map(c => (
-                  <div key={c.id} className="card">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <div className="avatar avatar-client">{c.name.split(" ").map((n: string) => n[0]).join("")}</div>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
-                          <div style={{ fontSize: 11, color: "var(--text3)" }}>{c.goal}</div>
+              <div className="g2">
+                {myClients.map(c => (
+                  <div key={c.id} className="cc" onClick={() => setSelectedClient(c)}>
+                    <div className="row mb12">
+                      <div className="av av-c">{c.name.split(" ").map((n: string) => n[0]).join("")}</div>
+                      <div><div className="fw7 fs14 t1">{c.name}</div><div className="fs11 t3">{c.goal} · Next: {c.nextSession}</div></div>
+                      <span className={`badge fs10 mla ${c.payment === "Active" ? "bg" : c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span>
+                    </div>
+                    {c.riskFlag && <div className="alert al-r mb8 fs11">🚨 Risk flag active</div>}
+                    {c.injuries.length > 0 && <div className="alert al-y mb8 fs11">🩹 {c.injuries.join(", ")}</div>}
+                    <div className="row gap8 mb12">
+                      <span className="fs11 t3">Compliance</span>
+                      <div className="pw" style={{ flex: 1 }}><div className={`pb ${c.compliance >= 85 ? "pb-g" : c.compliance >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance}%` }} /></div>
+                      <span className="fs11 fw7">{c.compliance}%</span>
+                    </div>
+                    {c.notes && <div className="fs11 t3 mb10" style={{ padding: "6px 10px", background: "var(--s2)", borderRadius: 6 }}>📌 {c.notes}</div>}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
+                      {[{ v: `${c.delta > 0 ? "+" : ""}${c.delta}kg`, k: "Weight Δ", c: c.delta < 0 ? "var(--green)" : "var(--yellow)" }, { v: `${c.sessions}/${c.sessionsAssigned}`, k: "Sessions", c: "var(--t1)" }, { v: c.sessionsRemaining, k: "Remaining", c: c.sessionsRemaining <= 3 ? "var(--red)" : "var(--t1)" }].map((s, i) => (
+                        <div key={i} style={{ background: "var(--s2)", borderRadius: "var(--rs)", padding: "8px", textAlign: "center" }}>
+                          <div style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 800, color: s.c }}>{s.v}</div>
+                          <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>{s.k}</div>
                         </div>
-                      </div>
-                      <span className={`badge ${c.payment === "Active" ? "badge-green" : "badge-yellow"}`}>{c.payment}</span>
+                      ))}
                     </div>
-                    <div className="row">
-                      <span style={{ fontSize: 11, color: "var(--text3)" }}>Compliance</span>
-                      <div className="progress-wrap" style={{ flex: 1 }}>
-                        <div className={`progress-bar ${c.compliance >= 85 ? "pb-green" : "pb-yellow"}`} style={{ width: `${c.compliance}%` }} />
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>{c.compliance}%</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 10, textAlign: "center" }}>
-                      <div>
-                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: c.delta < 0 ? "var(--green)" : "var(--yellow)" }}>{c.delta > 0 ? "+" : ""}{c.delta}kg</div>
-                        <div style={{ fontSize: 10, color: "var(--text3)" }}>Weight Δ</div>
-                      </div>
-                      <div>
-                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700 }}>{c.sessions}</div>
-                        <div style={{ fontSize: 10, color: "var(--text3)" }}>Sessions</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700 }}>{c.nextSession}</div>
-                        <div style={{ fontSize: 10, color: "var(--text3)" }}>Next</div>
-                      </div>
+                    <div className="row gap6 mt10" onClick={e => e.stopPropagation()}>
+                      <button className="btn btn-p btn-xs" style={{flex:1}} onClick={() => { setLogClient(c.name); setTab("log"); }}>📝 Log Session</button>
+                      <button className="btn btn-g btn-xs" style={{flex:1}} onClick={() => { setProgressClient(c.name); setProgressTab("overview"); setTab("progress"); }}>📈 Progress</button>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-          {tab === "progress" && (
-            <div className="gap-16">
-              <div><div className="section-title">Client Progress</div><div className="section-sub">Weight & strength trends</div></div>
-              <div className="grid-2">
+              {myClients.some(c => c.payment !== "Active" || c.compliance < 75 || c.missedSessions > 3) && (
                 <div className="card">
-                  <div className="card-header"><span className="card-title">Weight (kg)</span><span className="badge badge-green">-5.9kg</span></div>
-                  <LineChart data={mockData.clientProgress.map(p => p.weight)} color="#6c63ff" />
+                  <div className="ch"><span className="ct">⚠ Action Required</span></div>
+                  <div className="col gap8">
+                    {myClients.filter(c => c.payment === "Expiring").map(c => <div key={c.id} className="alert al-y" style={{cursor:"pointer"}} onClick={()=>setSelectedClient(c)}>💳 {c.name} — package expiring {c.paymentExpiry} ({c.sessionsRemaining} left) <button className="btn btn-g btn-xs mla" onClick={e=>{e.stopPropagation();}}>Send Reminder</button></div>)}
+                    {myClients.filter(c => c.payment === "Overdue").map(c => <div key={c.id} className="alert al-r" style={{cursor:"pointer"}} onClick={()=>setSelectedClient(c)}>🚨 {c.name} — payment overdue <button className="btn btn-g btn-xs mla" onClick={e=>{e.stopPropagation();}}>Contact</button></div>)}
+                    {myClients.filter(c => c.compliance < 75).map(c => <div key={c.id} className="alert al-y" style={{cursor:"pointer"}} onClick={()=>setSelectedClient(c)}>📉 {c.name} — {c.compliance}% · {c.missedSessions} missed <button className="btn btn-g btn-xs mla" onClick={e=>{e.stopPropagation();}}>Check In</button></div>)}
+                  </div>
                 </div>
-                <div className="card">
-                  <div className="card-header"><span className="card-title">Strength Score</span><span className="badge badge-purple">+19pts</span></div>
-                  <LineChart data={mockData.clientProgress.map(p => p.strength)} color="#22c55e" />
+              )}
+            </>
+          )}
+
+          {tab === "log" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Log Session</h2><p>Must be submitted within 2 hours of session end</p></div></div>
+              <div className="g2">
+                <div>
+                  <div className="card mb16">
+                    <div className="ch"><span className="ct">Session Details</span></div>
+                    <div className="field"><label>Client *</label>
+                      <select className="fi" value={logClient} onChange={e => setLogClient(e.target.value)}>
+                        <option value="">Select client...</option>
+                        {myClients.map(c => <option key={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="g2">
+                      <div className="field"><label>Date *</label><input className="fi" type="date" defaultValue={new Date().toISOString().split("T")[0]} /></div>
+                      <div className="field"><label>Duration (min)</label><input className="fi" type="number" placeholder="60" /></div>
+                    </div>
+                    <div className="field"><label>Session Status *</label>
+                      <select className="fi"><option>Completed</option><option>Missed — Client No-Show</option><option>Missed — Trainer Unavailable</option><option>Modified (explain below)</option><option>Cancelled by Client</option></select>
+                    </div>
+                    <div className="field"><label>Session Type</label>
+                      <select className="fi"><option>Strength Training</option><option>Cardio</option><option>HIIT</option><option>Mobility</option><option>Rehab</option><option>Mixed</option></select>
+                    </div>
+                    <div className="field"><label>Quality Notes (Required)</label><textarea className="fi" rows={3} placeholder="What went well? Any technique issues? Client energy level? Weight changes?" style={{ resize: "none" }} /></div>
+                    <div className="field"><label>Modification Reason (if modified)</label><textarea className="fi" rows={2} placeholder="Why was the session modified from the plan?" style={{ resize: "none" }} /></div>
+                  </div>
+
+                  <div className="card mb16">
+                    <div className="ch"><span className="ct">Injury / Risk Flag</span></div>
+                    <div className="field"><label>Flag Type (if any)</label>
+                      <select className="fi" value={injuryFlag} onChange={e => setInjuryFlag(e.target.value)}>
+                        <option value="">No issues</option>
+                        <option>Knee Pain</option>
+                        <option>Back Pain</option>
+                        <option>Shoulder Pain</option>
+                        <option>Dizziness</option>
+                        <option>Medical Risk — Needs Review</option>
+                        <option>Client Requested Reduced Intensity</option>
+                      </select>
+                    </div>
+                    {injuryFlag && <div className="alert al-r fs11">⚠ This flag will be visible to admin immediately</div>}
+                  </div>
+
+                  <div className="card">
+                    <div className="ch"><span className="ct">Body Metrics (optional)</span></div>
+                    <div className="g2">
+                      {[["Weight (kg)", ""], ["Body Fat %", ""], ["Waist (cm)", ""], ["Arms (cm)", ""]].map(([l], i) => (
+                        <div key={i} className="field" style={{ marginBottom: 8 }}>
+                          <label>{l}</label><input className="fi" type="number" placeholder="Enter value" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="card mb16">
+                    <div className="ch"><span className="ct">Exercises Logged</span><button className="btn btn-g btn-xs" onClick={() => setTab("library")}>+ From Library</button></div>
+                    <div style={{ marginBottom: 8 }}>
+                      <div className="row" style={{ padding: "6px 0", borderBottom: "1px solid var(--b1)" }}>
+                        <span className="fs10 t3" style={{ flex: 1 }}>Exercise</span>
+                        <span className="fs10 t3" style={{ width: 66, textAlign: "center" }}>Sets</span>
+                        <span className="fs10 t3" style={{ width: 66, textAlign: "center" }}>Reps</span>
+                        <span className="fs10 t3" style={{ width: 66, textAlign: "center" }}>Weight</span>
+                      </div>
+                      {sessionExercises.map((ex, i) => (
+                        <div key={i} className="log-row">
+                          <div>
+                            <div className="fs12 fw6 t1">{ex.name}</div>
+                            <div className="fs10 t3">{ex.muscles}</div>
+                          </div>
+                          <input className="log-inp" type="number" placeholder="3" defaultValue="3" />
+                          <input className="log-inp" type="number" placeholder="10" defaultValue="10" />
+                          <input className="log-inp" type="number" placeholder="kg" defaultValue="0" />
+                        </div>
+                      ))}
+                    </div>
+                    <button className="btn btn-g btn-xs mt8" onClick={() => setTab("library")}>+ Add Exercise</button>
+                  </div>
+
+                  {logClient && (
+                    <div className="card mb16">
+                      <div className="ch"><span className="ct">Client Snapshot: {logClient}</span></div>
+                      {(() => {
+                        const c = myClients.find(cl => cl.name === logClient);
+                        if (!c) return null;
+                        return (
+                          <div className="col gap8">
+                            {c.notes && <div className="alert al-y fs11">📌 {c.notes}</div>}
+                            {c.injuries.length > 0 && <div className="alert al-r fs11">🩹 {c.injuries.join(", ")}</div>}
+                            <div className="row"><span className="fs12 t3">Sessions Done</span><span className="fs12 fw7 mla">{c.sessions}/{c.sessionsAssigned}</span></div>
+                            <div className="row"><span className="fs12 t3">Remaining</span><span className={`fs12 fw7 mla ${c.sessionsRemaining <= 3 ? "tr" : "tg"}`}>{c.sessionsRemaining} sessions</span></div>
+                            <div className="row"><span className="fs12 t3">Last session</span><span className="fs12 mla">{c.lastSession}</span></div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  <button className="btn btn-p" style={{ width: "100%", padding: "13px", fontSize: 14 }} onClick={saveSession}>✓ Submit Session Log</button>
+                  <div className="fs10 t3 mt8" style={{ textAlign: "center" }}>Session logs must be submitted within 2 hours. Late submissions are flagged to admin.</div>
                 </div>
               </div>
-            </div>
+            </>
           )}
-          {tab === "payments" && (
-            <div className="gap-16">
-              <div><div className="section-title">Payments</div><div className="section-sub">Client packages and renewals</div></div>
-              <div className="card" style={{ padding: 0 }}>
-                <div className="table-wrap">
-                  <table>
-                    <thead><tr><th>Client</th><th>Package</th><th>Amount</th><th>Expires</th><th>Status</th><th>Action</th></tr></thead>
-                    <tbody>
+
+          {tab === "plans" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Workout Plans</h2><p>Use admin-approved templates where possible</p></div>
+                <div className="row gap8"><button className="btn btn-g btn-s">+ Diet Plan</button><button className="btn btn-p btn-s">+ Workout Plan</button></div>
+              </div>
+              <div className="col gap12">
+                {[
+                  { name: "Fat Burn Protocol A", client: myClients[0]?.name || "Client 1", type: "Cardio + Strength", days: "Mon/Wed/Fri", progress: 58, template: "Beginner Fat Loss", weeks: 12 },
+                  { name: "Hypertrophy Block", client: myClients[1]?.name || "Client 2", type: "Strength", days: "Mon/Tue/Thu/Sat", progress: 37, template: "Strength Basics", weeks: 8 },
+                ].map((p, i) => (
+                  <div key={i} className="card">
+                    <div className="row mb12">
+                      <div style={{ flex: 1 }}>
+                        <div className="row gap12 mb8"><span style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>{p.name}</span><span className="badge bgr fs10">{p.type}</span><span className="badge bg fs10">Template: {p.template}</span></div>
+                        <div className="row gap16"><span className="fs11 t3">👤 {p.client}</span><span className="fs11 t3">📅 {p.days}</span><span className="fs11 t3">⏱ {p.weeks} weeks</span></div>
+                      </div>
+                      <div style={{ textAlign: "right" }}><div style={{ fontFamily: "var(--fd)", fontSize: 28, fontWeight: 800, color: p.progress >= 75 ? "var(--green)" : "var(--brand)" }}>{p.progress}%</div><div className="fs10 t3">completed</div></div>
+                    </div>
+                    <div className="pw" style={{ height: 7 }}><div className={`pb ${p.progress >= 75 ? "pb-g" : "pb-o"}`} style={{ height: "100%", width: `${p.progress}%`, borderRadius: 4 }} /></div>
+                    <div className="row gap8 mt12">
+                      <button className="btn btn-g btn-s">Edit Plan</button>
+                      <button className="btn btn-p btn-s" onClick={() => setTab("log")}>Log Today's Session</button>
+                      <button className="btn btn-g btn-s mla">📤 Share with Client</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {tab === "library" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Exercise Library</h2><p>{Object.values(WORKOUT_LIBRARY).flat().length} exercises · {Object.keys(WORKOUT_LIBRARY).length} muscle groups</p></div></div>
+              <div className="tabs mb16">
+                {Object.keys(WORKOUT_LIBRARY).map(cat => (
+                  <div key={cat} className={`tab ${libCat === cat ? "on" : ""}`} onClick={() => setLibCat(cat)}>{cat}</div>
+                ))}
+              </div>
+              <div className="g2">
+                {(WORKOUT_LIBRARY[libCat as keyof typeof WORKOUT_LIBRARY] || []).map((ex, i) => (
+                  <div key={i} className="ex-card">
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>{ex.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{ex.muscles} · {ex.equipment}</div>
+                    </div>
+                    <div className="row gap8">
+                      <span className={`badge fs10 ${ex.level === "Beginner" ? "bg" : ex.level === "Intermediate" ? "by" : "br"}`}>{ex.level}</span>
+                      <button className="btn btn-p btn-xs" onClick={() => { setSessionExercises(p => [...p, { ...ex, sets: "3", reps: "10", weight: "0" }]); setTab("log"); }}>+ Add to Session</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {tab === "progress" && (() => {
+            const ph = (PROGRESS_HISTORY[progressClient] || PROGRESS_HISTORY["Rajesh Kumar"]);
+            const first = ph[0];
+            const last = ph[ph.length - 1];
+            const client = myClients.find(c => c.name === progressClient) || myClients[0];
+            return (
+            <>
+              {showLogProgress && (
+                <div className="overlay" onClick={() => setShowLogProgress(false)}>
+                  <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+                    <div className="modal-t">Log Progress — {_pc}</div>
+                    <div className="g2">
+                      <div>
+                        <div className="fs10 t3 mb12" style={{textTransform:"uppercase",letterSpacing:1}}>Body Weight & Composition</div>
+                        {[["Weight (kg)","weight"],["Body Fat %","bf"]].map(([l,k])=>(
+                          <div key={k} className="field"><label>{l}</label><input className="fi" type="number" placeholder={`e.g. ${last[k]}`} value={(newProgress as any)[k]} onChange={e=>setNewProgress(p=>({...p,[k]:e.target.value}))}/></div>
+                        ))}
+                        <div className="fs10 t3 mb12 mt12" style={{textTransform:"uppercase",letterSpacing:1}}>Measurements (cm)</div>
+                        {[["Chest","chest"],["Waist","waist"],["Hips","hips"],["Arms","arms"],["Thighs","thighs"]].map(([l,k])=>(
+                          <div key={k} className="field"><label>{l}</label><input className="fi" type="number" placeholder={`e.g. ${(last as any)[k]}`} value={(newProgress as any)[k]} onChange={e=>setNewProgress(p=>({...p,[k]:e.target.value}))}/></div>
+                        ))}
+                      </div>
+                      <div>
+                        <div className="fs10 t3 mb12" style={{textTransform:"uppercase",letterSpacing:1}}>Strength Numbers (kg lifted)</div>
+                        {[["Squat","squat"],["Bench Press","bench"],["Deadlift","deadlift"],["Pull-ups (reps)","pullup"]].map(([l,k])=>(
+                          <div key={k} className="field"><label>{l}</label><input className="fi" type="number" placeholder={`e.g. ${(last as any)[k]}`} value={(newProgress as any)[k]} onChange={e=>setNewProgress(p=>({...p,[k]:e.target.value}))}/></div>
+                        ))}
+                        <div className="field mt12"><label>Photos (link or notes)</label><textarea className="fi" rows={2} placeholder="Google Drive link, or note: front/back/side taken" value={newProgress.notes} onChange={e=>setNewProgress(p=>({...p,notes:e.target.value}))} style={{resize:"none"}}/></div>
+                        <div className="alert al-b mt8 fs11">📸 Progress photos show clients what numbers can't. Remind them every 4 weeks.</div>
+                      </div>
+                    </div>
+                    <div className="row mt16">
+                      <button className="btn btn-g btn-s" onClick={()=>setShowLogProgress(false)}>Cancel</button>
+                      <button className="btn btn-p btn-s mla" onClick={()=>{setProgressSaved(true);setShowLogProgress(false);setTimeout(()=>setProgressSaved(false),3000);}}>Save Progress Entry</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="sh">
+                <div className="sh-l"><h2>Progress Tracking</h2><p>Weight · Measurements · Strength · Photos</p></div>
+                <div className="row gap8">
+                  <select className="fi" style={{width:"auto"}} value={progressClient} onChange={e=>{setProgressClient(e.target.value);setProgressTab("overview");}}>
+                    {myClients.map(c=><option key={c.id}>{c.name}</option>)}
+                  </select>
+                  <button className="btn btn-p btn-s" onClick={()=>setShowLogProgress(true)}>+ Log Update</button>
+                </div>
+              </div>
+
+              {progressSaved && <div className="alert al-g">✓ Progress entry saved for {_pc}</div>}
+
+              {/* STAT OVERVIEW */}
+              <div className="g4">
+                {[
+                  { l: "Current Weight", v: `${last.weight}kg`, sub: `Started: ${first.weight}kg`, delta: `${(last.weight - first.weight).toFixed(1)}kg`, down: last.weight < first.weight, c: "var(--brand)" },
+                  { l: "Body Fat", v: `${last.bf}%`, sub: `Started: ${first.bf}%`, delta: `${(last.bf - first.bf).toFixed(1)}%`, down: last.bf < first.bf, c: "var(--purple)" },
+                  { l: "Waist", v: `${last.waist}cm`, sub: `Started: ${first.waist}cm`, delta: `${last.waist - first.waist}cm`, down: last.waist < first.waist, c: "var(--blue)" },
+                  { l: "Squat 1RM", v: `${last.squat}kg`, sub: `Started: ${first.squat}kg`, delta: `+${last.squat - first.squat}kg`, down: false, c: "var(--green)" },
+                ].map((s,i)=>(
+                  <div key={i} className="sc">
+                    <div className="sc-bar" style={{background:`linear-gradient(90deg,${s.c},${s.c}55)`}}/>
+                    <div className="sl">{s.l}</div>
+                    <div className="sv" style={{color:s.c,fontSize:28}}>{s.v}</div>
+                    <div className="ss">{s.sub}</div>
+                    <div className={`sd ${s.down ? "sup" : i===3 ? "sup" : "sdn"}`}>{s.down||i===3?"▲":"▼"} {s.delta}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* SUB-TABS */}
+              <div className="tabs">
+                {[["overview","Overview"],["weight","Weight"],["measurements","Measurements"],["strength","Strength"],["photos","Photos"]].map(([id,label])=>(
+                  <div key={id} className={`tab ${progressTab===id?"on":""}`} onClick={()=>setProgressTab(id)}>{label}</div>
+                ))}
+              </div>
+
+              {progressTab === "overview" && (
+                <div className="g2">
+                  <div className="card">
+                    <div className="ch"><span className="ct">Weight Journey</span>
+                      <span className="badge bg">{(last.weight - first.weight).toFixed(1)}kg {last.weight < first.weight ? "lost" : "gained"}</span>
+                    </div>
+                    <LineChart data={ph.map((p:any)=>p.weight)} color="var(--brand)"/>
+                    <div className="row mt8">
+                      {ph.map((p:any,i:number)=>(i===0||i===ph.length-1?<span key={i} className="fs10 t3">{p.date}: {p.weight}kg</span>:null))}
+                      {client && <span className="fs10 tg mla">Target: {client.target}kg</span>}
+                    </div>
+                  </div>
+                  <div className="card">
+                    <div className="ch"><span className="ct">Strength Progress</span><span className="badge bb">All lifts ↑</span></div>
+                    <LineChart data={ph.map((p:any)=>p.squat)} color="var(--green)"/>
+                    <div className="row mt8 gap16">
+                      <span className="fs11 t3">Squat: <span className="tg fw7">{last.squat}kg</span></span>
+                      <span className="fs11 t3">Bench: <span className="tb fw7">{last.bench}kg</span></span>
+                      <span className="fs11 t3">Deadlift: <span className="tp fw7">{last.deadlift}kg</span></span>
+                    </div>
+                  </div>
+                  <div className="card">
+                    <div className="ch"><span className="ct">Body Measurements</span></div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                       {[
-                        { name: "Chris Park", pkg: "3-Month Online", amount: "₹3,600", expires: "Apr 30", status: "Active" },
-                        { name: "Luis Gomez", pkg: "Monthly", amount: "₹2,200", expires: "Mar 3", status: "Expiring" },
-                        { name: "Felix Ito", pkg: "6-Month Online", amount: "₹6,600", expires: "Jun 30", status: "Active" },
-                      ].map((p, i) => (
-                        <tr key={i}>
-                          <td style={{ color: "var(--text)", fontWeight: 600 }}>{p.name}</td>
-                          <td>{p.pkg}</td>
-                          <td style={{ fontWeight: 600, color: "var(--cyan)" }}>{p.amount}</td>
-                          <td>{p.expires}</td>
-                          <td><span className={`badge ${p.status === "Active" ? "badge-green" : "badge-yellow"}`}>{p.status}</span></td>
-                          <td>{p.status === "Expiring" ? <button className="btn btn-primary btn-sm">Renew</button> : <button className="btn btn-ghost btn-sm">Receipt</button>}</td>
+                        {l:"Chest",k:"chest",good:"down"},
+                        {l:"Waist",k:"waist",good:"down"},
+                        {l:"Hips",k:"hips",good:"down"},
+                        {l:"Arms",k:"arms",good:"up"},
+                        {l:"Thighs",k:"thighs",good:"down"},
+                        {l:"Body Fat",k:"bf",good:"down",unit:"%"},
+                      ].map((m,i)=>{
+                        const delta = (last as any)[m.k] - (first as any)[m.k];
+                        const good = m.good==="down" ? delta<0 : delta>0;
+                        return (
+                          <div key={i} className="card-sm" style={{textAlign:"center",padding:"10px 8px"}}>
+                            <div style={{fontSize:18,fontWeight:800,fontFamily:"var(--fd)"}}>{(last as any)[m.k]}{m.unit||"cm"}</div>
+                            <div className="fs10 t3 mt4">{m.l}</div>
+                            <div className={`fs10 fw7 mt4 ${good?"tg":"tr"}`}>{delta>0?"+":""}{delta.toFixed(1)}{m.unit||"cm"}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="card">
+                    <div className="ch"><span className="ct">Progress Timeline</span></div>
+                    <div className="col gap4">
+                      {ph.slice().reverse().map((p:any,i:number)=>(
+                        <div key={i} className="row" style={{padding:"8px 0",borderBottom:"1px solid var(--b1)"}}>
+                          <div className="ad" style={{background:i===0?"var(--brand)":"var(--s4)",flexShrink:0,marginTop:0}}/>
+                          <span className="fs11 fw6 t2" style={{marginLeft:8,minWidth:50}}>{p.date}</span>
+                          <span className="fs11 t3">{p.weight}kg · {p.waist}cm waist · Squat {p.squat}kg</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {progressTab === "weight" && (
+                <div className="col gap14">
+                  <div className="card">
+                    <div className="ch">
+                      <span className="ct">Weight Over Time (kg)</span>
+                      <div className="row gap8">
+                        <span className="badge bo fs10">Start: {first.weight}kg</span>
+                        <span className="badge bg fs10">Now: {last.weight}kg</span>
+                        {client && <span className="badge bb fs10">Target: {client.target}kg</span>}
+                      </div>
+                    </div>
+                    <LineChart data={ph.map((p:any)=>p.weight)} color="var(--brand)"/>
+                    <div className="g4 mt16">
+                      {[
+                        {l:"Total Lost",v:`${Math.abs(last.weight-first.weight).toFixed(1)}kg`,c:"var(--green)"},
+                        {l:"Still to Goal",v:`${Math.abs(last.weight-(client?.target||last.weight)).toFixed(1)}kg`,c:"var(--blue)"},
+                        {l:"Avg/Month",v:`${(Math.abs(last.weight-first.weight)/ph.length).toFixed(1)}kg`,c:"var(--purple)"},
+                        {l:"Body Fat",v:`${last.bf}%`,c:"var(--yellow)"},
+                      ].map((s,i)=>(
+                        <div key={i} className="card-sm" style={{textAlign:"center"}}>
+                          <div style={{fontSize:20,fontWeight:800,fontFamily:"var(--fd)",color:s.c}}>{s.v}</div>
+                          <div className="fs10 t3 mt4">{s.l}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="card">
+                    <div className="ch"><span className="ct">Body Fat %</span></div>
+                    <LineChart data={ph.map((p:any)=>p.bf)} color="var(--purple)"/>
+                  </div>
+                </div>
+              )}
+
+              {progressTab === "measurements" && (
+                <div className="col gap14">
+                  <div className="g2">
+                    {[
+                      {l:"Chest (cm)",k:"chest",c:"var(--brand)"},
+                      {l:"Waist (cm)",k:"waist",c:"var(--blue)"},
+                      {l:"Hips (cm)",k:"hips",c:"var(--purple)"},
+                      {l:"Arms (cm)",k:"arms",c:"var(--green)"},
+                    ].map((m,i)=>{
+                      const delta = (last as any)[m.k] - (first as any)[m.k];
+                      const good = m.k==="arms" ? delta>0 : delta<0;
+                      return (
+                        <div key={i} className="card">
+                          <div className="ch">
+                            <span className="ct">{m.l}</span>
+                            <span className={`badge fs10 ${good?"bg":"br"}`}>{delta>0?"+":""}{delta}cm</span>
+                          </div>
+                          <LineChart data={ph.map((p:any)=>(p as any)[m.k])} color={m.c}/>
+                          <div className="row mt8">
+                            <span className="fs11 t3">Start: {(first as any)[m.k]}cm</span>
+                            <span className="fs11 fw7 mla" style={{color:m.c}}>Now: {(last as any)[m.k]}cm</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="card">
+                    <div className="ch"><span className="ct">Full Measurement History</span></div>
+                    <div className="tw">
+                      <table>
+                        <thead><tr><th>Date</th><th>Weight</th><th>Body Fat</th><th>Chest</th><th>Waist</th><th>Hips</th><th>Arms</th><th>Thighs</th></tr></thead>
+                        <tbody>
+                          {ph.slice().reverse().map((p:any,i:number)=>(
+                            <tr key={i}>
+                              <td className="fw6">{p.date}</td>
+                              <td>{p.weight}kg</td>
+                              <td>{p.bf}%</td>
+                              <td>{p.chest}cm</td>
+                              <td>{p.waist}cm</td>
+                              <td>{p.hips}cm</td>
+                              <td>{p.arms}cm</td>
+                              <td>{p.thighs}cm</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {progressTab === "strength" && (
+                <div className="col gap14">
+                  <div className="g2">
+                    {[
+                      {l:"Squat (kg)",k:"squat",c:"var(--green)"},
+                      {l:"Bench Press (kg)",k:"bench",c:"var(--brand)"},
+                      {l:"Deadlift (kg)",k:"deadlift",c:"var(--purple)"},
+                      {l:"Pull-ups (reps)",k:"pullup",c:"var(--blue)"},
+                    ].map((m,i)=>{
+                      const delta = (last as any)[m.k] - (first as any)[m.k];
+                      return (
+                        <div key={i} className="card">
+                          <div className="ch">
+                            <span className="ct">{m.l}</span>
+                            <span className="badge bg fs10">+{delta}{m.k==="pullup"?" reps":"kg"}</span>
+                          </div>
+                          <LineChart data={ph.map((p:any)=>(p as any)[m.k])} color={m.c}/>
+                          <div className="row mt8">
+                            <span className="fs11 t3">Start: {(first as any)[m.k]}</span>
+                            <span className="fs11 fw7 mla" style={{color:m.c}}>Now: {(last as any)[m.k]}{m.k==="pullup"?" reps":"kg"}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="card">
+                    <div className="ch"><span className="ct">Strength History Table</span></div>
+                    <div className="tw">
+                      <table>
+                        <thead><tr><th>Date</th><th>Squat</th><th>Bench Press</th><th>Deadlift</th><th>Pull-ups</th></tr></thead>
+                        <tbody>
+                          {ph.slice().reverse().map((p:any,i:number)=>(
+                            <tr key={i}>
+                              <td className="fw6">{p.date}</td>
+                              <td className="tg fw6">{p.squat}kg</td>
+                              <td className="to fw6">{p.bench}kg</td>
+                              <td className="tp fw6">{p.deadlift}kg</td>
+                              <td className="tb fw6">{p.pullup} reps</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {progressTab === "photos" && (
+                <div className="col gap14">
+                  <div className="alert al-b">📸 Progress photos are the single most powerful retention tool. Clients who see their transformation visually stay 3x longer.</div>
+                  <div className="g3">
+                    {[
+                      { period: "Week 1 — Aug 2025", label: "Starting Point", weeks: "0 weeks in", note: "Baseline photos taken" },
+                      { period: "Week 8 — Oct 2025", label: "Mid-Point Check", weeks: "8 weeks in", note: "-8kg, visible waist change" },
+                      { period: "Week 16 — Dec 2025", label: "Milestone", weeks: "16 weeks in", note: "-13kg, significant transformation" },
+                      { period: "Week 26 — Feb 2026", label: "Current", weeks: "26 weeks in", note: "-16kg, near goal" },
+                    ].map((photo,i)=>(
+                      <div key={i} className="card" style={{textAlign:"center"}}>
+                        <div style={{height:140,background:"var(--s2)",borderRadius:"var(--rs)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8,marginBottom:14,border:"2px dashed var(--b2)"}}>
+                          <span style={{fontSize:28}}>📷</span>
+                          <span className="fs11 t3">Photo stored</span>
+                          <button className="btn btn-g btn-xs">View / Upload</button>
+                        </div>
+                        <div className="fw7 fs13 t1">{photo.label}</div>
+                        <div className="fs11 t3 mt4">{photo.period}</div>
+                        <div className="fs11 t3 mt4">{photo.weeks}</div>
+                        <div className="alert al-g mt8 fs11">{photo.note}</div>
+                      </div>
+                    ))}
+                    <div className="card" style={{textAlign:"center",borderStyle:"dashed"}}>
+                      <div style={{height:140,background:"var(--s2)",borderRadius:"var(--rs)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8,marginBottom:14}}>
+                        <span style={{fontSize:28}}>+</span>
+                        <span className="fs11 t3">Add new photos</span>
+                      </div>
+                      <div className="fw7 fs13 t2">Next Photo Session</div>
+                      <div className="fs11 t3 mt4">Recommended: Mar 28, 2026</div>
+                      <button className="btn btn-p btn-s mt8">Schedule Reminder</button>
+                    </div>
+                  </div>
+                  <div className="card">
+                    <div className="ch"><span className="ct">Photo Checklist</span></div>
+                    <div className="col gap8">
+                      {["Front pose — neutral, arms at side","Back pose — neutral","Side pose — left","Flexed front (optional)","Same lighting & location as previous"].map((item,i)=>(
+                        <div key={i} className="row gap10" style={{padding:"7px 0",borderBottom:"1px solid var(--b1)"}}>
+                          <div style={{width:18,height:18,borderRadius:4,background:"var(--green2)",border:"1px solid rgba(0,208,132,0.3)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <span style={{fontSize:11,color:"var(--green)"}}>✓</span>
+                          </div>
+                          <span className="fs13 t2">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+            );
+          })()}
+
+          {tab === "diet" && (() => {
+            const dh = DIET_HISTORY[dietClient] || DIET_HISTORY["Rajesh Kumar"];
+            const proteinTarget = 120; // g
+            const waterTarget = 3.0;   // L
+            const stepsTarget = 10000;
+            const sleepTarget = 8;     // hrs
+            const avgProtein = Math.round(dh.reduce((s:number,d:any)=>s+d.protein,0)/dh.length);
+            const avgWater = (dh.reduce((s:number,d:any)=>s+d.water,0)/dh.length).toFixed(1);
+            const avgSteps = Math.round(dh.reduce((s:number,d:any)=>s+d.steps,0)/dh.length);
+            const avgSleep = (dh.reduce((s:number,d:any)=>s+d.sleep,0)/dh.length).toFixed(1);
+            return (
+            <>
+              <div className="sh">
+                <div className="sh-l"><h2>Diet & Habit Notes</h2><p>Protein · Water · Steps · Sleep — high impact, logged simply</p></div>
+                <div className="row gap8">
+                  <select className="fi" style={{width:"auto"}} value={dietClient} onChange={e=>setDietClient(e.target.value)}>
+                    {myClients.map(c=><option key={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {dietSaved && <div className="alert al-g">✓ Habit log saved for {dietClient}</div>}
+
+              {/* WEEKLY AVERAGES */}
+              <div className="g4">
+                {[
+                  { l: "Avg Protein", v: `${avgProtein}g`, target: `Target: ${proteinTarget}g`, pct: Math.round(avgProtein/proteinTarget*100), c: "var(--brand)" },
+                  { l: "Avg Water", v: `${avgWater}L`, target: `Target: ${waterTarget}L`, pct: Math.round(Number(avgWater)/waterTarget*100), c: "var(--blue)" },
+                  { l: "Avg Steps", v: avgSteps.toLocaleString(), target: `Target: ${stepsTarget.toLocaleString()}`, pct: Math.round(avgSteps/stepsTarget*100), c: "var(--green)" },
+                  { l: "Avg Sleep", v: `${avgSleep}h`, target: `Target: ${sleepTarget}h`, pct: Math.round(Number(avgSleep)/sleepTarget*100), c: "var(--purple)" },
+                ].map((s,i)=>(
+                  <div key={i} className="sc">
+                    <div className="sc-bar" style={{background:`linear-gradient(90deg,${s.c},${s.c}55)`}}/>
+                    <div className="sl">{s.l}</div>
+                    <div className="sv" style={{color:s.c,fontSize:26}}>{s.v}</div>
+                    <div className="ss">{s.target}</div>
+                    <div className="pw mt8"><div className={`pb ${s.pct>=90?"pb-g":s.pct>=70?"pb-y":"pb-r"}`} style={{width:`${Math.min(100,s.pct)}%`}}/></div>
+                    <div className={`fs10 fw7 mt4 ${s.pct>=90?"tg":s.pct>=70?"ty":"tr"}`}>{s.pct}% of target</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="g2">
+                {/* LOG NEW ENTRY */}
+                <div className="card">
+                  <div className="ch"><span className="ct">Log Today's Habits</span><span className="badge by fs10">{new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</span></div>
+                  <div className="g2">
+                    <div className="field">
+                      <label>Protein (g)</label>
+                      <input className="fi" type="number" placeholder={`Target: ${proteinTarget}g`} value={newDiet.protein} onChange={e=>setNewDiet(p=>({...p,protein:e.target.value}))}/>
+                      {newDiet.protein && Number(newDiet.protein)<proteinTarget*0.7 && <div className="fs10 tr mt4">⚠ Below 70% of target</div>}
+                    </div>
+                    <div className="field">
+                      <label>Water (Litres)</label>
+                      <input className="fi" type="number" step="0.1" placeholder={`Target: ${waterTarget}L`} value={newDiet.water} onChange={e=>setNewDiet(p=>({...p,water:e.target.value}))}/>
+                    </div>
+                    <div className="field">
+                      <label>Steps</label>
+                      <input className="fi" type="number" placeholder={`Target: ${stepsTarget}`} value={newDiet.steps} onChange={e=>setNewDiet(p=>({...p,steps:e.target.value}))}/>
+                    </div>
+                    <div className="field">
+                      <label>Sleep (hours)</label>
+                      <input className="fi" type="number" step="0.5" placeholder={`Target: ${sleepTarget}h`} value={newDiet.sleep} onChange={e=>setNewDiet(p=>({...p,sleep:e.target.value}))}/>
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label>Sleep Quality</label>
+                    <select className="fi" value={newDiet.sleepQuality} onChange={e=>setNewDiet(p=>({...p,sleepQuality:e.target.value}))}>
+                      <option>Great</option><option>Good</option><option>Average</option><option>Poor</option>
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>Notes (optional)</label>
+                    <textarea className="fi" rows={2} placeholder="Ate out, stress, travel, period, illness..." value={newDiet.notes} onChange={e=>setNewDiet(p=>({...p,notes:e.target.value}))} style={{resize:"none"}}/>
+                  </div>
+                  <button className="btn btn-p btn-s mt8" style={{width:"100%"}} onClick={()=>{setDietSaved(true);setNewDiet({protein:"",water:"",steps:"",sleep:"",sleepQuality:"Good",notes:""});setTimeout(()=>setDietSaved(false),3000);}}>Save Habit Log</button>
+                </div>
+
+                {/* TRENDS */}
+                <div className="col gap14">
+                  <div className="card">
+                    <div className="ch"><span className="ct">Protein (g) — Last 7 Days</span><span className={`badge fs10 ${avgProtein>=proteinTarget?"bg":avgProtein>=proteinTarget*0.8?"by":"br"}`}>Avg {avgProtein}g</span></div>
+                    <LineChart data={dh.map((d:any)=>d.protein)} color="var(--brand)"/>
+                    <div className="row mt8">
+                      <span className="fs10 t3">Target: {proteinTarget}g/day</span>
+                      <span className={`fs10 fw7 mla ${avgProtein>=proteinTarget?"tg":avgProtein>=proteinTarget*0.8?"ty":"tr"}`}>{avgProtein>=proteinTarget?"✓ On track":avgProtein>=proteinTarget*0.8?"⚠ Slightly low":"✗ Needs attention"}</span>
+                    </div>
+                  </div>
+                  <div className="card">
+                    <div className="ch"><span className="ct">Sleep (hours)</span><span className={`badge fs10 ${Number(avgSleep)>=7?"bg":"by"}`}>Avg {avgSleep}h</span></div>
+                    <LineChart data={dh.map((d:any)=>d.sleep)} color="var(--purple)"/>
+                  </div>
+                </div>
+              </div>
+
+              {/* WEEKLY LOG TABLE */}
+              <div className="card" style={{padding:0}}>
+                <div style={{padding:"16px 20px 0"}}><span className="ct">7-Day Habit Log</span></div>
+                <div className="tw">
+                  <table>
+                    <thead><tr><th>Date</th><th>Protein</th><th>Water</th><th>Steps</th><th>Sleep</th><th>Quality</th><th>Notes</th></tr></thead>
+                    <tbody>
+                      {dh.slice().reverse().map((d:any,i:number)=>{
+                        const pGood = d.protein>=proteinTarget*0.9;
+                        const wGood = d.water>=waterTarget*0.9;
+                        const sGood = d.steps>=stepsTarget*0.8;
+                        const slGood = d.sleep>=7;
+                        return (
+                          <tr key={i}>
+                            <td className="fw6">{d.date}</td>
+                            <td><span className={pGood?"tg fw7":"tr fw7"}>{d.protein}g</span></td>
+                            <td><span className={wGood?"tg fw7":"ty fw7"}>{d.water}L</span></td>
+                            <td><span className={sGood?"tg":"ty"}>{d.steps.toLocaleString()}</span></td>
+                            <td><span className={slGood?"tg":"ty"}>{d.sleep}h</span></td>
+                            <td><span className={`badge fs10 ${d.sleepQuality==="Great"?"bg":d.sleepQuality==="Good"?"bb":d.sleepQuality==="Average"?"by":"br"}`}>{d.sleepQuality}</span></td>
+                            <td className="fs11 t3">{d.notes||"—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* INSIGHTS */}
+              <div className="card">
+                <div className="ch"><span className="ct">Trainer Insights</span><span className="badge bb fs10">Auto-generated</span></div>
+                <div className="col gap8">
+                  {avgProtein < proteinTarget * 0.85 && (
+                    <div className="alert al-r">🥩 Protein averaging {avgProtein}g vs {proteinTarget}g target. Discuss high-protein meal swaps — paneer, eggs, dal, chicken. This directly limits muscle gain.</div>
+                  )}
+                  {Number(avgSleep) < 7 && (
+                    <div className="alert al-y">😴 Sleep averaging {avgSleep}h. Below 7h impairs recovery and increases cortisol. Ask client about sleep hygiene.</div>
+                  )}
+                  {avgSteps < stepsTarget * 0.7 && (
+                    <div className="alert al-y">🚶 Steps averaging {avgSteps.toLocaleString()} vs 10,000 target. Suggest 10-min walks post meals — easiest NEAT increase.</div>
+                  )}
+                  {avgProtein >= proteinTarget * 0.9 && Number(avgSleep) >= 7 && avgSteps >= stepsTarget * 0.8 && (
+                    <div className="alert al-g">✓ All habits on track this week. {dietClient} is doing great outside the gym too. Acknowledge this in next session.</div>
+                  )}
+                </div>
+              </div>
+            </>
+            );
+          })()}
+
+          {tab === "payments" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Payments</h2><p>View only — contact admin to modify</p></div></div>
+              <div className="alert al-b mb16">ℹ Payments are managed by admin. You can send reminders but cannot edit payment records.</div>
+              <div className="g3">
+                {[{ l: "Feb Revenue", v: "₹42,400", c: "var(--green)" }, { l: "Expiring Packages", v: `${myClients.filter(c => c.payment === "Expiring").length} client`, c: "var(--yellow)" }, { l: "Sessions Remaining Total", v: myClients.reduce((s, c) => s + c.sessionsRemaining, 0), c: "var(--blue)" }].map((s, i) => (
+                  <div key={i} className="sc"><div className="sc-bar" style={{ background: `linear-gradient(90deg,${s.c},${s.c}55)` }} /><div className="sl">{s.l}</div><div className="sv" style={{ color: s.c, fontSize: 26 }}>{s.v}</div></div>
+                ))}
+              </div>
+              <div className="card" style={{ padding: 0 }}>
+                <div className="tw">
+                  <table>
+                    <thead><tr><th>Client</th><th>Sessions Remaining</th><th>Expires</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody>
+                      {myClients.map(c => (
+                        <tr key={c.id}>
+                          <td className="t1 fw6">{c.name}</td>
+                          <td><span className={c.sessionsRemaining <= 3 ? "tr fw7" : c.sessionsRemaining <= 6 ? "ty fw7" : "tg fw7"}>{c.sessionsRemaining} remaining</span></td>
+                          <td className="fs11 t3">{c.paymentExpiry}</td>
+                          <td><span className={`badge ${c.payment === "Active" ? "bg" : c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span></td>
+                          <td>{c.payment === "Expiring" ? <button className="btn btn-p btn-xs">Send Renewal Reminder</button> : c.payment === "Overdue" ? <button className="btn btn-dn btn-xs">Follow Up</button> : <span className="tg fs11">✓ Active</span>}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
+            </>
+          )}
+
+          {tab === "instructions" && (
+            <>
+              <div className="sh"><div className="sh-l"><h2>Instructions from Admin</h2><p>Read all high-priority items — acknowledging is mandatory</p></div></div>
+              <div className="col gap12">
+                {myInstructions.map(ins => (
+                  <div key={ins.id} className="card" style={{ borderLeft: `3px solid ${ins.priority === "high" ? "var(--red)" : ins.priority === "medium" ? "var(--yellow)" : "var(--blue)"}` }}>
+                    <div className="row mb8">
+                      <span style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)" }}>{ins.title}</span>
+                      <span className={`badge fs10 mla ${ins.priority === "high" ? "br" : ins.priority === "medium" ? "by" : "bb"}`}>{ins.priority}</span>
+                      <span className="fs11 t3" style={{ marginLeft: 10 }}>{ins.date}</span>
+                    </div>
+                    <div className="fs13 t2">{ins.body}</div>
+                    {ins.priority === "high" && <button className="btn btn-ok btn-xs mt12">✓ Mark as Read</button>}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -540,38 +2316,37 @@ function TrainerDashboard({ name, email, onLogout }: { name: string; email: stri
   );
 }
 
-// MAIN AUTH GATE
+// ============================================================
+// MAIN
+// ============================================================
 export default function App() {
   const { user, profile, loading, logout } = useAuth();
 
   if (loading) return (
     <>
-      <style>{styles}</style>
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0f", color: "#a78bfa", fontFamily: "DM Sans, sans-serif", fontSize: 14 }}>
-        Loading...
+      <style>{S}</style>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#050508", fontFamily: "Outfit,sans-serif" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 26, fontWeight: 900 }}>Your<span style={{ color: "#ff4d00" }}>Trainer</span></div>
+          <div style={{ color: "#606078", fontSize: 13, marginTop: 8 }}>Loading your dashboard...</div>
+        </div>
       </div>
     </>
   );
 
-  if (!user || !profile) return (
-    <>
-      <style>{styles}</style>
-      <LoginPage />
-    </>
-  );
+  if (!user || !profile) return (<><style>{S}</style><Login /></>);
+  if (profile.role === "admin") return <><style>{S}</style><Admin name={profile.name} logout={logout} /></>;
+  if (profile.role === "trainer") return <><style>{S}</style><Trainer name={profile.name} email={profile.email} logout={logout} /></>;
 
   return (
     <>
-      <style>{styles}</style>
-      {profile.role === "admin" && <AdminDashboard name={profile.name} onLogout={logout} />}
-      {profile.role === "trainer" && <TrainerDashboard name={profile.name} email={profile.email} onLogout={logout} />}
-      {profile.role === "client" && (
-        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0f", color: "white", fontFamily: "DM Sans, sans-serif", flexDirection: "column", gap: 16 }}>
-          <div style={{ fontSize: 22, fontWeight: 700 }}>Welcome, {profile.name} 👋</div>
-          <div style={{ color: "#9090a8" }}>Client dashboard — coming soon</div>
-          <button style={{ padding: "8px 20px", background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, cursor: "pointer", fontFamily: "inherit" }} onClick={logout}>Sign Out</button>
-        </div>
-      )}
+      <style>{S}</style>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#050508", fontFamily: "Outfit,sans-serif", flexDirection: "column", gap: 16 }}>
+        <div style={{ fontSize: 26, fontWeight: 900 }}>Your<span style={{ color: "#ff4d00" }}>Trainer</span></div>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>Welcome, {profile.name} 👋</div>
+        <div style={{ color: "#606078", fontSize: 13 }}>Client dashboard — coming soon</div>
+        <button style={{ padding: "10px 24px", background: "rgba(255,68,102,0.15)", color: "#ff4466", border: "1px solid rgba(255,68,102,0.3)", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }} onClick={logout}>Sign Out</button>
+      </div>
     </>
   );
 }
