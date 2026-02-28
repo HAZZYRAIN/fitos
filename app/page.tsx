@@ -886,9 +886,7 @@ function Admin({ name, logout, sharedClients, sharedTrainers, sharedInstructions
     )
   );
 }
-          </div>
-        </div>
-      )}
+       
 
       {/* ── SIDEBAR ── */}
       <div className="sb">
