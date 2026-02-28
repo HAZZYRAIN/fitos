@@ -871,12 +871,21 @@ function Admin({ name, logout, sharedClients, sharedTrainers, sharedInstructions
             </div>
             <div className="row gap8">
               <button className={`btn btn-s ${selectedClient.status === "Inactive" ? "btn-ok" : "btn-dn"}`}
-                onClick={() => toggleClientStatus(selectedClient.id, selectedClient.status !== "Inactive")}>
-                {selectedClient.status === "Inactive" ? "Activate Client" : "Deactivate Client"}
-              </button>
-              <button className="btn btn-warn btn-s" onClick={() => openEditClient(selectedClient)}>Edit Client</button>
-              <button className="btn btn-g btn-s" onClick={() => { setTab("clients"); setSelectedClient(null); }}>View in Table</button>
-            </div>
+                onClick={() =>function toggleClientStatus(
+  id: string,
+  isActive: boolean,
+  updatedBy?: string
+) {
+  const newStatus = isActive ? "Active" : "Inactive";
+
+  setClients(prev =>
+    prev.map(client =>
+      client.id === id
+        ? { ...client, status: newStatus }
+        : client
+    )
+  );
+}
           </div>
         </div>
       )}
