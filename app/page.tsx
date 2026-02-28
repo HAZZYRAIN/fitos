@@ -238,9 +238,6 @@ const S = `
   .gap16 { gap:16px; }
   .gap20 { gap:20px; }
   .mla { margin-left:auto; }
-  .flex-wrap { flex-wrap:wrap; }
-  .gap6 { gap:6px; }
-  .ml8 { margin-left:8px; }
   .mt4 { margin-top:4px; }
   .mt8 { margin-top:8px; }
   .mt12 { margin-top:12px; }
@@ -317,6 +314,9 @@ const S = `
 // CHARTS
 // ============================================================
 function LineChart({ data, color = "#ff4d00" }: { data: number[]; color?: string }) {
+  if (!data || data.length < 2) {
+    return <div style={{height:85,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--t3)",fontSize:11}}>Not enough data</div>;
+  }
   const w = 340, h = 85, pad = 10;
   const max = Math.max(...data), min = Math.min(...data), range = max - min || 1;
   const pts = data.map((v, i) => {
@@ -426,12 +426,15 @@ function Login() {
 // ============================================================
 // ADMIN DASHBOARD
 // ============================================================
-function Admin({ name, logout }: { name: string; logout: () => void }) {
+function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, setSharedTrainers, sharedInstructions, setSharedInstructions }: { name: string; logout: () => void; sharedClients: any[]; setSharedClients: any; sharedTrainers: any[]; setSharedTrainers: any; sharedInstructions: any[]; setSharedInstructions: any }) {
   const [tab, setTab] = useState("overview");
-  const [trainers, setTrainers] = useState(MOCK_TRAINERS);
-  const [clients, setClients] = useState(MOCK_CLIENTS);
+  const trainers = sharedTrainers;
+  const setTrainers = setSharedTrainers;
+  const clients = sharedClients;
+  const setClients = setSharedClients;
+  const instructions = sharedInstructions;
+  const setInstructions = setSharedInstructions;
   const [sessionLogs] = useState(SESSION_LOGS);
-  const [instructions, setInstructions] = useState(ADMIN_INSTRUCTIONS);
   const [warnings, setWarnings] = useState(TRAINER_WARNINGS);
 
   // Modal visibility
@@ -786,7 +789,7 @@ function Admin({ name, logout }: { name: string; logout: () => void }) {
               <button className="btn btn-warn btn-s" onClick={() => { setNewWarning(p => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Log Warning</button>
               <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>🔑 Change Password</button>
               <button className="btn btn-g btn-s" onClick={() => { setTrainerFilter(selectedTrainer.name); setClientSearch(""); setClientStatusFilter("all"); setSelectedTrainer(null); setTab("clients"); }}>View All Clients</button>
-              <button className="btn btn-p btn-s mla" onClick={() => { setShowAddClient(true); setNewClient(p => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); }}>+ Add Client</button>
+              <button className="btn btn-p btn-s mla" onClick={() => { setNewClient((p:any) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowAddClient(true); }}>+ Add Client</button>
             </div>
           </div>
         </div>
@@ -1437,7 +1440,7 @@ function Admin({ name, logout }: { name: string; logout: () => void }) {
 // ============================================================
 // TRAINER DASHBOARD
 // ============================================================
-function Trainer({ name, email, logout }: { name: string; email: string; logout: () => void }) {
+function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedInstructions }: { name: string; email: string; logout: () => void; sharedClients: any[]; sharedTrainers: any[]; sharedInstructions: any[] }) {
   const [tab, setTab] = useState("clients");
   const [libCat, setLibCat] = useState("Chest");
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -1447,8 +1450,9 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
   const [logClient, setLogClient] = useState("");
   const [sessionSaved, setSessionSaved] = useState(false);
   const [injuryFlag, setInjuryFlag] = useState("");
-  const [progressClient, setProgressClient] = useState("");
-  const [dietClient, setDietClient] = useState("");
+  const [progressClientOverride, setProgressClientOverride] = useState<string>("");
+  const [dietClientOverride, setDietClientOverride] = useState<string>("");
+  // progressClient/dietClient computed after myClients (see below)
   const [progressTab, setProgressTab] = useState("overview");
   const [showLogProgress, setShowLogProgress] = useState(false);
   const [progressSaved, setProgressSaved] = useState(false);
@@ -1458,19 +1462,19 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
 
   const PROGRESS_HISTORY: Record<string, any[]> = {
     "Rajesh Kumar": [
-      { date: "Aug 1", weight: 110, bf: 34, chest: 112, waist: 104, hips: 114, arms: 38, squat: 60, bench: 50, deadlift: 70, pullup: 0 },
-      { date: "Sep 1", weight: 106, bf: 32, chest: 110, waist: 101, hips: 112, arms: 38, squat: 70, bench: 57, deadlift: 80, pullup: 2 },
-      { date: "Oct 1", weight: 102, bf: 30, chest: 107, waist: 97, hips: 110, arms: 39, squat: 80, bench: 62, deadlift: 90, pullup: 4 },
-      { date: "Nov 1", weight: 99, bf: 28.5, chest: 104, waist: 94, hips: 108, arms: 39, squat: 90, bench: 67, deadlift: 100, pullup: 5 },
-      { date: "Dec 1", weight: 97, bf: 27, chest: 102, waist: 92, hips: 107, arms: 40, squat: 95, bench: 70, deadlift: 110, pullup: 6 },
-      { date: "Jan 1", weight: 95.5, bf: 26, chest: 101, waist: 91, hips: 106, arms: 40, squat: 100, bench: 72, deadlift: 115, pullup: 7 },
-      { date: "Feb 28", weight: 94, bf: 24.7, chest: 99, waist: 90, hips: 104, arms: 41, squat: 105, bench: 75, deadlift: 120, pullup: 8 },
+      { date: "Aug 1", weight: 110, bf: 34, chest: 112, waist: 104, hips: 114, arms: 38, thighs: 62, squat: 60, bench: 50, deadlift: 70, pullup: 0 },
+      { date: "Sep 1", weight: 106, bf: 32, chest: 110, waist: 101, hips: 112, arms: 38, thighs: 60, squat: 70, bench: 57, deadlift: 80, pullup: 2 },
+      { date: "Oct 1", weight: 102, bf: 30, chest: 107, waist: 97, hips: 110, arms: 39, thighs: 59, squat: 80, bench: 62, deadlift: 90, pullup: 4 },
+      { date: "Nov 1", weight: 99, bf: 28.5, chest: 104, waist: 94, hips: 108, arms: 39, thighs: 57, squat: 90, bench: 67, deadlift: 100, pullup: 5 },
+      { date: "Dec 1", weight: 97, bf: 27, chest: 102, waist: 92, hips: 107, arms: 40, thighs: 56, squat: 95, bench: 70, deadlift: 110, pullup: 6 },
+      { date: "Jan 1", weight: 95.5, bf: 26, chest: 101, waist: 91, hips: 106, arms: 40, thighs: 55, squat: 100, bench: 72, deadlift: 115, pullup: 7 },
+      { date: "Feb 28", weight: 94, bf: 24.7, chest: 99, waist: 90, hips: 104, arms: 41, thighs: 54, squat: 105, bench: 75, deadlift: 120, pullup: 8 },
     ],
     "Priya Sharma": [
-      { date: "Jun 1", weight: 54, bf: 26, chest: 82, waist: 68, hips: 90, arms: 27, squat: 30, bench: 22, deadlift: 35, pullup: 0 },
-      { date: "Aug 1", weight: 55, bf: 25, chest: 83, waist: 66, hips: 90, arms: 28, squat: 40, bench: 28, deadlift: 47, pullup: 1 },
-      { date: "Oct 1", weight: 56.5, bf: 24, chest: 84, waist: 65, hips: 91, arms: 29, squat: 50, bench: 35, deadlift: 58, pullup: 3 },
-      { date: "Feb 28", weight: 58, bf: 23, chest: 85, waist: 63, hips: 92, arms: 30, squat: 60, bench: 42, deadlift: 68, pullup: 5 },
+      { date: "Jun 1", weight: 54, bf: 26, chest: 82, waist: 68, hips: 90, arms: 27, thighs: 54, squat: 30, bench: 22, deadlift: 35, pullup: 0 },
+      { date: "Aug 1", weight: 55, bf: 25, chest: 83, waist: 66, hips: 90, arms: 28, thighs: 53, squat: 40, bench: 28, deadlift: 47, pullup: 1 },
+      { date: "Oct 1", weight: 56.5, bf: 24, chest: 84, waist: 65, hips: 91, arms: 29, thighs: 52, squat: 50, bench: 35, deadlift: 58, pullup: 3 },
+      { date: "Feb 28", weight: 58, bf: 23, chest: 85, waist: 63, hips: 92, arms: 30, thighs: 51, squat: 60, bench: 42, deadlift: 68, pullup: 5 },
     ],
   };
 
@@ -1494,8 +1498,14 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
   };
 
   const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase();
-  const myClients = MOCK_CLIENTS.filter(c => c.trainer === name);
-  const myInstructions = ADMIN_INSTRUCTIONS;
+  const myClients = sharedClients.filter((c:any) => c.trainer === name);
+  const myInstructions = sharedInstructions;
+  const myTrainer = sharedTrainers.find((t:any) => t.name === name);
+  // Safe client selectors — always resolve to a valid client name
+  const progressClient = progressClientOverride || myClients[0]?.name || "";
+  const setProgressClient = setProgressClientOverride;
+  const dietClient = dietClientOverride || myClients[0]?.name || "";
+  const setDietClient = setDietClientOverride;
 
   const navItems = [
     { id: "clients", icon: "👥", label: "My Clients" },
@@ -1538,7 +1548,7 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
             {selectedClient.notes && <div className="card-sm mb12"><div className="fs10 t3 mb4" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Internal Notes</div><div className="fs12 t2">{selectedClient.notes}</div></div>}
             <div className="mt8">
               <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Weight Progress</div>
-              <LineChart data={PROGRESS_DATA.map(p => p.weight)} color="var(--brand)" />
+              <LineChart data={(PROGRESS_HISTORY[selectedClient?.name] || []).map((p:any) => p.weight)} color="var(--brand)" />
             </div>
             <div className="row gap8 mt16">
               <button className="btn btn-p btn-s" onClick={() => { setSelectedClient(null); setLogClient(selectedClient.name); setTab("log"); }}>Log Session</button>
@@ -1584,7 +1594,7 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
                 {[
                   { l: "Active Clients", v: myClients.length, c: "var(--blue)" },
                   { l: "Avg Compliance", v: `${Math.round(myClients.reduce((s, c) => s + c.compliance, 0) / (myClients.length || 1))}%`, c: "var(--green)" },
-                  { l: "Pending Logs", v: MOCK_TRAINERS.find(t => t.name === name)?.pendingLogs || 0, c: "var(--red)" },
+                  { l: "Pending Logs", v: myTrainer?.pendingLogs || 0, c: "var(--red)" },
                   { l: "Alerts", v: myClients.filter(c => c.payment !== "Active" || c.compliance < 75 || c.missedSessions > 3).length, c: "var(--yellow)" },
                 ].map((s, i) => (
                   <div key={i} className="sc">
@@ -1619,8 +1629,8 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
                       ))}
                     </div>
                     <div className="row gap6 mt10" onClick={e => e.stopPropagation()}>
-                      <button className="btn btn-p btn-xs" style={{flex:1}} onClick={() => { setLogClient(c.name); setTab("log"); }}>📝 Log Session</button>
-                      <button className="btn btn-g btn-xs" style={{flex:1}} onClick={() => { setProgressClient(c.name); setProgressTab("overview"); setTab("progress"); }}>📈 Progress</button>
+                      <button className="btn btn-p btn-xs" style={{flex:1}} onClick={(e) => { e.stopPropagation(); setLogClient(c.name); setTab("log"); }}>📝 Log Session</button>
+                      <button className="btn btn-g btn-xs" style={{flex:1}} onClick={(e) => { e.stopPropagation(); setProgressClient(c.name); setProgressTab("overview"); setTab("progress"); }}>📈 Progress</button>
                     </div>
                   </div>
                 ))}
@@ -1704,14 +1714,15 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
                         <span className="fs10 t3" style={{ width: 66, textAlign: "center" }}>Weight</span>
                       </div>
                       {sessionExercises.map((ex, i) => (
-                        <div key={i} className="log-row">
+                        <div key={i} className="log-row" style={{gridTemplateColumns:"1fr 60px 60px 60px 32px"}}>
                           <div>
                             <div className="fs12 fw6 t1">{ex.name}</div>
                             <div className="fs10 t3">{ex.muscles}</div>
                           </div>
-                          <input className="log-inp" type="number" placeholder="3" defaultValue="3" />
-                          <input className="log-inp" type="number" placeholder="10" defaultValue="10" />
-                          <input className="log-inp" type="number" placeholder="kg" defaultValue="0" />
+                          <input className="log-inp" type="number" placeholder="3" value={ex.sets} onChange={e => setSessionExercises(p => p.map((x,j) => j===i ? {...x, sets: e.target.value} : x))} />
+                          <input className="log-inp" type="number" placeholder="10" value={ex.reps} onChange={e => setSessionExercises(p => p.map((x,j) => j===i ? {...x, reps: e.target.value} : x))} />
+                          <input className="log-inp" type="number" placeholder="0" value={ex.weight} onChange={e => setSessionExercises(p => p.map((x,j) => j===i ? {...x, weight: e.target.value} : x))} />
+                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:0}} onClick={() => setSessionExercises(p => p.filter((_,j) => j !== i))} title="Remove">✕</button>
                         </div>
                       ))}
                     </div>
@@ -1800,7 +1811,8 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
           )}
 
           {tab === "progress" && (() => {
-            const ph = (PROGRESS_HISTORY[progressClient] || PROGRESS_HISTORY["Rajesh Kumar"]);
+            const ph = PROGRESS_HISTORY[progressClient] || PROGRESS_HISTORY[Object.keys(PROGRESS_HISTORY)[0]] || [];
+            if (ph.length === 0) return <div className="alert al-b">No progress data for this client yet. Log the first update using the button above.</div>;
             const first = ph[0];
             const last = ph[ph.length - 1];
             const client = myClients.find(c => c.name === progressClient) || myClients[0];
@@ -2117,7 +2129,8 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
           })()}
 
           {tab === "diet" && (() => {
-            const dh = DIET_HISTORY[dietClient] || DIET_HISTORY["Rajesh Kumar"];
+            const dh = DIET_HISTORY[dietClient] || DIET_HISTORY[Object.keys(DIET_HISTORY)[0]] || [];
+            if (dh.length === 0) return <div className="alert al-b">No diet logs for this client yet.</div>;
             const proteinTarget = 120; // g
             const waterTarget = 3.0;   // L
             const stepsTarget = 10000;
@@ -2267,7 +2280,7 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
               <div className="sh"><div className="sh-l"><h2>Payments</h2><p>View only — contact admin to modify</p></div></div>
               <div className="alert al-b mb16">ℹ Payments are managed by admin. You can send reminders but cannot edit payment records.</div>
               <div className="g3">
-                {[{ l: "Feb Revenue", v: "₹42,400", c: "var(--green)" }, { l: "Expiring Packages", v: `${myClients.filter(c => c.payment === "Expiring").length} client`, c: "var(--yellow)" }, { l: "Sessions Remaining Total", v: myClients.reduce((s, c) => s + c.sessionsRemaining, 0), c: "var(--blue)" }].map((s, i) => (
+                {[{ l: "Feb Revenue", v: `₹${((myTrainer?.revenue || 0)/1000).toFixed(0)}K`, c: "var(--green)" }, { l: "Expiring Packages", v: `${myClients.filter(c => c.payment === "Expiring").length} client`, c: "var(--yellow)" }, { l: "Sessions Remaining Total", v: myClients.reduce((s, c) => s + c.sessionsRemaining, 0), c: "var(--blue)" }].map((s, i) => (
                   <div key={i} className="sc"><div className="sc-bar" style={{ background: `linear-gradient(90deg,${s.c},${s.c}55)` }} /><div className="sl">{s.l}</div><div className="sv" style={{ color: s.c, fontSize: 26 }}>{s.v}</div></div>
                 ))}
               </div>
@@ -2321,6 +2334,10 @@ function Trainer({ name, email, logout }: { name: string; email: string; logout:
 // ============================================================
 export default function App() {
   const { user, profile, loading, logout } = useAuth();
+  // Shared state — admin changes reflect in trainer view
+  const [sharedClients, setSharedClients] = useState(MOCK_CLIENTS);
+  const [sharedTrainers, setSharedTrainers] = useState(MOCK_TRAINERS);
+  const [sharedInstructions, setSharedInstructions] = useState(ADMIN_INSTRUCTIONS);
 
   if (loading) return (
     <>
@@ -2335,8 +2352,8 @@ export default function App() {
   );
 
   if (!user || !profile) return (<><style>{S}</style><Login /></>);
-  if (profile.role === "admin") return <><style>{S}</style><Admin name={profile.name} logout={logout} /></>;
-  if (profile.role === "trainer") return <><style>{S}</style><Trainer name={profile.name} email={profile.email} logout={logout} /></>;
+  if (profile.role === "admin") return <><style>{S}</style><Admin name={profile.name} logout={logout} sharedClients={sharedClients} setSharedClients={setSharedClients} sharedTrainers={sharedTrainers} setSharedTrainers={setSharedTrainers} sharedInstructions={sharedInstructions} setSharedInstructions={setSharedInstructions} /></>;
+  if (profile.role === "trainer") return <><style>{S}</style><Trainer name={profile.name} email={profile.email} logout={logout} sharedClients={sharedClients} sharedTrainers={sharedTrainers} sharedInstructions={sharedInstructions} /></>;
 
   return (
     <>
