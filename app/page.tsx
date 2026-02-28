@@ -1821,7 +1821,7 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
               {showLogProgress && (
                 <div className="overlay" onClick={() => setShowLogProgress(false)}>
                   <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
-                    <div className="modal-t">Log Progress — {_pc}</div>
+                    <div className="modal-t">Log Progress — {progressClient}</div>
                     <div className="g2">
                       <div>
                         <div className="fs10 t3 mb12" style={{textTransform:"uppercase",letterSpacing:1}}>Body Weight & Composition</div>
@@ -1860,7 +1860,7 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                 </div>
               </div>
 
-              {progressSaved && <div className="alert al-g">✓ Progress entry saved for {_pc}</div>}
+              {progressSaved && <div className="alert al-g">✓ Progress entry saved for {progressClient}</div>}
 
               {/* STAT OVERVIEW */}
               <div className="g4">
