@@ -1,6 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../lib/AuthContext";
+import { db } from "../lib/firebase";
+import {
+  collection, collectionGroup, onSnapshot, addDoc, updateDoc, deleteDoc,
+  doc, serverTimestamp, query, orderBy, getDocs
+} from "firebase/firestore";
 
 // ============================================================
 // DATA
@@ -73,50 +78,77 @@ const APPROVED_TEMPLATES = [
   { id: "t5", name: "Post-Rehab Recovery", category: "Rehab", days: "3x/week", duration: "35 min", exercises: 5, level: "Beginner", description: "Gentle progressive loading post-injury — admin approved protocol" },
 ];
 
-const MOCK_CLIENTS = [
-  { id: "c1", name: "Rajesh Kumar", goal: "Weight Loss", weight: 94, startWeight: 110, target: 80, sessions: 28, sessionsAssigned: 32, compliance: 87, payment: "Active", paymentExpiry: "Apr 30", sessionsRemaining: 8, planTotal: 12, nextSession: "Mon 9am", delta: -16, trainer: "Gokul", phone: "+91 98765 43210", joined: "Aug 2025", notes: "Has lower back issue. No heavy deadlifts.", progressLastUpdated: "7 days ago", injuries: ["Lower Back"], riskFlag: false, lastSession: "Feb 26", missedSessions: 2, lateLog: false, active: true },
-  { id: "c2", name: "Priya Sharma", goal: "Muscle Gain", weight: 58, startWeight: 54, target: 65, sessions: 31, sessionsAssigned: 32, compliance: 93, payment: "Active", paymentExpiry: "Jun 30", sessionsRemaining: 18, planTotal: 24, nextSession: "Tue 7am", delta: 4, trainer: "Gokul", phone: "+91 87654 32109", joined: "Jun 2025", notes: "Vegetarian. Supplement with protein powder.", progressLastUpdated: "3 days ago", injuries: [], riskFlag: false, lastSession: "Feb 27", missedSessions: 1, lateLog: false, active: true },
-  { id: "c3", name: "Arjun Mehta", goal: "Athletic Performance", weight: 78, startWeight: 80, target: 75, sessions: 18, sessionsAssigned: 24, compliance: 71, payment: "Expiring", paymentExpiry: "Mar 3", sessionsRemaining: 3, planTotal: 12, nextSession: "Wed 6am", delta: -2, trainer: "Sreekanta", phone: "+91 76543 21098", joined: "Oct 2025", notes: "Cricket player. Focus on agility and power.", progressLastUpdated: "14 days ago", injuries: [], riskFlag: false, lastSession: "Feb 24", missedSessions: 4, lateLog: true, active: true },
-  { id: "c4", name: "Ananya Iyer", goal: "Weight Loss", weight: 71, startWeight: 86, target: 62, sessions: 44, sessionsAssigned: 48, compliance: 96, payment: "Active", paymentExpiry: "May 15", sessionsRemaining: 22, planTotal: 24, nextSession: "Thu 8am", delta: -15, trainer: "Sreekanta", phone: "+91 65432 10987", joined: "Apr 2025", notes: "Excellent compliance. Ready for advanced training.", progressLastUpdated: "2 days ago", injuries: [], riskFlag: false, lastSession: "Feb 27", missedSessions: 1, lateLog: false, active: true },
-  { id: "c5", name: "Vikram Nair", goal: "General Fitness", weight: 82, startWeight: 87, target: 78, sessions: 15, sessionsAssigned: 24, compliance: 68, payment: "Overdue", paymentExpiry: "Feb 14", sessionsRemaining: 0, planTotal: 12, nextSession: "Fri 7am", delta: -5, trainer: "Aman", phone: "+91 54321 09876", joined: "Nov 2025", notes: "Busy schedule. Prefers home workouts.", progressLastUpdated: "21 days ago", injuries: [], riskFlag: false, lastSession: "Feb 20", missedSessions: 6, lateLog: true, active: true },
-  { id: "c6", name: "Deepika Singh", goal: "Post-Injury Rehab", weight: 59, startWeight: 62, target: 57, sessions: 22, sessionsAssigned: 24, compliance: 89, payment: "Active", paymentExpiry: "Mar 10", sessionsRemaining: 4, planTotal: 12, nextSession: "Mon 10am", delta: -3, trainer: "Aman", phone: "+91 43210 98765", joined: "Jul 2025", notes: "Knee surgery recovery. No high-impact exercises.", progressLastUpdated: "5 days ago", injuries: ["Knee"], riskFlag: true, lastSession: "Feb 26", missedSessions: 2, lateLog: false, active: true },
-];
 
-const MOCK_TRAINERS = [
-  { id: "t1", name: "Gokul", email: "gokul@yourtrainer.in", avatar: "GK", clients: 18, retention: 84, revenue: 42400, sessions: 67, sessionsAssigned: 80, missedSessions: 3, pendingLogs: 1, status: "active", plan: "Pro", speciality: "Weight Loss & Hypertrophy", joined: "Jan 2025", rating: 4.8, accountabilityScore: 88, warnings: 0, progressUpdatesThisMonth: 14, lateSubmissions: 1 },
-  { id: "t2", name: "Sreekanta", email: "sreekanta@yourtrainer.in", avatar: "SK", clients: 22, retention: 91, revenue: 58800, sessions: 89, sessionsAssigned: 96, missedSessions: 1, pendingLogs: 0, status: "active", plan: "Pro", speciality: "Athletic Performance", joined: "Nov 2024", rating: 4.9, accountabilityScore: 96, warnings: 0, progressUpdatesThisMonth: 18, lateSubmissions: 0 },
-  { id: "t3", name: "Aman", email: "aman@yourtrainer.in", avatar: "AM", clients: 14, retention: 71, revenue: 31200, sessions: 51, sessionsAssigned: 64, missedSessions: 7, pendingLogs: 3, status: "active", plan: "Starter", speciality: "General Fitness & Rehab", joined: "Mar 2025", rating: 4.6, accountabilityScore: 64, warnings: 1, progressUpdatesThisMonth: 6, lateSubmissions: 4 },
-];
 
-const SESSION_LOGS = [
-  { id: "s1", client: "Rajesh Kumar", trainer: "Gokul", date: "Feb 27", status: "completed", type: "Strength Training", duration: 65, notes: "Good form on squats. Increased bench by 2.5kg.", loggedAt: "10 min after", late: false },
-  { id: "s2", client: "Priya Sharma", trainer: "Gokul", date: "Feb 27", status: "completed", type: "Hypertrophy", duration: 70, notes: "Added incline press. Client reported mild DOMS.", loggedAt: "30 min after", late: false },
-  { id: "s3", client: "Arjun Mehta", trainer: "Sreekanta", date: "Feb 26", status: "missed", type: "Athletic", duration: 0, notes: "Client no-show. Called but no answer.", loggedAt: "2 hrs after", late: true },
-  { id: "s4", client: "Ananya Iyer", trainer: "Sreekanta", date: "Feb 27", status: "completed", type: "Fat Loss", duration: 60, notes: "Excellent energy. Pushed cardio to 20 min.", loggedAt: "15 min after", late: false },
-  { id: "s5", client: "Vikram Nair", trainer: "Aman", date: "Feb 20", status: "cancelled", type: "General", duration: 0, notes: "Client cancelled — work emergency.", loggedAt: "Next day", late: true },
-  { id: "s6", client: "Deepika Singh", trainer: "Aman", date: "Feb 26", status: "modified", type: "Rehab", duration: 40, notes: "Reduced intensity. Client reported knee pain.", loggedAt: "1 hr after", late: false },
-];
+// ============================================================
+// DATA
+// ============================================================
+const WORKOUT_LIBRARY = {
+  Chest: [
+    { name: "Barbell Bench Press", muscles: "Pecs, Triceps, Delts", equipment: "Barbell", level: "Intermediate" },
+    { name: "Incline Dumbbell Press", muscles: "Upper Pecs, Delts", equipment: "Dumbbell", level: "Intermediate" },
+    { name: "Cable Flye", muscles: "Pecs", equipment: "Cable", level: "Beginner" },
+    { name: "Push-Up", muscles: "Pecs, Triceps", equipment: "Bodyweight", level: "Beginner" },
+    { name: "Decline Bench Press", muscles: "Lower Pecs", equipment: "Barbell", level: "Intermediate" },
+    { name: "Dumbbell Pullover", muscles: "Pecs, Lats", equipment: "Dumbbell", level: "Intermediate" },
+  ],
+  Back: [
+    { name: "Deadlift", muscles: "Full Back, Hamstrings, Glutes", equipment: "Barbell", level: "Advanced" },
+    { name: "Pull-Up", muscles: "Lats, Biceps", equipment: "Bodyweight", level: "Intermediate" },
+    { name: "Barbell Row", muscles: "Lats, Rhomboids, Biceps", equipment: "Barbell", level: "Intermediate" },
+    { name: "Lat Pulldown", muscles: "Lats, Biceps", equipment: "Cable", level: "Beginner" },
+    { name: "Seated Cable Row", muscles: "Mid Back, Biceps", equipment: "Cable", level: "Beginner" },
+    { name: "Face Pull", muscles: "Rear Delts, Traps", equipment: "Cable", level: "Beginner" },
+  ],
+  Legs: [
+    { name: "Barbell Squat", muscles: "Quads, Glutes, Hamstrings", equipment: "Barbell", level: "Intermediate" },
+    { name: "Romanian Deadlift", muscles: "Hamstrings, Glutes", equipment: "Barbell", level: "Intermediate" },
+    { name: "Leg Press", muscles: "Quads, Glutes", equipment: "Machine", level: "Beginner" },
+    { name: "Walking Lunges", muscles: "Quads, Glutes, Balance", equipment: "Bodyweight", level: "Beginner" },
+    { name: "Leg Curl", muscles: "Hamstrings", equipment: "Machine", level: "Beginner" },
+    { name: "Calf Raises", muscles: "Calves", equipment: "Machine", level: "Beginner" },
+    { name: "Bulgarian Split Squat", muscles: "Quads, Glutes", equipment: "Dumbbell", level: "Intermediate" },
+  ],
+  Shoulders: [
+    { name: "Overhead Press", muscles: "All Delts, Triceps", equipment: "Barbell", level: "Intermediate" },
+    { name: "Lateral Raise", muscles: "Side Delts", equipment: "Dumbbell", level: "Beginner" },
+    { name: "Front Raise", muscles: "Front Delts", equipment: "Dumbbell", level: "Beginner" },
+    { name: "Arnold Press", muscles: "All Delts", equipment: "Dumbbell", level: "Intermediate" },
+    { name: "Upright Row", muscles: "Traps, Side Delts", equipment: "Barbell", level: "Intermediate" },
+    { name: "Rear Delt Flye", muscles: "Rear Delts", equipment: "Dumbbell", level: "Beginner" },
+  ],
+  Arms: [
+    { name: "Barbell Curl", muscles: "Biceps", equipment: "Barbell", level: "Beginner" },
+    { name: "Tricep Dip", muscles: "Triceps, Chest", equipment: "Bodyweight", level: "Intermediate" },
+    { name: "Hammer Curl", muscles: "Biceps, Brachialis", equipment: "Dumbbell", level: "Beginner" },
+    { name: "Skull Crusher", muscles: "Triceps", equipment: "Barbell", level: "Intermediate" },
+    { name: "Cable Curl", muscles: "Biceps", equipment: "Cable", level: "Beginner" },
+    { name: "Tricep Pushdown", muscles: "Triceps", equipment: "Cable", level: "Beginner" },
+  ],
+  Core: [
+    { name: "Plank", muscles: "Core, Shoulders", equipment: "Bodyweight", level: "Beginner" },
+    { name: "Cable Crunch", muscles: "Abs", equipment: "Cable", level: "Beginner" },
+    { name: "Hanging Leg Raise", muscles: "Lower Abs, Hip Flexors", equipment: "Bodyweight", level: "Intermediate" },
+    { name: "Russian Twist", muscles: "Obliques", equipment: "Bodyweight", level: "Beginner" },
+    { name: "Ab Wheel Rollout", muscles: "Full Core", equipment: "Equipment", level: "Advanced" },
+    { name: "Side Plank", muscles: "Obliques, Core", equipment: "Bodyweight", level: "Beginner" },
+  ],
+  Cardio: [
+    { name: "Treadmill Run", muscles: "Full Body", equipment: "Machine", level: "Beginner" },
+    { name: "Cycling", muscles: "Legs, Cardio", equipment: "Machine", level: "Beginner" },
+    { name: "Jump Rope", muscles: "Full Body, Calves", equipment: "Equipment", level: "Beginner" },
+    { name: "Box Jump", muscles: "Legs, Power", equipment: "Bodyweight", level: "Intermediate" },
+    { name: "Battle Ropes", muscles: "Full Body", equipment: "Equipment", level: "Intermediate" },
+    { name: "Rowing Machine", muscles: "Back, Arms, Legs", equipment: "Machine", level: "Beginner" },
+  ],
+};
 
-const ADMIN_INSTRUCTIONS = [
-  { id: "i1", title: "Holi Holiday — Mar 14", body: "No sessions on March 14. Inform all clients by March 10.", date: "Feb 28", priority: "high", by: "Admin" },
-  { id: "i2", title: "New Progress Protocol", body: "Progress photos must be logged every 4 weeks minimum. Use the progress tab. Non-compliance = accountability score deduction.", date: "Feb 25", priority: "high", by: "Admin" },
-  { id: "i3", title: "Session Log Deadline", body: "All session logs must be submitted within 2 hours of session end. Late logs will be flagged automatically.", date: "Feb 20", priority: "medium", by: "Admin" },
-  { id: "i4", title: "New Client Onboarding", body: "All new clients must complete the medical history form before first session. No exceptions.", date: "Feb 15", priority: "medium", by: "Admin" },
-];
-
-const TRAINER_WARNINGS = [
-  { trainerId: "t3", trainer: "Aman", date: "Feb 10", type: "Verbal Warning", note: "3 late session log submissions in Jan. Discussed importance of timely logging.", by: "Admin", followUp: "Mar 10" },
-];
-
-const PROGRESS_DATA = [
-  { week: "W1", weight: 94, strength: 60, bf: 28 },
-  { week: "W2", weight: 93.2, strength: 63, bf: 27.8 },
-  { week: "W3", weight: 92.1, strength: 65, bf: 27.2 },
-  { week: "W4", weight: 91.4, strength: 68, bf: 26.9 },
-  { week: "W5", weight: 90.8, strength: 71, bf: 26.3 },
-  { week: "W6", weight: 89.5, strength: 74, bf: 25.8 },
-  { week: "W7", weight: 88.9, strength: 76, bf: 25.2 },
-  { week: "W8", weight: 88.1, strength: 79, bf: 24.7 },
+const APPROVED_TEMPLATES = [
+  { id: "t1", name: "Beginner Fat Loss", category: "Fat Loss", days: "3x/week", duration: "45 min", exercises: 8, level: "Beginner", description: "Full body circuit focusing on calorie burn and basic movements" },
+  { id: "t2", name: "Senior Mobility & Strength", category: "Mobility", days: "3x/week", duration: "40 min", exercises: 6, level: "Beginner", description: "Low-impact movements, joint mobility, light resistance" },
+  { id: "t3", name: "Strength Basics", category: "Strength", days: "4x/week", duration: "60 min", exercises: 6, level: "Intermediate", description: "Compound lifts with progressive overload — squat, bench, deadlift" },
+  { id: "t4", name: "Athletic Performance", category: "Performance", days: "5x/week", duration: "70 min", exercises: 9, level: "Advanced", description: "Power, agility, speed — suited for sport-specific athletes" },
+  { id: "t5", name: "Post-Rehab Recovery", category: "Rehab", days: "3x/week", duration: "35 min", exercises: 5, level: "Beginner", description: "Gentle progressive loading post-injury — admin approved protocol" },
 ];
 
 // ============================================================
@@ -426,16 +458,14 @@ function Login() {
 // ============================================================
 // ADMIN DASHBOARD
 // ============================================================
-function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, setSharedTrainers, sharedInstructions, setSharedInstructions }: { name: string; logout: () => void; sharedClients: any[]; setSharedClients: any; sharedTrainers: any[]; setSharedTrainers: any; sharedInstructions: any[]; setSharedInstructions: any }) {
+function Admin({ name, logout, sharedClients, sharedTrainers, sharedInstructions, sharedWarnings, sharedSessionLogs }: { name: string; logout: () => void; sharedClients: any[]; sharedTrainers: any[]; sharedInstructions: any[]; sharedWarnings: any[]; sharedSessionLogs: any[] }) {
   const [tab, setTab] = useState("overview");
+  const [actionMsg, setActionMsg] = useState("");
   const trainers = sharedTrainers;
-  const setTrainers = setSharedTrainers;
   const clients = sharedClients;
-  const setClients = setSharedClients;
   const instructions = sharedInstructions;
-  const setInstructions = setSharedInstructions;
-  const [sessionLogs] = useState(SESSION_LOGS);
-  const [warnings, setWarnings] = useState(TRAINER_WARNINGS);
+  const warnings = sharedWarnings;
+  const sessionLogs = sharedSessionLogs;
 
   // Modal visibility
   const [showAddTrainer, setShowAddTrainer] = useState(false);
@@ -453,7 +483,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
 
   // Form state
   const [newTrainer, setNewTrainer] = useState({ name: "", email: "", speciality: "", plan: "Starter" });
-  const [newClient, setNewClient] = useState({ name: "", phone: "", trainer: "", goal: "", weight: "", notes: "" });
+  const [newClient, setNewClient] = useState({ name: "", email: "", gender: "", age: "", trainerId: "", trainerName: "", programType: "1-on-1", status: "Active", medicalNotes: "", startDate: "", endDate: "", sessionsIncluded: "", plan: "", location: "" });
   const [newInstruction, setNewInstruction] = useState({ title: "", body: "", priority: "medium" });
   const [newWarning, setNewWarning] = useState({ trainer: "", type: "Verbal Warning", note: "", followUp: "" });
   const [pwForm, setPwForm] = useState({ newPw: "", confirmPw: "" });
@@ -466,13 +496,21 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
   const [clientStatusFilter, setClientStatusFilter] = useState("all");
 
   // Derived
-  const totalRevenue = trainers.reduce((s, t) => s + t.revenue, 0);
-  const pendingLogs = trainers.reduce((s, t) => s + t.pendingLogs, 0);
-  const flaggedClients = clients.filter(c => c.riskFlag || c.injuries.length > 0);
-  const atRiskClients = clients.filter(c => c.compliance < 75 || c.payment === "Overdue" || c.sessionsRemaining <= 2);
-  const lowAttendance = clients.filter(c => c.compliance < 70);
-  const todaySessions = sessionLogs.filter(s => s.date === "Feb 27" || s.date === "Feb 28");
-  const avgAccountability = Math.round(trainers.reduce((s, t) => s + t.accountabilityScore, 0) / trainers.length);
+  const totalRevenue = trainers.reduce((s, t) => s + (t.revenue || 0), 0);
+  const pendingLogs = trainers.reduce((s, t) => s + (t.pendingLogs || 0), 0);
+  const flaggedClients = clients.filter(c => c.medicalNotes);
+  const todayDate = new Date();
+  const expiredClients = clients.filter(c => c.endDate && new Date(c.endDate) < todayDate && c.status !== "Inactive");
+  const lowClassClients = clients.filter(c => (c.classesLeft || 0) <= 2 && (c.sessionsIncluded || 0) > 0 && c.status === "Active");
+  const atRiskClients = clients.filter(c => {
+    const expired = c.endDate && new Date(c.endDate) < todayDate && c.status !== "Inactive";
+    const lowClasses = (c.classesLeft || 0) <= 2 && (c.sessionsIncluded || 0) > 0;
+    return expired || lowClasses || (c.compliance||0) < 75;
+  });
+  const lowAttendance = clients.filter(c => (c.compliance||0) < 70);
+  const todayStr = new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+  const todaySessions = sessionLogs.filter(s => s.date === todayStr);
+  const avgAccountability = trainers.length ? Math.round(trainers.reduce((s, t) => s + (t.accountabilityScore || 0), 0) / trainers.length) : 0;
   const revData = [{ l: "Sep", v: 98000 }, { l: "Oct", v: 112000 }, { l: "Nov", v: 128000 }, { l: "Dec", v: 118000 }, { l: "Jan", v: 142000 }, { l: "Feb", v: 162400 }];
 
   const navItems = [
@@ -490,67 +528,101 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
     { id: "trainers-list", icon: "👤", label: "Trainers" },
   ];
 
-  // ── ACTIONS ──
-  const addTrainer = () => {
+  // ── ACTIONS — all write to Firestore ──
+  const addTrainer = async () => {
     if (!newTrainer.name || !newTrainer.email) return;
-    setTrainers((p: any[]) => [...p, {
-      id: `t${Date.now()}`, name: newTrainer.name, email: newTrainer.email,
+    await addDoc(collection(db, "trainers"), {
+      name: newTrainer.name, email: newTrainer.email,
       avatar: newTrainer.name.split(" ").map((n:string) => n[0]).join("").toUpperCase().slice(0, 2),
-      clients: 0, retention: 0, revenue: 0, sessions: 0, sessionsAssigned: 0,
+      clientCount: 0, retention: 0, revenue: 0, sessions: 0, sessionsAssigned: 0,
       missedSessions: 0, pendingLogs: 0, status: "active", plan: newTrainer.plan,
-      speciality: newTrainer.speciality, joined: "Feb 2026", rating: 0,
-      accountabilityScore: 100, warnings: 0, progressUpdatesThisMonth: 0, lateSubmissions: 0
-    }]);
+      speciality: newTrainer.speciality, joined: new Date().toLocaleDateString("en-IN",{month:"short",year:"numeric"}),
+      rating: 0, accountabilityScore: 100, warnings: 0, progressUpdatesThisMonth: 0, lateSubmissions: 0,
+      createdAt: serverTimestamp()
+    });
     setNewTrainer({ name: "", email: "", speciality: "", plan: "Starter" });
     setShowAddTrainer(false);
   };
 
-  const addClient = () => {
-    if (!newClient.name || !newClient.trainer) return;
-    setClients((p: any[]) => [...p, {
-      id: `c${Date.now()}`, name: newClient.name, goal: newClient.goal || "General Fitness",
-      weight: Number(newClient.weight) || 70, startWeight: Number(newClient.weight) || 70,
-      target: 65, sessions: 0, sessionsAssigned: 12, compliance: 0, payment: "Active",
-      paymentExpiry: "Jun 30", sessionsRemaining: 12, planTotal: 12, nextSession: "TBD",
-      delta: 0, trainer: newClient.trainer, phone: newClient.phone, joined: "Feb 2026",
-      notes: newClient.notes, progressLastUpdated: "Never", injuries: [], riskFlag: false,
-      lastSession: "None", missedSessions: 0, lateLog: false, active: true
-    }]);
-    // Update trainer client count
-    setTrainers((p: any[]) => p.map(t => t.name === newClient.trainer ? { ...t, clients: t.clients + 1 } : t));
-    setNewClient({ name: "", phone: "", trainer: "", goal: "", weight: "", notes: "" });
+  const addClient = async () => {
+    if (!newClient.name || !newClient.trainerId) return;
+    const sessionsIncluded = Number(newClient.sessionsIncluded) || 0;
+    await addDoc(collection(db, "trainers", newClient.trainerId, "clients"), {
+      name: newClient.name.trim(),
+      email: newClient.email.trim(),
+      gender: newClient.gender,
+      age: newClient.age ? Number(newClient.age) : "",
+      trainerId: newClient.trainerId,
+      trainerName: newClient.trainerName,
+      programType: newClient.programType,
+      status: newClient.status,
+      medicalNotes: newClient.medicalNotes,
+      startDate: newClient.startDate,
+      endDate: newClient.endDate,
+      plan: newClient.plan,
+      sessionsIncluded,
+      sessionsLogged: 0,
+      classesLeft: sessionsIncluded,
+      location: newClient.location,
+      compliance: 0,
+      progressLastUpdated: "Never",
+      createdAt: serverTimestamp()
+    });
+    setNewClient({ name: "", email: "", gender: "", age: "", trainerId: "", trainerName: "", programType: "1-on-1", status: "Active", medicalNotes: "", startDate: "", endDate: "", sessionsIncluded: "", plan: "", location: "" });
     setShowAddClient(false);
   };
 
-  const saveEditClient = () => {
-    if (!editForm.name) return;
-    setClients((p: any[]) => p.map(c => c.id === editForm.id ? { ...c, ...editForm } : c));
+  const saveEditClient = async () => {
+    if (!editForm.name || !editForm.id || !editForm.trainerId) return;
+    const { id, trainerId, ...data } = editForm;
+    const sessionsIncluded = Number(data.sessionsIncluded) || 0;
+    const sessionsLogged = Number(data.sessionsLogged) || 0;
+    const classesLeft = Math.max(0, sessionsIncluded - sessionsLogged);
+    const compliance = sessionsIncluded > 0 ? Math.round((sessionsLogged / sessionsIncluded) * 100) : 0;
+    await updateDoc(doc(db, "trainers", trainerId, "clients", id), {
+      ...data, classesLeft, compliance, updatedAt: serverTimestamp()
+    });
     setShowEditClient(false);
-    setSelectedClient({ ...editForm });
+    setSelectedClient({ ...editForm, classesLeft, compliance });
   };
 
-  const toggleClientStatus = (clientId: string) => {
-    setClients((p: any[]) => p.map(c => c.id === clientId ? { ...c, active: !c.active } : c));
+  const toggleClientStatus = async (clientId: string, trainerId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "Active" ? "Inactive" : currentStatus === "Inactive" ? "Active" : "Active";
+    await updateDoc(doc(db, "trainers", trainerId, "clients", clientId), { status: newStatus });
     if (selectedClient?.id === clientId) {
-      setSelectedClient((prev: any) => ({ ...prev, active: !prev.active }));
+      setSelectedClient((prev: any) => ({ ...prev, status: newStatus }));
     }
   };
 
-  const postInstruction = () => {
+  const postInstruction = async () => {
     if (!newInstruction.title) return;
-    setInstructions((p: any[]) => [{ id: `i${Date.now()}`, title: newInstruction.title, body: newInstruction.body, date: "Feb 28", priority: newInstruction.priority, by: "Admin" }, ...p]);
+    await addDoc(collection(db, "instructions"), {
+      title: newInstruction.title, body: newInstruction.body,
+      priority: newInstruction.priority, by: name,
+      date: new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short"}),
+      createdAt: serverTimestamp()
+    });
     setNewInstruction({ title: "", body: "", priority: "medium" });
     setShowInstruction(false);
   };
 
-  const deleteInstruction = (id: string) => {
-    setInstructions((p: any[]) => p.filter(i => i.id !== id));
+  const deleteInstruction = async (id: string) => {
+    await deleteDoc(doc(db, "instructions", id));
   };
 
-  const addWarning = () => {
+  const addWarning = async () => {
     if (!newWarning.trainer || !newWarning.note) return;
-    setWarnings((p: any[]) => [{ trainerId: `t${Date.now()}`, trainer: newWarning.trainer, date: "Feb 28", type: newWarning.type, note: newWarning.note, by: "Admin", followUp: newWarning.followUp }, ...p]);
-    setTrainers((prev: any[]) => prev.map((tr: any) => tr.name === newWarning.trainer ? { ...tr, warnings: tr.warnings + 1 } : tr));
+    await addDoc(collection(db, "warnings"), {
+      trainer: newWarning.trainer, type: newWarning.type,
+      note: newWarning.note, by: name, followUp: newWarning.followUp,
+      date: new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short"}),
+      createdAt: serverTimestamp()
+    });
+    // Increment trainer warning count
+    const trainer = trainers.find(t => t.name === newWarning.trainer);
+    if (trainer?.id) {
+      await updateDoc(doc(db, "trainers", trainer.id), { warnings: (trainer.warnings || 0) + 1 });
+    }
     setNewWarning({ trainer: "", type: "Verbal Warning", note: "", followUp: "" });
     setShowWarning(false);
   };
@@ -561,24 +633,24 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
       return;
     }
     if (pwForm.newPw.length < 6) { setPwMsg("Password must be at least 6 characters."); return; }
-    // In production: call Firebase Admin SDK / auth update here
-    setPwMsg(`✓ Password updated for ${pwTarget?.name}. (Firebase update required in production)`);
+    setPwMsg(`✓ Password reset noted for ${pwTarget?.name}. Use Firebase Console → Authentication to change passwords.`);
     setPwForm({ newPw: "", confirmPw: "" });
-    setTimeout(() => { setShowChangePw(false); setPwMsg(""); setPwTarget(null); }, 2000);
+    setTimeout(() => { setShowChangePw(false); setPwMsg(""); setPwTarget(null); }, 3000);
   };
 
-  const toggleTrainerStatus = (trainerId: string) => {
-    setTrainers((p: any[]) => p.map(t => t.id === trainerId ? { ...t, status: t.status === "active" ? "suspended" : "active" } : t));
+  const toggleTrainerStatus = async (trainerId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "active" ? "suspended" : "active";
+    await updateDoc(doc(db, "trainers", trainerId), { status: newStatus });
     if (selectedTrainer?.id === trainerId) {
-      setSelectedTrainer((prev: any) => ({ ...prev, status: prev.status === "active" ? "suspended" : "active" }));
+      setSelectedTrainer((prev: any) => ({ ...prev, status: newStatus }));
     }
   };
 
   // Filtered clients
   const filteredClients = clients.filter(c => {
-    const matchSearch = c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.trainer.toLowerCase().includes(clientSearch.toLowerCase());
-    const matchTrainer = trainerFilter === "all" || c.trainer === trainerFilter;
-    const matchStatus = clientStatusFilter === "all" || (clientStatusFilter === "active" ? c.active !== false : c.active === false);
+    const matchSearch = c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.trainerName?.toLowerCase().includes(clientSearch.toLowerCase());
+    const matchTrainer = trainerFilter === "all" || c.trainerName === trainerFilter;
+    const matchStatus = clientStatusFilter === "all" || (clientStatusFilter === "active" ? c.status !== "Inactive" : c.status === "Inactive");
     return matchSearch && matchTrainer && matchStatus;
   });
 
@@ -612,37 +684,37 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
             <div className="modal-t">Edit Client — {editForm.name}</div>
             <div className="g2">
               <div className="field"><label>Full Name</label><input className="fi" value={editForm.name || ""} onChange={e => setEditForm((p:any) => ({ ...p, name: e.target.value }))} /></div>
-              <div className="field"><label>Phone</label><input className="fi" value={editForm.phone || ""} onChange={e => setEditForm((p:any) => ({ ...p, phone: e.target.value }))} /></div>
+              <div className="field"><label>Email</label><input className="fi" type="email" value={editForm.email || ""} onChange={e => setEditForm((p:any) => ({ ...p, email: e.target.value }))} /></div>
             </div>
             <div className="g2">
-              <div className="field"><label>Assign Trainer</label>
-                <select className="fi" value={editForm.trainer || ""} onChange={e => setEditForm((p:any) => ({ ...p, trainer: e.target.value }))}>
-                  {trainers.map(t => <option key={t.id}>{t.name}</option>)}
+              <div className="field"><label>Gender</label>
+                <select className="fi" value={editForm.gender || ""} onChange={e => setEditForm((p:any) => ({ ...p, gender: e.target.value }))}>
+                  <option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option>
                 </select>
               </div>
-              <div className="field"><label>Goal</label>
-                <select className="fi" value={editForm.goal || ""} onChange={e => setEditForm((p:any) => ({ ...p, goal: e.target.value }))}>
-                  <option>Weight Loss</option><option>Muscle Gain</option><option>Athletic Performance</option><option>General Fitness</option><option>Post-Injury Rehab</option>
+              <div className="field"><label>Age</label><input className="fi" type="number" value={editForm.age || ""} onChange={e => setEditForm((p:any) => ({ ...p, age: e.target.value }))} /></div>
+            </div>
+            <div className="g2">
+              <div className="field"><label>Program Type</label>
+                <select className="fi" value={editForm.programType || "1-on-1"} onChange={e => setEditForm((p:any) => ({ ...p, programType: e.target.value }))}>
+                  <option>1-on-1</option><option>Couple</option><option>Online</option>
+                </select>
+              </div>
+              <div className="field"><label>Status</label>
+                <select className="fi" value={editForm.status || "Active"} onChange={e => setEditForm((p:any) => ({ ...p, status: e.target.value }))}>
+                  <option>Active</option><option>On Hold</option><option>Inactive</option>
                 </select>
               </div>
             </div>
             <div className="g2">
-              <div className="field"><label>Current Weight (kg)</label><input className="fi" type="number" value={editForm.weight || ""} onChange={e => setEditForm((p:any) => ({ ...p, weight: Number(e.target.value) }))} /></div>
-              <div className="field"><label>Target Weight (kg)</label><input className="fi" type="number" value={editForm.target || ""} onChange={e => setEditForm((p:any) => ({ ...p, target: Number(e.target.value) }))} /></div>
+              <div className="field"><label>Plan Start Date</label><input className="fi" type="date" value={editForm.startDate || ""} onChange={e => setEditForm((p:any) => ({ ...p, startDate: e.target.value }))} /></div>
+              <div className="field"><label>Plan End Date</label><input className="fi" type="date" value={editForm.endDate || ""} onChange={e => setEditForm((p:any) => ({ ...p, endDate: e.target.value }))} /></div>
             </div>
-            <div className="field"><label>Internal Notes</label><textarea className="fi" rows={3} value={editForm.notes || ""} onChange={e => setEditForm((p:any) => ({ ...p, notes: e.target.value }))} style={{ resize: "none" }} /></div>
             <div className="g2">
-              <div className="field"><label>Payment Status</label>
-                <select className="fi" value={editForm.payment || "Active"} onChange={e => setEditForm((p:any) => ({ ...p, payment: e.target.value }))}>
-                  <option>Active</option><option>Expiring</option><option>Overdue</option>
-                </select>
-              </div>
-              <div className="field"><label>Account Status</label>
-                <select className="fi" value={editForm.active === false ? "inactive" : "active"} onChange={e => setEditForm((p:any) => ({ ...p, active: e.target.value === "active" }))}>
-                  <option value="active">Active</option><option value="inactive">Inactive</option>
-                </select>
-              </div>
+              <div className="field"><label>Sessions Included</label><input className="fi" type="number" value={editForm.sessionsIncluded || ""} onChange={e => setEditForm((p:any) => ({ ...p, sessionsIncluded: Number(e.target.value) }))} /></div>
+              <div className="field"><label>Location</label><input className="fi" value={editForm.location || ""} onChange={e => setEditForm((p:any) => ({ ...p, location: e.target.value }))} /></div>
             </div>
+            <div className="field"><label>Medical Notes</label><textarea className="fi" rows={3} value={editForm.medicalNotes || ""} onChange={e => setEditForm((p:any) => ({ ...p, medicalNotes: e.target.value }))} style={{ resize: "none" }} /></div>
             <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowEditClient(false)}>Cancel</button><button className="btn btn-p btn-s mla" onClick={saveEditClient}>Save Changes</button></div>
           </div>
         </div>
@@ -665,28 +737,53 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
       {/* ── ADD CLIENT ── */}
       {showAddClient && (
         <div className="overlay" onClick={() => setShowAddClient(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-t">Add New Client</div>
             <div className="g2">
               <div className="field"><label>Full Name *</label><input className="fi" placeholder="Client name" value={newClient.name} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, name: e.target.value }))} /></div>
-              <div className="field"><label>Phone</label><input className="fi" placeholder="+91 98765 43210" value={newClient.phone} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, phone: e.target.value }))} /></div>
+              <div className="field"><label>Email (optional)</label><input className="fi" type="email" placeholder="client@email.com" value={newClient.email} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, email: e.target.value }))} /></div>
+            </div>
+            <div className="g2">
+              <div className="field"><label>Gender</label>
+                <select className="fi" value={newClient.gender} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, gender: e.target.value }))}>
+                  <option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option>
+                </select>
+              </div>
+              <div className="field"><label>Age (optional)</label><input className="fi" type="number" placeholder="25" value={newClient.age} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, age: e.target.value }))} /></div>
             </div>
             <div className="g2">
               <div className="field"><label>Assign Trainer *</label>
-                <select className="fi" value={newClient.trainer} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, trainer: e.target.value }))}>
+                <select className="fi" value={newClient.trainerId} onChange={e => {
+                  const t = trainers.find(tr => tr.id === e.target.value);
+                  setNewClient((p: typeof newClient) => ({ ...p, trainerId: e.target.value, trainerName: t?.name || "" }));
+                }}>
                   <option value="">Select trainer...</option>
-                  {trainers.filter(t => t.status === "active").map(t => <option key={t.id}>{t.name}</option>)}
+                  {trainers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
-              <div className="field"><label>Goal</label>
-                <select className="fi" value={newClient.goal} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, goal: e.target.value }))}>
-                  <option value="">Select goal...</option>
-                  <option>Weight Loss</option><option>Muscle Gain</option><option>Athletic Performance</option><option>General Fitness</option><option>Post-Injury Rehab</option>
+              <div className="field"><label>Program Type</label>
+                <select className="fi" value={newClient.programType} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, programType: e.target.value }))}>
+                  <option>1-on-1</option><option>Couple</option><option>Online</option>
                 </select>
               </div>
             </div>
-            <div className="field"><label>Current Weight (kg)</label><input className="fi" type="number" placeholder="75" value={newClient.weight} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, weight: e.target.value }))} /></div>
-            <div className="field"><label>Health Notes / Restrictions</label><textarea className="fi" rows={3} placeholder="Injuries, medications, dietary restrictions..." value={newClient.notes} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, notes: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="g2">
+              <div className="field"><label>Client Status</label>
+                <select className="fi" value={newClient.status} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, status: e.target.value }))}>
+                  <option>Active</option><option>On Hold</option><option>Inactive</option>
+                </select>
+              </div>
+              <div className="field"><label>Plan Name</label><input className="fi" placeholder="e.g. 1 Month Plan" value={newClient.plan} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, plan: e.target.value }))} /></div>
+            </div>
+            <div className="g2">
+              <div className="field"><label>Plan Start Date *</label><input className="fi" type="date" value={newClient.startDate} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, startDate: e.target.value }))} /></div>
+              <div className="field"><label>Plan End Date *</label><input className="fi" type="date" value={newClient.endDate} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, endDate: e.target.value }))} /></div>
+            </div>
+            <div className="g2">
+              <div className="field"><label>Sessions Included *</label><input className="fi" type="number" placeholder="12" value={newClient.sessionsIncluded} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, sessionsIncluded: e.target.value }))} /></div>
+              <div className="field"><label>Location</label><input className="fi" placeholder="Online / Gym address" value={newClient.location} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, location: e.target.value }))} /></div>
+            </div>
+            <div className="field"><label>Medical Conditions / Notes</label><textarea className="fi" rows={3} placeholder="Injuries, medical conditions, medications..." value={newClient.medicalNotes} onChange={e => setNewClient((p: typeof newClient) => ({ ...p, medicalNotes: e.target.value }))} style={{ resize: "none" }} /></div>
             <div className="row mt16"><button className="btn btn-g btn-s" onClick={() => setShowAddClient(false)}>Cancel</button><button className="btn btn-p btn-s mla" onClick={addClient}>Add Client</button></div>
           </div>
         </div>
@@ -724,7 +821,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
         <div className="overlay" onClick={() => setSelectedTrainer(null)}>
           <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
             <div className="row mb16">
-              <div className="av av-t" style={{ width: 48, height: 48, fontSize: 16 }}>{selectedTrainer.avatar}</div>
+              <div className="av av-t" style={{ width: 48, height: 48, fontSize: 16 }}>{selectedTrainer.avatar || (selectedTrainer.name||"").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()}</div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800 }}>{selectedTrainer.name}</div>
                 <div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedTrainer.speciality} · {selectedTrainer.email}</div>
@@ -735,7 +832,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
             </div>
             <div className="g4 mb16">
               {[
-                { l: "Clients", v: clients.filter(c => c.trainer === selectedTrainer.name).length },
+                { l: "Clients", v: clients.filter(c => c.trainerId === selectedTrainer.id).length },
                 { l: "Sessions Done/Assigned", v: `${selectedTrainer.sessions}/${selectedTrainer.sessionsAssigned}` },
                 { l: "Missed Sessions", v: selectedTrainer.missedSessions },
                 { l: "Pending Logs", v: selectedTrainer.pendingLogs }
@@ -749,17 +846,17 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
             <div className="g2 mb16">
               <div>
                 <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Their Clients</div>
-                {clients.filter(c => c.trainer === selectedTrainer.name).map(c => (
+                {clients.filter(c => c.trainerId === selectedTrainer.id).map(c => (
                   <div key={c.id} className="row" style={{ padding: "8px 0", borderBottom: "1px solid var(--b1)", cursor: "pointer" }}
                     onClick={() => { setSelectedTrainer(null); setSelectedClient(c); }}>
                     <span className="fs13 fw6 t1">{c.name}</span>
-                    <span className={`badge fs10 ${c.active === false ? "bgr" : "bg"} ml8`} style={{ marginLeft: 8 }}>{c.active === false ? "inactive" : "active"}</span>
-                    <div className="pw" style={{ flex: 1, margin: "0 10px" }}><div className={`pb ${c.compliance >= 85 ? "pb-g" : c.compliance >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance}%` }} /></div>
-                    <span className="fs11 t3">{c.compliance}%</span>
-                    <span className={`badge fs10 mla ${c.payment === "Active" ? "bg" : c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span>
+                    <span className={`badge fs10 ${c.status === "Inactive" ? "bgr" : "bg"} ml8`} style={{ marginLeft: 8 }}>{c.status === "Inactive" ? "inactive" : "active"}</span>
+                    <div className="pw" style={{ flex: 1, margin: "0 10px" }}><div className={`pb ${(c.compliance||0) >= 85 ? "pb-g" : (c.compliance||0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${(c.compliance||0)}%` }} /></div>
+                    <span className="fs11 t3">{(c.compliance||0)}%</span>
+                    <span className={`badge fs10 mla ${c.status === "Active" ? "bg" : c.status === "On Hold" ? "by" : "br"}`}>{c.status}</span>
                   </div>
                 ))}
-                {clients.filter(c => c.trainer === selectedTrainer.name).length === 0 && (
+                {clients.filter(c => c.trainerId === selectedTrainer.id).length === 0 && (
                   <div className="fs12 t3">No clients assigned yet</div>
                 )}
               </div>
@@ -783,7 +880,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
             </div>
             <div className="row gap8 flex-wrap">
               <button className={`btn btn-s ${selectedTrainer.status === "active" ? "btn-dn" : "btn-ok"}`}
-                onClick={() => toggleTrainerStatus(selectedTrainer.id)}>
+                onClick={() => toggleTrainerStatus(selectedTrainer.id, selectedTrainer.status)}>
                 {selectedTrainer.status === "active" ? "Suspend" : "Activate"}
               </button>
               <button className="btn btn-warn btn-s" onClick={() => { setNewWarning((p: typeof newWarning) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Log Warning</button>
@@ -803,21 +900,21 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
               <div className="av av-c" style={{ width: 48, height: 48, fontSize: 15 }}>{selectedClient.name.split(" ").map((n: string) => n[0]).join("")}</div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800 }}>{selectedClient.name}</div>
-                <div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedClient.goal} · Trainer: {selectedClient.trainer} · {selectedClient.phone}</div>
+                <div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedClient.goal} · Trainer: {selectedClient.trainerName} · {selectedClient.phone}</div>
                 <div className="row gap8 mt4">
-                  <span className={`badge fs10 ${selectedClient.payment === "Active" ? "bg" : selectedClient.payment === "Expiring" ? "by" : "br"}`}>{selectedClient.payment}</span>
-                  <span className={`badge fs10 ${selectedClient.active === false ? "br" : "bg"}`}>{selectedClient.active === false ? "inactive" : "active"}</span>
+                  <span className={`badge fs10 ${selectedClient.status === "Active" ? "bg" : selectedClient.status === "On Hold" ? "by" : "br"}`}>{selectedClient.status}</span>
+                  <span className={`badge fs10 ${selectedClient.status === "Inactive" ? "br" : "bg"}`}>{selectedClient.status === "Inactive" ? "inactive" : "active"}</span>
                 </div>
               </div>
               <button className="btn btn-g btn-xs mla" onClick={() => setSelectedClient(null)}>✕</button>
             </div>
-            {selectedClient.riskFlag && <div className="alert al-r mb12">🚨 RISK FLAG ACTIVE — review before next session</div>}
-            {selectedClient.injuries.length > 0 && <div className="alert al-y mb12">🩹 Injury Notes: {selectedClient.injuries.join(", ")}</div>}
+            {}
+            {selectedClient.medicalNotes && <div className="alert al-y mb12">🩹 Medical Notes: {selectedClient.medicalNotes}</div>}
             <div className="g4 mb16">
               {[
-                { l: "Attendance", v: `${selectedClient.compliance}%` },
-                { l: "Sessions Done/Assigned", v: `${selectedClient.sessions}/${selectedClient.sessionsAssigned}` },
-                { l: "Sessions Remaining", v: selectedClient.sessionsRemaining },
+                { l: "Compliance", v: `${selectedClient.compliance||0}%` },
+                { l: "Sessions Done/Assigned", v: `${selectedClient.sessionsLogged||0}/${selectedClient.sessionsIncluded||0}` },
+                { l: "Classes Left", v: selectedClient.classesLeft||0 },
                 { l: "Missed Sessions", v: selectedClient.missedSessions }
               ].map((m, i) => (
                 <div key={i} className="card-sm">
@@ -829,20 +926,24 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
             <div className="g2 mb16">
               <div>
                 <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Plan Consumption</div>
-                <div className="row gap8 mb8"><span className="fs12 t2">Sessions used</span><span className="fs12 fw7 mla">{selectedClient.sessions} / {selectedClient.sessionsAssigned}</span></div>
+                <div className="row gap8 mb8"><span className="fs12 t2">Sessions used</span><span className="fs12 fw7 mla">{selectedClient.sessionsLogged||0} / {selectedClient.sessionsIncluded||0}</span></div>
                 <div className="pw" style={{ height: 8 }}>
-                  <div className={`pb ${selectedClient.sessionsRemaining > 5 ? "pb-g" : selectedClient.sessionsRemaining > 2 ? "pb-y" : "pb-r"}`}
-                    style={{ height: "100%", width: `${selectedClient.sessionsAssigned > 0 ? (selectedClient.sessions / selectedClient.sessionsAssigned) * 100 : 0}%`, borderRadius: 4 }} />
+                  <div className={`pb ${(selectedClient.classesLeft||0) > 5 ? "pb-g" : (selectedClient.classesLeft||0) > 2 ? "pb-y" : "pb-r"}`}
+                    style={{ height: "100%", width: `${(selectedClient.sessionsIncluded||0) > 0 ? ((selectedClient.sessionsLogged||0) / selectedClient.sessionsIncluded) * 100 : 0}%`, borderRadius: 4 }} />
                 </div>
-                <div className="row mt8"><span className="fs11 t3">{selectedClient.sessionsRemaining} remaining</span><span className="fs11 t3 mla">Expires: {selectedClient.paymentExpiry}</span></div>
+                <div className="row gap8 mt8 mb4">
+                  <span className="fs11 t3">Start: {selectedClient.startDate||"—"}</span>
+                  <span className="fs11 t3 mla">End: {selectedClient.endDate||"—"}</span>
+                </div>
+                <div className="row"><span className={`fs12 fw7 ${(selectedClient.classesLeft||0)<=2?"tr":(selectedClient.classesLeft||0)<=5?"ty":"tg"}`}>{selectedClient.classesLeft||0} classes left</span><span className="fs11 t3 mla">{selectedClient.plan||"—"}</span></div>
                 <div className="fs10 t3 mt12" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Progress Last Updated</div>
-                <div className={`row mt4 ${selectedClient.progressLastUpdated === "Never" || selectedClient.progressLastUpdated.includes("21") ? "tr" : selectedClient.progressLastUpdated.includes("14") ? "ty" : "tg"}`}>
+                <div className={`row mt4 ${selectedClient.progressLastUpdated === "Never" || selectedClient.progressLastUpdated === "Never" ? "tr" : false ? "ty" : "tg"}`}>
                   <span className="fs13 fw7">{selectedClient.progressLastUpdated}</span>
-                  {(selectedClient.progressLastUpdated === "Never" || selectedClient.progressLastUpdated.includes("21")) && <span className="overdue-tag mla">OVERDUE</span>}
+                  {(selectedClient.progressLastUpdated === "Never" || selectedClient.progressLastUpdated === "Never") && <span className="overdue-tag mla">OVERDUE</span>}
                 </div>
               </div>
               <div>
-                {selectedClient.notes && <div className="card-sm mb8"><div className="fs10 t3 mb4" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Internal Notes</div><div className="fs12 t2">{selectedClient.notes}</div></div>}
+                {selectedClient.medicalNotes && <div className="card-sm mb8"><div className="fs10 t3 mb4" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Internal Notes</div><div className="fs12 t2">{selectedClient.medicalNotes}</div></div>}
                 <div className="card-sm"><div className="fs10 t3 mb4" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Weight Progress</div>
                   <div className="row"><span className="fs12 t2">Start: {selectedClient.startWeight}kg</span><span className="fs12 fw7 mla">Now: {selectedClient.weight}kg</span></div>
                   <div className={`fs12 fw7 mt4 ${selectedClient.delta < 0 ? "tg" : "ty"}`}>{selectedClient.delta > 0 ? "+" : ""}{selectedClient.delta}kg total</div>
@@ -850,9 +951,9 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
               </div>
             </div>
             <div className="row gap8">
-              <button className={`btn btn-s ${selectedClient.active === false ? "btn-ok" : "btn-dn"}`}
-                onClick={() => toggleClientStatus(selectedClient.id)}>
-                {selectedClient.active === false ? "Activate Client" : "Deactivate Client"}
+              <button className={`btn btn-s ${selectedClient.status === "Inactive" ? "btn-ok" : "btn-dn"}`}
+                onClick={() => toggleClientStatus(selectedClient.id, selectedClient.status !== "Inactive")}>
+                {selectedClient.status === "Inactive" ? "Activate Client" : "Deactivate Client"}
               </button>
               <button className="btn btn-warn btn-s" onClick={() => openEditClient(selectedClient)}>Edit Client</button>
               <button className="btn btn-g btn-s" onClick={() => { setTab("clients"); setSelectedClient(null); }}>View in Table</button>
@@ -901,7 +1002,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
               <div className="g4">
                 {[
                   { l: "Total Revenue (Feb)", v: `₹${(totalRevenue / 1000).toFixed(0)}K`, s: "All trainers combined", d: "+14.2%", up: true, c: "var(--brand)" },
-                  { l: "Active Clients", v: clients.filter(c => c.active !== false).length, s: `${clients.filter(c => c.payment === "Active").length} paid active`, d: "+4 this month", up: true, c: "var(--blue)" },
+                  { l: "Active Clients", v: clients.filter(c => c.status !== "Inactive").length, s: `${clients.filter(c => c.status === "Active").length} paid active`, d: "+4 this month", up: true, c: "var(--blue)" },
                   { l: "Pending Session Logs", v: pendingLogs, s: "Must be logged today", d: pendingLogs > 0 ? "Action needed" : "All clear", up: pendingLogs === 0, c: pendingLogs > 0 ? "var(--red)" : "var(--green)" },
                   { l: "Avg Accountability", v: `${avgAccountability}%`, s: "Across all trainers", d: "+2% vs last month", up: true, c: "var(--purple)" },
                 ].map((s, i) => (
@@ -936,9 +1037,9 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                   <div className="ch"><span className="ct">Urgent Alerts</span><span className="badge br">{atRiskClients.length + pendingLogs} items</span></div>
                   <div className="col gap8">
                     {pendingLogs > 0 && <div className="alert al-r" style={{ cursor: "pointer" }} onClick={() => setTab("sessions")}>📝 {pendingLogs} session logs pending — tap to view</div>}
-                    {clients.filter(c => c.payment === "Overdue").map(c => <div key={c.id} className="alert al-r" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>💳 {c.name} — payment overdue since {c.paymentExpiry}</div>)}
-                    {clients.filter(c => c.payment === "Expiring").map(c => <div key={c.id} className="alert al-y" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>⏳ {c.name} — expires {c.paymentExpiry} ({c.sessionsRemaining} left)</div>)}
-                    {clients.filter(c => c.compliance < 70).map(c => <div key={c.id} className="alert al-y" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>📉 {c.name} — {c.compliance}% attendance</div>)}
+                    {expiredClients.map(c => <div key={c.id} className="alert al-r" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>📅 {c.name} — plan expired {c.endDate} ({c.classesLeft || 0} classes left)</div>)}
+                    {lowClassClients.map(c => <div key={c.id} className="alert al-y" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>⚠ {c.name} — only {c.classesLeft} class{(c.classesLeft||0)===1?'':'es'} remaining</div>)}
+                    {clients.filter(c => (c.compliance||0) < 70).map(c => <div key={c.id} className="alert al-y" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>📉 {c.name} — {(c.compliance||0)}% attendance</div>)}
                     {trainers.filter(t => t.accountabilityScore < 70).map(t => <div key={t.id} className="alert al-r" style={{ cursor: "pointer" }} onClick={() => setSelectedTrainer(t)}>⚠ {t.name} — accountability {t.accountabilityScore}%</div>)}
                   </div>
                 </div>
@@ -951,9 +1052,9 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                 <div className="card">
                   <div className="ch"><span className="ct">Platform Health</span></div>
                   <div style={{ display: "flex", justifyContent: "space-around", padding: "4px 0" }}>
-                    <Donut value={Math.round(trainers.reduce((s, t) => s + t.retention, 0) / trainers.length)} color="var(--green)" label="Retention" />
+                    <Donut value={trainers.length ? Math.round(trainers.reduce((s, t) => s + (t.retention||0), 0) / trainers.length) : 0} color="var(--green)" label="Retention" />
                     <Donut value={avgAccountability} color="var(--brand)" label="Accountability" />
-                    <Donut value={Math.round(clients.reduce((s, c) => s + c.compliance, 0) / clients.length)} color="var(--blue)" label="Compliance" />
+                    <Donut value={clients.length ? Math.round(clients.reduce((s, c) => s + (c.compliance||0), 0) / clients.length) : 0} color="var(--blue)" label="Compliance" />
                   </div>
                 </div>
               </div>
@@ -970,8 +1071,8 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                     <thead><tr><th>Trainer</th><th>Score</th><th>Sessions Done/Assigned</th><th>Missed</th><th>Pending Logs</th><th>Avg Compliance</th><th>Progress Updates</th><th>Late Logs</th><th>Warnings</th><th>Action</th></tr></thead>
                     <tbody>
                       {trainers.map(t => {
-                        const tClients = clients.filter(c => c.trainer === t.name);
-                        const avgComp = tClients.length ? Math.round(tClients.reduce((s, c) => s + c.compliance, 0) / tClients.length) : 0;
+                        const tClients = clients.filter(c => c.trainerId === t.id);
+                        const avgComp = tClients.length ? Math.round(tClients.reduce((s, c) => s + (c.compliance||0), 0) / tClients.length) : 0;
                         return (
                           <tr key={t.id} style={{ cursor: "pointer" }} onClick={() => setSelectedTrainer(t)}>
                             <td>
@@ -1009,8 +1110,8 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                 <div className="ch"><span className="ct">Client Drop-off Risk by Trainer</span></div>
                 <div className="g3">
                   {trainers.map(t => {
-                    const mine = clients.filter(c => c.trainer === t.name);
-                    const atRisk = mine.filter(c => c.missedSessions > 3 || c.compliance < 70);
+                    const mine = clients.filter(c => c.trainerId === t.id);
+                    const atRisk = mine.filter(c => c.missedSessions > 3 || (c.compliance||0) < 70);
                     return (
                       <div key={t.id} className="card-sm">
                         <div className="row mb8">
@@ -1019,7 +1120,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                           <span className={`badge fs10 mla ${atRisk.length > 0 ? "br" : "bg"}`}>{atRisk.length > 0 ? `${atRisk.length} at risk` : "All good"}</span>
                         </div>
                         {atRisk.map(c => (
-                          <div key={c.id} className="fs11 t3 mt4" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>• {c.name} — {c.compliance}% · {c.missedSessions} missed</div>
+                          <div key={c.id} className="fs11 t3 mt4" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>• {c.name} — {(c.compliance||0)}% · {c.missedSessions} missed</div>
                         ))}
                         {atRisk.length === 0 && <div className="fs11 tg">No drop-off risks</div>}
                       </div>
@@ -1033,6 +1134,12 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
           {/* CLIENT OVERSIGHT */}
           {tab === "clients" && (
             <>
+              {myExpiredClients.length > 0 && (
+                <div className="alert al-r mb12">📅 {myExpiredClients.length} client plan{myExpiredClients.length>1?"s":""} expired: {myExpiredClients.map(c=>c.name).join(", ")} — contact admin to renew</div>
+              )}
+              {myLowClassClients.length > 0 && (
+                <div className="alert al-y mb12">⚠ Low classes: {myLowClassClients.map(c=>`${c.name} (${c.classesLeft} left)`).join(", ")} — inform admin for renewal</div>
+              )}
               <div className="sh">
                 <div className="sh-l"><h2>Client Oversight</h2><p>{filteredClients.length} of {clients.length} clients</p></div>
                 <div className="row gap8">
@@ -1055,23 +1162,23 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                     <thead><tr><th>Client</th><th>Status</th><th>Trainer</th><th>Attendance</th><th>Missed</th><th>Sessions Left</th><th>Progress</th><th>Payment</th><th>Expires</th><th>Risk</th><th>Actions</th></tr></thead>
                     <tbody>
                       {filteredClients.map(c => (
-                        <tr key={c.id} style={{ cursor: "pointer", opacity: c.active === false ? 0.6 : 1 }} onClick={() => setSelectedClient(c)}>
+                        <tr key={c.id} style={{ cursor: "pointer", opacity: c.status === "Inactive" ? 0.6 : 1 }} onClick={() => setSelectedClient(c)}>
                           <td><div className="col gap4"><span className="t1 fw6 fs13">{c.name}</span><span className="fs10 t3">{c.goal} · {c.phone}</span></div></td>
-                          <td><span className={`badge fs10 ${c.active === false ? "bgr" : "bg"}`}>{c.active === false ? "inactive" : "active"}</span></td>
-                          <td className="fs12">{c.trainer}</td>
-                          <td><div className="row gap8"><div className="pw" style={{ width: 44 }}><div className={`pb ${c.compliance >= 85 ? "pb-g" : c.compliance >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance}%` }} /></div><span className={`fs11 fw7 ${c.compliance < 70 ? "tr" : c.compliance < 85 ? "ty" : "tg"}`}>{c.compliance}%</span></div></td>
+                          <td><span className={`badge fs10 ${c.status === "Inactive" ? "bgr" : "bg"}`}>{c.status === "Inactive" ? "inactive" : "active"}</span></td>
+                          <td className="fs12">{c.trainerName}</td>
+                          <td><div className="row gap8"><div className="pw" style={{ width: 44 }}><div className={`pb ${(c.compliance||0) >= 85 ? "pb-g" : (c.compliance||0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${(c.compliance||0)}%` }} /></div><span className={`fs11 fw7 ${(c.compliance||0) < 70 ? "tr" : c.compliance < 85 ? "ty" : "tg"}`}>{(c.compliance||0)}%</span></div></td>
                           <td><span className={c.missedSessions > 3 ? "tr fw7" : "t2"}>{c.missedSessions}</span></td>
-                          <td><span className={c.sessionsRemaining <= 2 ? "tr fw7" : c.sessionsRemaining <= 5 ? "ty fw7" : "tg"}>{c.sessionsRemaining}</span></td>
+                          <td><span className={c.classesLeft <= 2 ? "tr fw7" : c.classesLeft <= 5 ? "ty fw7" : "tg"}>{c.classesLeft}</span></td>
                           <td><span className={c.progressLastUpdated === "Never" || c.progressLastUpdated.includes("21") ? "tr fs11" : c.progressLastUpdated.includes("14") ? "ty fs11" : "tg fs11"}>{c.progressLastUpdated}{(c.progressLastUpdated === "Never" || c.progressLastUpdated.includes("21")) && <span className="overdue-tag" style={{ marginLeft: 4 }}>OVERDUE</span>}</span></td>
-                          <td><span className={`badge ${c.payment === "Active" ? "bg" : c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span></td>
-                          <td className="fs11 t3">{c.paymentExpiry}</td>
-                          <td>{c.riskFlag ? <span className="badge br">🚨</span> : c.injuries.length > 0 ? <span className="badge by">🩹</span> : <span className="tg fs11">✓</span>}</td>
+                          <td><span className={`badge ${c.status === "Active" ? "bg" : c.status === "On Hold" ? "by" : "br"}`}>{c.status}</span></td>
+                          <td className="fs11 t3">{c.endDate}</td>
+                          <td>{c.medicalNotes ? <span className="badge by">🩹</span> : c.medicalNotes ? <span className="badge by">🩹</span> : <span className="tg fs11">✓</span>}</td>
                           <td onClick={e => e.stopPropagation()}>
                             <div className="row gap4">
                               <button className="btn btn-g btn-xs" onClick={() => setSelectedClient(c)}>View</button>
                               <button className="btn btn-warn btn-xs" onClick={() => openEditClient(c)}>Edit</button>
-                              <button className={`btn btn-xs ${c.active === false ? "btn-ok" : "btn-dn"}`} onClick={() => toggleClientStatus(c.id)}>
-                                {c.active === false ? "On" : "Off"}
+                              <button className={`btn btn-xs ${c.status === "Inactive" ? "btn-ok" : "btn-dn"}`} onClick={() => toggleClientStatus(c.id, c.status !== "Inactive")}>
+                                {c.status === "Inactive" ? "On" : "Off"}
                               </button>
                             </div>
                           </td>
@@ -1123,9 +1230,9 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                   <div className="ch"><span className="ct">🚨 Risk Flags</span><span className="badge br">{flaggedClients.length}</span></div>
                   <div className="col gap8">
                     {flaggedClients.map(c => (
-                      <div key={c.id} className="flag-card" style={{ borderColor: c.riskFlag ? "var(--red)" : "var(--yellow)", cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
-                        <div className="row"><span className="fw6 fs13 t1">{c.name}</span><span className="fs11 t3 mla">{c.trainer}</span></div>
-                        <div className="fs11 t3 mt4">{c.injuries.map((i:string) => `⚠ ${i}`).join(" · ")} {c.riskFlag ? "· 🚨 Risk flag" : ""}</div>
+                      <div key={c.id} className="flag-card" style={{ borderColor: c.medicalNotes ? "var(--yellow)" : "var(--b2)", cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
+                        <div className="row"><span className="fw6 fs13 t1">{c.name}</span><span className="fs11 t3 mla">{c.trainerName}</span></div>
+                        <div className="fs11 t3 mt4">{c.medicalNotes || ""}</div>
                       </div>
                     ))}
                     {flaggedClients.length === 0 && <div className="fs12 tg">No active risk flags</div>}
@@ -1136,8 +1243,8 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                   <div className="col gap8">
                     {lowAttendance.map(c => (
                       <div key={c.id} className="flag-card" style={{ borderColor: "var(--yellow)", cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
-                        <div className="row"><span className="fw6 fs13 t1">{c.name}</span><span className="badge by fs10 mla">{c.compliance}%</span></div>
-                        <div className="fs11 t3 mt4">{c.trainer} · {c.missedSessions} missed</div>
+                        <div className="row"><span className="fw6 fs13 t1">{c.name}</span><span className="badge by fs10 mla">{(c.compliance||0)}%</span></div>
+                        <div className="fs11 t3 mt4">{c.trainerName} · {c.missedSessions} missed</div>
                       </div>
                     ))}
                     {lowAttendance.length === 0 && <div className="fs12 tg">All clients above 70%</div>}
@@ -1163,7 +1270,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                     {clients.filter(c => c.progressLastUpdated === "Never" || c.progressLastUpdated.includes("21")).map(c => (
                       <div key={c.id} className="flag-card" style={{ borderColor: "var(--red)", cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
                         <div className="row"><span className="fw6 fs13 t1">{c.name}</span><span className="overdue-tag mla">OVERDUE</span></div>
-                        <div className="fs11 t3 mt4">Last: {c.progressLastUpdated} · {c.trainer}</div>
+                        <div className="fs11 t3 mt4">Last: {c.progressLastUpdated} · {c.trainerName}</div>
                       </div>
                     ))}
                   </div>
@@ -1179,9 +1286,9 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
               <div className="g4">
                 {[
                   { l: "Sessions Sold (Feb)", v: clients.reduce((s, c) => s + c.planTotal, 0), c: "var(--brand)" },
-                  { l: "Sessions Delivered", v: clients.reduce((s, c) => s + c.sessions, 0), c: "var(--green)" },
-                  { l: "Renewal Risk", v: clients.filter(c => c.sessionsRemaining <= 3 || c.payment === "Expiring" || c.compliance < 70).length, c: "var(--red)" },
-                  { l: "Overdue Payments", v: clients.filter(c => c.payment === "Overdue").length, c: "var(--yellow)" },
+                  { l: "Sessions Delivered", v: clients.reduce((s, c) => s + (c.sessionsLogged||0), 0), c: "var(--green)" },
+                  { l: "Renewal Risk", v: clients.filter(c => c.classesLeft <= 3 || c.status === "On Hold" || (c.compliance||0) < 70).length, c: "var(--red)" },
+                  { l: "Overdue Payments", v: clients.filter(c => c.status === "Inactive").length, c: "var(--yellow)" },
                 ].map((s, i) => (
                   <div key={i} className="sc">
                     <div className="sc-bar" style={{ background: `linear-gradient(90deg,${s.c},${s.c}55)` }} />
@@ -1195,25 +1302,25 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                   <div className="ch"><span className="ct">Plan Consumption</span></div>
                   {clients.map(c => (
                     <div key={c.id} className="row" style={{ padding: "10px 0", borderBottom: "1px solid var(--b1)", cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
-                      <div style={{ minWidth: 120 }}><div className="fw6 fs13 t1">{c.name}</div><div className="fs10 t3">{c.trainer}</div></div>
+                      <div style={{ minWidth: 120 }}><div className="fw6 fs13 t1">{c.name}</div><div className="fs10 t3">{c.trainerName}</div></div>
                       <div style={{ flex: 1, margin: "0 12px" }}>
-                        <div className="pw" style={{ height: 6 }}><div className={`pb ${c.sessionsRemaining <= 2 ? "pb-r" : c.sessionsRemaining <= 5 ? "pb-y" : "pb-g"}`} style={{ height: "100%", width: `${c.sessionsAssigned > 0 ? (c.sessions / c.sessionsAssigned) * 100 : 0}%`, borderRadius: 4 }} /></div>
-                        <div className="row mt4"><span className="fs10 t3">{c.sessions} used</span><span className="fs10 t3 mla">{c.sessionsRemaining} left</span></div>
+                        <div className="pw" style={{ height: 6 }}><div className={`pb ${c.classesLeft <= 2 ? "pb-r" : c.classesLeft <= 5 ? "pb-y" : "pb-g"}`} style={{ height: "100%", width: `${c.sessionsIncluded > 0 ? ((c.sessionsLogged||0) / c.sessionsIncluded) * 100 : 0}%`, borderRadius: 4 }} /></div>
+                        <div className="row mt4"><span className="fs10 t3">{c.sessionsLogged||0} used</span><span className="fs10 t3 mla">{c.classesLeft} left</span></div>
                       </div>
-                      <span className={`badge fs10 ${c.sessionsRemaining <= 2 ? "br" : c.sessionsRemaining <= 5 ? "by" : "bg"}`}>{c.sessionsRemaining}</span>
+                      <span className={`badge fs10 ${c.classesLeft <= 2 ? "br" : c.classesLeft <= 5 ? "by" : "bg"}`}>{c.classesLeft}</span>
                     </div>
                   ))}
                 </div>
                 <div className="card">
-                  <div className="ch"><span className="ct">🔄 Renewal Risk List</span><span className="badge br">{clients.filter(c => c.sessionsRemaining <= 3 || c.payment === "Expiring" || c.compliance < 70).length}</span></div>
+                  <div className="ch"><span className="ct">🔄 Renewal Risk List</span><span className="badge br">{clients.filter(c => c.classesLeft <= 3 || c.status === "On Hold" || (c.compliance||0) < 70).length}</span></div>
                   <div className="col gap8">
-                    {clients.filter(c => c.sessionsRemaining <= 3 || c.payment === "Expiring" || c.compliance < 70).map(c => (
+                    {clients.filter(c => c.classesLeft <= 3 || c.status === "On Hold" || (c.compliance||0) < 70).map(c => (
                       <div key={c.id} className="card-sm" style={{ cursor: "pointer" }} onClick={() => setSelectedClient(c)}>
-                        <div className="row"><span className="fw7 fs13 t1">{c.name}</span><span className={`badge fs10 mla ${c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span></div>
+                        <div className="row"><span className="fw7 fs13 t1">{c.name}</span><span className={`badge fs10 mla ${c.status === "On Hold" ? "by" : "br"}`}>{c.status}</span></div>
                         <div className="col gap4 mt4">
-                          {c.sessionsRemaining <= 3 && <span className="fs11 tr">• {c.sessionsRemaining} sessions left</span>}
-                          {c.compliance < 70 && <span className="fs11 ty">• Attendance: {c.compliance}%</span>}
-                          {c.payment === "Expiring" && <span className="fs11 ty">• Expires: {c.paymentExpiry}</span>}
+                          {c.classesLeft <= 3 && <span className="fs11 tr">• {c.classesLeft} sessions left</span>}
+                          {(c.compliance||0) < 70 && <span className="fs11 ty">• Attendance: {(c.compliance||0)}%</span>}
+                          {c.status === "On Hold" && <span className="fs11 ty">• Expires: {c.endDate}</span>}
                         </div>
                       </div>
                     ))}
@@ -1408,7 +1515,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
                       {[
-                        { v: clients.filter(c => c.trainer === t.name).length, k: "Clients" },
+                        { v: clients.filter(c => c.trainerId === t.id).length, k: "Clients" },
                         { v: `${t.retention}%`, k: "Retention" },
                         { v: `₹${(t.revenue / 1000).toFixed(0)}K`, k: "Revenue" }
                       ].map((s, i) => (
@@ -1421,7 +1528,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
                     <div className="row gap8 mt12" onClick={e => e.stopPropagation()}>
                       <button className="btn btn-g btn-xs" onClick={() => { setNewClient((p: typeof newClient) => ({ ...p, trainer: t.name })); setShowAddClient(true); }}>+ Client</button>
                       <button className="btn btn-g btn-xs" onClick={() => { setPwTarget(t); setShowChangePw(true); }}>🔑 Password</button>
-                      <button className={`btn btn-xs mla ${t.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(t.id)}>
+                      <button className={`btn btn-xs mla ${t.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(t.id, t.status)}>
                         {t.status === "active" ? "Suspend" : "Activate"}
                       </button>
                     </div>
@@ -1440,7 +1547,7 @@ function Admin({ name, logout, sharedClients, setSharedClients, sharedTrainers, 
 // ============================================================
 // TRAINER DASHBOARD
 // ============================================================
-function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedInstructions }: { name: string; email: string; logout: () => void; sharedClients: any[]; sharedTrainers: any[]; sharedInstructions: any[] }) {
+function Trainer({ uid, name, email, logout, sharedClients, sharedTrainers, sharedInstructions }: { uid: string; name: string; email: string; logout: () => void; sharedClients: any[]; sharedTrainers: any[]; sharedInstructions: any[] }) {
   const [tab, setTab] = useState("clients");
   const [libCat, setLibCat] = useState("Chest");
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -1449,7 +1556,14 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
   );
   const [logClient, setLogClient] = useState("");
   const [sessionSaved, setSessionSaved] = useState(false);
+  const [sessionError, setSessionError] = useState("");
   const [injuryFlag, setInjuryFlag] = useState("");
+  const [sessionDate, setSessionDate] = useState(new Date().toISOString().split("T")[0]);
+  const [sessionDuration, setSessionDuration] = useState("60");
+  const [sessionStatus, setSessionStatus] = useState("Completed");
+  const [sessionType, setSessionType] = useState("Strength Training");
+  const [sessionNotes, setSessionNotes] = useState("");
+  const [sessionModReason, setSessionModReason] = useState("");
   const [progressClientOverride, setProgressClientOverride] = useState<string>("");
   const [dietClientOverride, setDietClientOverride] = useState<string>("");
   // progressClient/dietClient computed after myClients (see below)
@@ -1460,52 +1574,56 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
   const [newProgress, setNewProgress] = useState({ weight: "", bf: "", chest: "", waist: "", hips: "", arms: "", thighs: "", squat: "", bench: "", deadlift: "", pullup: "", notes: "" });
   const [newDiet, setNewDiet] = useState({ protein: "", water: "", steps: "", sleep: "", sleepQuality: "Good", notes: "" });
 
-  const PROGRESS_HISTORY: Record<string, any[]> = {
-    "Rajesh Kumar": [
-      { date: "Aug 1", weight: 110, bf: 34, chest: 112, waist: 104, hips: 114, arms: 38, thighs: 62, squat: 60, bench: 50, deadlift: 70, pullup: 0 },
-      { date: "Sep 1", weight: 106, bf: 32, chest: 110, waist: 101, hips: 112, arms: 38, thighs: 60, squat: 70, bench: 57, deadlift: 80, pullup: 2 },
-      { date: "Oct 1", weight: 102, bf: 30, chest: 107, waist: 97, hips: 110, arms: 39, thighs: 59, squat: 80, bench: 62, deadlift: 90, pullup: 4 },
-      { date: "Nov 1", weight: 99, bf: 28.5, chest: 104, waist: 94, hips: 108, arms: 39, thighs: 57, squat: 90, bench: 67, deadlift: 100, pullup: 5 },
-      { date: "Dec 1", weight: 97, bf: 27, chest: 102, waist: 92, hips: 107, arms: 40, thighs: 56, squat: 95, bench: 70, deadlift: 110, pullup: 6 },
-      { date: "Jan 1", weight: 95.5, bf: 26, chest: 101, waist: 91, hips: 106, arms: 40, thighs: 55, squat: 100, bench: 72, deadlift: 115, pullup: 7 },
-      { date: "Feb 28", weight: 94, bf: 24.7, chest: 99, waist: 90, hips: 104, arms: 41, thighs: 54, squat: 105, bench: 75, deadlift: 120, pullup: 8 },
-    ],
-    "Priya Sharma": [
-      { date: "Jun 1", weight: 54, bf: 26, chest: 82, waist: 68, hips: 90, arms: 27, thighs: 54, squat: 30, bench: 22, deadlift: 35, pullup: 0 },
-      { date: "Aug 1", weight: 55, bf: 25, chest: 83, waist: 66, hips: 90, arms: 28, thighs: 53, squat: 40, bench: 28, deadlift: 47, pullup: 1 },
-      { date: "Oct 1", weight: 56.5, bf: 24, chest: 84, waist: 65, hips: 91, arms: 29, thighs: 52, squat: 50, bench: 35, deadlift: 58, pullup: 3 },
-      { date: "Feb 28", weight: 58, bf: 23, chest: 85, waist: 63, hips: 92, arms: 30, thighs: 51, squat: 60, bench: 42, deadlift: 68, pullup: 5 },
-    ],
-  };
+  // Progress and diet history loaded from Firestore
+  const [progressHistory, setProgressHistory] = useState<Record<string, any[]>>({});
+  const [dietHistory, setDietHistory] = useState<Record<string, any[]>>({});
 
-  const DIET_HISTORY: Record<string, any[]> = {
-    "Rajesh Kumar": [
-      { date: "Feb 22", protein: 80, water: 2.5, steps: 7200, sleep: 6.5, sleepQuality: "Poor", notes: "Skipped dinner protein" },
-      { date: "Feb 23", protein: 110, water: 3.0, steps: 9400, sleep: 7, sleepQuality: "Good", notes: "" },
-      { date: "Feb 24", protein: 95, water: 2.8, steps: 8100, sleep: 7.5, sleepQuality: "Good", notes: "" },
-      { date: "Feb 25", protein: 70, water: 2.0, steps: 5200, sleep: 5.5, sleepQuality: "Poor", notes: "Work stress, ate out" },
-      { date: "Feb 26", protein: 120, water: 3.2, steps: 10500, sleep: 8, sleepQuality: "Great", notes: "Best day this week" },
-      { date: "Feb 27", protein: 105, water: 3.0, steps: 9800, sleep: 7.5, sleepQuality: "Good", notes: "" },
-    ],
-    "Priya Sharma": [
-      { date: "Feb 22", protein: 90, water: 2.5, steps: 8000, sleep: 7, sleepQuality: "Good", notes: "Vegetarian sources only" },
-      { date: "Feb 23", protein: 85, water: 2.8, steps: 8500, sleep: 7.5, sleepQuality: "Good", notes: "" },
-      { date: "Feb 24", protein: 95, water: 3.0, steps: 9000, sleep: 8, sleepQuality: "Great", notes: "Added paneer + eggs" },
-      { date: "Feb 25", protein: 78, water: 2.2, steps: 6500, sleep: 6.5, sleepQuality: "Average", notes: "Period fatigue" },
-      { date: "Feb 26", protein: 100, water: 3.0, steps: 9200, sleep: 7.5, sleepQuality: "Good", notes: "" },
-      { date: "Feb 27", protein: 98, water: 3.1, steps: 9600, sleep: 8, sleepQuality: "Great", notes: "PR on squat today!" },
-    ],
-  };
+  useEffect(() => {
+    if (!uid) return;
+    // Load progress logs for this trainer's clients
+    const unsubProgress = onSnapshot(
+      query(collection(db, "progressLogs"), orderBy("createdAt", "asc")), snap => {
+      const grouped: Record<string, any[]> = {};
+      snap.docs.forEach(d => {
+        const data = d.data();
+        if (data.trainerId === uid || data.trainer === name) {
+          if (!grouped[data.clientName]) grouped[data.clientName] = [];
+          grouped[data.clientName].push({ ...data, id: d.id });
+        }
+      });
+      setProgressHistory(grouped);
+    });
+    const unsubDiet = onSnapshot(
+      query(collection(db, "dietLogs"), orderBy("createdAt", "asc")), snap => {
+      const grouped: Record<string, any[]> = {};
+      snap.docs.forEach(d => {
+        const data = d.data();
+        if (data.trainerId === uid || data.trainer === name) {
+          if (!grouped[data.clientName]) grouped[data.clientName] = [];
+          grouped[data.clientName].push({ ...data, id: d.id });
+        }
+      });
+      setDietHistory(grouped);
+    });
+    return () => { unsubProgress(); unsubDiet(); };
+  }, [uid]);
+
+  const PROGRESS_HISTORY = progressHistory;
+  const DIET_HISTORY = dietHistory;
 
   const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase();
-  const myClients = sharedClients.filter((c:any) => c.trainer === name);
+  const myClients = sharedClients.filter((c:any) => c.trainerId === uid);
   const myInstructions = sharedInstructions;
-  const myTrainer = sharedTrainers.find((t:any) => t.name === name);
+  const myTrainer = sharedTrainers.find((t:any) => t.id === uid);
   // Safe client selectors — always resolve to a valid client name
   const progressClient = progressClientOverride || myClients[0]?.name || "";
   const setProgressClient = setProgressClientOverride;
   const dietClient = dietClientOverride || myClients[0]?.name || "";
   const setDietClient = setDietClientOverride;
+
+  // Trainer-side alerts
+  const myExpiredClients = myClients.filter(c => c.endDate && new Date(c.endDate) < new Date() && c.status !== "Inactive");
+  const myLowClassClients = myClients.filter(c => (c.classesLeft || 0) <= 2 && (c.sessionsIncluded || 0) > 0 && c.status === "Active");
 
   const navItems = [
     { id: "clients", icon: "👥", label: "My Clients" },
@@ -1518,8 +1636,50 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
     { id: "instructions", icon: "📣", label: "Instructions", badge: myInstructions.filter(i => i.priority === "high").length },
   ];
 
-  const saveSession = () => {
+  const saveSession = async () => {
+    if (!logClient) { setSessionError("Please select a client."); return; }
+    setSessionError("");
+    const dateStr = new Date(sessionDate).toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+    const loggedAt = new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+    const now = new Date();
+    const sessionDateTime = new Date(sessionDate);
+    const hoursDiff = (now.getTime() - sessionDateTime.getTime()) / (1000 * 60 * 60);
+    const isLate = hoursDiff > 2;
+    const sessionData = {
+      client: logClient, trainer: name, trainerId: uid, date: dateStr, loggedAt,
+      type: sessionType, status: sessionStatus.toLowerCase().split(" ")[0],
+      duration: Number(sessionDuration) || 0, late: isLate,
+      notes: sessionNotes, modReason: sessionModReason,
+      injuryFlag: injuryFlag || null,
+      exercises: sessionExercises.map(e => ({ name: e.name, sets: e.sets, reps: e.reps, weight: e.weight })),
+      createdAt: serverTimestamp()
+    };
+    // Write to top-level sessionLogs (admin view) + client subcollection
+    await addDoc(collection(db, "sessionLogs"), sessionData);
+    const client = myClients.find(c => c.name === logClient);
+    if (client?.id) {
+      // Write session to client subcollection
+      await addDoc(collection(db, "trainers", uid, "clients", client.id, "sessions"), sessionData);
+      // Update client stats
+      const isMissed = sessionStatus.toLowerCase().includes("missed") || sessionStatus.toLowerCase().includes("cancelled");
+      const newSessionsLogged = isMissed ? (client.sessionsLogged || 0) : (client.sessionsLogged || 0) + 1;
+      const newClassesLeft = Math.max(0, (client.sessionsIncluded || 0) - newSessionsLogged);
+      const newCompliance = client.sessionsIncluded > 0 ? Math.round((newSessionsLogged / client.sessionsIncluded) * 100) : 0;
+      const updates: any = {
+        lastSession: dateStr, lateLog: isLate, sessionsLogged: newSessionsLogged,
+        classesLeft: newClassesLeft, compliance: newCompliance
+      };
+      if (isMissed) updates.missedSessions = (client.missedSessions || 0) + 1;
+      await updateDoc(doc(db, "trainers", uid, "clients", client.id), updates);
+    }
+    // Flag trainer late log
+    if (myTrainer?.id && isLate) {
+      await updateDoc(doc(db, "trainers", uid), {
+        lateSubmissions: (myTrainer.lateSubmissions || 0) + 1
+      });
+    }
     setSessionSaved(true);
+    setSessionNotes(""); setSessionModReason(""); setInjuryFlag("");
     setTimeout(() => setSessionSaved(false), 3000);
   };
 
@@ -1535,17 +1695,17 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
               <div><div style={{ fontSize: 18, fontWeight: 800 }}>{selectedClient.name}</div><div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedClient.goal} · {selectedClient.phone}</div></div>
               <button className="btn btn-g btn-xs mla" onClick={() => setSelectedClient(null)}>✕</button>
             </div>
-            {selectedClient.riskFlag && <div className="alert al-r mb12">🚨 Risk flag active — check with admin before proceeding</div>}
-            {selectedClient.injuries.length > 0 && <div className="alert al-y mb12">🩹 Injury: {selectedClient.injuries.join(", ")} — modify exercises accordingly</div>}
+            {}
+            {selectedClient.medicalNotes && <div className="alert al-y mb12">🩹 Medical: {selectedClient.medicalNotes} — modify exercises accordingly</div>}
             <div className="g4 mb16">
-              {[{ l: "Current Weight", v: `${selectedClient.weight}kg` }, { l: "Weight Change", v: `${selectedClient.delta}kg` }, { l: "Sessions Done", v: `${selectedClient.sessions}/${selectedClient.sessionsAssigned}` }, { l: "Compliance", v: `${selectedClient.compliance}%` }].map((m, i) => (
+              {[{ l: "Current Weight", v: `${selectedClient.weight}kg` }, { l: "Weight Change", v: `${selectedClient.delta}kg` }, { l: "Sessions Done", v: `${selectedClient.sessions}/${selectedClient.sessionsIncluded}` }, { l: "Compliance", v: `${selectedClient.compliance}%` }].map((m, i) => (
                 <div key={i} className="card-sm" style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--fd)", color: i === 1 && selectedClient.delta < 0 ? "var(--green)" : i === 3 && selectedClient.compliance < 70 ? "var(--red)" : "var(--t1)" }}>{m.v}</div>
                   <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 4 }}>{m.l}</div>
                 </div>
               ))}
             </div>
-            {selectedClient.notes && <div className="card-sm mb12"><div className="fs10 t3 mb4" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Internal Notes</div><div className="fs12 t2">{selectedClient.notes}</div></div>}
+            {selectedClient.medicalNotes && <div className="card-sm mb12"><div className="fs10 t3 mb4" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Internal Notes</div><div className="fs12 t2">{selectedClient.medicalNotes}</div></div>}
             <div className="mt8">
               <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Weight Progress</div>
               <LineChart data={(PROGRESS_HISTORY[selectedClient?.name] || []).map((p:any) => p.weight)} color="var(--brand)" />
@@ -1589,13 +1749,19 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
         <div className="content">
           {tab === "clients" && (
             <>
+              {myExpiredClients.length > 0 && (
+                <div className="alert al-r mb12">📅 {myExpiredClients.length} client plan{myExpiredClients.length>1?"s":""} expired: {myExpiredClients.map(c=>c.name).join(", ")} — contact admin to renew</div>
+              )}
+              {myLowClassClients.length > 0 && (
+                <div className="alert al-y mb12">⚠ Low classes: {myLowClassClients.map(c=>`${c.name} (${c.classesLeft} left)`).join(", ")} — inform admin for renewal</div>
+              )}
               <div className="sh"><div className="sh-l"><h2>My Clients</h2><p>{myClients.length} clients · {email}</p></div></div>
               <div className="g4">
                 {[
                   { l: "Active Clients", v: myClients.length, c: "var(--blue)" },
-                  { l: "Avg Compliance", v: `${Math.round(myClients.reduce((s, c) => s + c.compliance, 0) / (myClients.length || 1))}%`, c: "var(--green)" },
+                  { l: "Avg Compliance", v: `${Math.round(myClients.reduce((s, c) => s + (c.compliance||0), 0) / (myClients.length || 1))}%`, c: "var(--green)" },
                   { l: "Pending Logs", v: myTrainer?.pendingLogs || 0, c: "var(--red)" },
-                  { l: "Alerts", v: myClients.filter(c => c.payment !== "Active" || c.compliance < 75 || c.missedSessions > 3).length, c: "var(--yellow)" },
+                  { l: "Alerts", v: myClients.filter(c => c.status !== "Active" || (c.compliance||0) < 75 || c.missedSessions > 3).length, c: "var(--yellow)" },
                 ].map((s, i) => (
                   <div key={i} className="sc">
                     <div className="sc-bar" style={{ background: `linear-gradient(90deg,${s.c},${s.c}55)` }} />
@@ -1610,18 +1776,18 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                     <div className="row mb12">
                       <div className="av av-c">{c.name.split(" ").map((n: string) => n[0]).join("")}</div>
                       <div><div className="fw7 fs14 t1">{c.name}</div><div className="fs11 t3">{c.goal} · Next: {c.nextSession}</div></div>
-                      <span className={`badge fs10 mla ${c.payment === "Active" ? "bg" : c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span>
+                      <span className={`badge fs10 mla ${c.status === "Active" ? "bg" : c.status === "On Hold" ? "by" : "br"}`}>{c.status}</span>
                     </div>
-                    {c.riskFlag && <div className="alert al-r mb8 fs11">🚨 Risk flag active</div>}
-                    {c.injuries.length > 0 && <div className="alert al-y mb8 fs11">🩹 {c.injuries.join(", ")}</div>}
+                    {c.medicalNotes && <div className="alert al-y mb8 fs11">🚨 Risk flag active</div>}
+                    {c.medicalNotes && <div className="alert al-y mb8 fs11">🩹 {c.medicalNotes}</div>}
                     <div className="row gap8 mb12">
                       <span className="fs11 t3">Compliance</span>
-                      <div className="pw" style={{ flex: 1 }}><div className={`pb ${c.compliance >= 85 ? "pb-g" : c.compliance >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance}%` }} /></div>
-                      <span className="fs11 fw7">{c.compliance}%</span>
+                      <div className="pw" style={{ flex: 1 }}><div className={`pb ${(c.compliance||0) >= 85 ? "pb-g" : (c.compliance||0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${(c.compliance||0)}%` }} /></div>
+                      <span className="fs11 fw7">{(c.compliance||0)}%</span>
                     </div>
-                    {c.notes && <div className="fs11 t3 mb10" style={{ padding: "6px 10px", background: "var(--s2)", borderRadius: 6 }}>📌 {c.notes}</div>}
+                    {c.medicalNotes && <div className="fs11 t3 mb10" style={{ padding: "6px 10px", background: "var(--s2)", borderRadius: 6 }}>📌 {c.medicalNotes}</div>}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
-                      {[{ v: `${c.delta > 0 ? "+" : ""}${c.delta}kg`, k: "Weight Δ", c: c.delta < 0 ? "var(--green)" : "var(--yellow)" }, { v: `${c.sessions}/${c.sessionsAssigned}`, k: "Sessions", c: "var(--t1)" }, { v: c.sessionsRemaining, k: "Remaining", c: c.sessionsRemaining <= 3 ? "var(--red)" : "var(--t1)" }].map((s, i) => (
+                      {[{ v: `${c.delta > 0 ? "+" : ""}${c.delta}kg`, k: "Weight Δ", c: c.delta < 0 ? "var(--green)" : "var(--yellow)" }, { v: `${c.sessionsLogged||0}/${c.sessionsIncluded||0}`, k: "Sessions", c: "var(--t1)" }, { v: c.classesLeft, k: "Remaining", c: c.classesLeft <= 3 ? "var(--red)" : "var(--t1)" }].map((s, i) => (
                         <div key={i} style={{ background: "var(--s2)", borderRadius: "var(--rs)", padding: "8px", textAlign: "center" }}>
                           <div style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 800, color: s.c }}>{s.v}</div>
                           <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>{s.k}</div>
@@ -1635,13 +1801,13 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                   </div>
                 ))}
               </div>
-              {myClients.some(c => c.payment !== "Active" || c.compliance < 75 || c.missedSessions > 3) && (
+              {myClients.some(c => c.status !== "Active" || (c.compliance||0) < 75 || c.missedSessions > 3) && (
                 <div className="card">
                   <div className="ch"><span className="ct">⚠ Action Required</span></div>
                   <div className="col gap8">
-                    {myClients.filter(c => c.payment === "Expiring").map(c => <div key={c.id} className="alert al-y" style={{cursor:"pointer"}} onClick={()=>setSelectedClient(c)}>💳 {c.name} — package expiring {c.paymentExpiry} ({c.sessionsRemaining} left) <button className="btn btn-g btn-xs mla" onClick={e=>{e.stopPropagation();}}>Send Reminder</button></div>)}
-                    {myClients.filter(c => c.payment === "Overdue").map(c => <div key={c.id} className="alert al-r" style={{cursor:"pointer"}} onClick={()=>setSelectedClient(c)}>🚨 {c.name} — payment overdue <button className="btn btn-g btn-xs mla" onClick={e=>{e.stopPropagation();}}>Contact</button></div>)}
-                    {myClients.filter(c => c.compliance < 75).map(c => <div key={c.id} className="alert al-y" style={{cursor:"pointer"}} onClick={()=>setSelectedClient(c)}>📉 {c.name} — {c.compliance}% · {c.missedSessions} missed <button className="btn btn-g btn-xs mla" onClick={e=>{e.stopPropagation();}}>Check In</button></div>)}
+                    {myClients.filter(c => c.status === "On Hold").map(c => <div key={c.id} className="alert al-y" style={{cursor:"pointer"}} onClick={()=>setSelectedClient(c)}>💳 {c.name} — package expiring {c.endDate} ({c.classesLeft} left) <button className="btn btn-g btn-xs mla" onClick={e=>{e.stopPropagation();}}>Send Reminder</button></div>)}
+                    {myClients.filter(c => c.status === "Inactive").map(c => <div key={c.id} className="alert al-r" style={{cursor:"pointer"}} onClick={()=>setSelectedClient(c)}>🚨 {c.name} — payment overdue <button className="btn btn-g btn-xs mla" onClick={e=>{e.stopPropagation();}}>Contact</button></div>)}
+                    {myClients.filter(c => (c.compliance||0) < 75).map(c => <div key={c.id} className="alert al-y" style={{cursor:"pointer"}} onClick={()=>setSelectedClient(c)}>📉 {c.name} — {(c.compliance||0)}% · {c.missedSessions} missed <button className="btn btn-g btn-xs mla" onClick={e=>{e.stopPropagation();}}>Check In</button></div>)}
                   </div>
                 </div>
               )}
@@ -1662,17 +1828,17 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                       </select>
                     </div>
                     <div className="g2">
-                      <div className="field"><label>Date *</label><input className="fi" type="date" defaultValue={new Date().toISOString().split("T")[0]} /></div>
-                      <div className="field"><label>Duration (min)</label><input className="fi" type="number" placeholder="60" /></div>
+                      <div className="field"><label>Date *</label><input className="fi" type="date" value={sessionDate} onChange={e=>setSessionDate(e.target.value)} /></div>
+                      <div className="field"><label>Duration (min)</label><input className="fi" type="number" value={sessionDuration} onChange={e=>setSessionDuration(e.target.value)} /></div>
                     </div>
                     <div className="field"><label>Session Status *</label>
-                      <select className="fi"><option>Completed</option><option>Missed — Client No-Show</option><option>Missed — Trainer Unavailable</option><option>Modified (explain below)</option><option>Cancelled by Client</option></select>
+                      <select className="fi" value={sessionStatus} onChange={e=>setSessionStatus(e.target.value)}><option>Completed</option><option>Missed — Client No-Show</option><option>Missed — Trainer Unavailable</option><option>Modified (explain below)</option><option>Cancelled by Client</option></select>
                     </div>
                     <div className="field"><label>Session Type</label>
-                      <select className="fi"><option>Strength Training</option><option>Cardio</option><option>HIIT</option><option>Mobility</option><option>Rehab</option><option>Mixed</option></select>
+                      <select className="fi" value={sessionType} onChange={e=>setSessionType(e.target.value)}><option>Strength Training</option><option>Cardio</option><option>HIIT</option><option>Mobility</option><option>Rehab</option><option>Mixed</option></select>
                     </div>
-                    <div className="field"><label>Quality Notes (Required)</label><textarea className="fi" rows={3} placeholder="What went well? Any technique issues? Client energy level? Weight changes?" style={{ resize: "none" }} /></div>
-                    <div className="field"><label>Modification Reason (if modified)</label><textarea className="fi" rows={2} placeholder="Why was the session modified from the plan?" style={{ resize: "none" }} /></div>
+                    <div className="field"><label>Quality Notes (Required)</label><textarea className="fi" rows={3} placeholder="What went well? Any technique issues? Client energy level? Weight changes?" value={sessionNotes} onChange={e=>setSessionNotes(e.target.value)} style={{ resize: "none" }} /></div>
+                    <div className="field"><label>Modification Reason (if modified)</label><textarea className="fi" rows={2} placeholder="Why was the session modified from the plan?" value={sessionModReason} onChange={e=>setSessionModReason(e.target.value)} style={{ resize: "none" }} /></div>
                   </div>
 
                   <div className="card mb16">
@@ -1737,10 +1903,9 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                         if (!c) return null;
                         return (
                           <div className="col gap8">
-                            {c.notes && <div className="alert al-y fs11">📌 {c.notes}</div>}
-                            {c.injuries.length > 0 && <div className="alert al-r fs11">🩹 {c.injuries.join(", ")}</div>}
-                            <div className="row"><span className="fs12 t3">Sessions Done</span><span className="fs12 fw7 mla">{c.sessions}/{c.sessionsAssigned}</span></div>
-                            <div className="row"><span className="fs12 t3">Remaining</span><span className={`fs12 fw7 mla ${c.sessionsRemaining <= 3 ? "tr" : "tg"}`}>{c.sessionsRemaining} sessions</span></div>
+                            {c.medicalNotes && <div className="alert al-y fs11">📌 {c.medicalNotes}</div>}
+                            <div className="row"><span className="fs12 t3">Sessions Done</span><span className="fs12 fw7 mla">{c.sessionsLogged||0}/{c.sessionsIncluded||0}</span></div>
+                            <div className="row"><span className="fs12 t3">Remaining</span><span className={`fs12 fw7 mla ${c.classesLeft <= 3 ? "tr" : "tg"}`}>{c.classesLeft} sessions</span></div>
                             <div className="row"><span className="fs12 t3">Last session</span><span className="fs12 mla">{c.lastSession}</span></div>
                           </div>
                         );
@@ -1748,6 +1913,7 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                     </div>
                   )}
 
+                  {sessionError && <div className="alert al-r mb8">{sessionError}</div>}
                   <button className="btn btn-p" style={{ width: "100%", padding: "13px", fontSize: 14 }} onClick={saveSession}>✓ Submit Session Log</button>
                   <div className="fs10 t3 mt8" style={{ textAlign: "center" }}>Session logs must be submitted within 2 hours. Late submissions are flagged to admin.</div>
                 </div>
@@ -1844,7 +2010,19 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                     </div>
                     <div className="row mt16">
                       <button className="btn btn-g btn-s" onClick={()=>setShowLogProgress(false)}>Cancel</button>
-                      <button className="btn btn-p btn-s mla" onClick={()=>{setProgressSaved(true);setShowLogProgress(false);setTimeout(()=>setProgressSaved(false),3000);}}>Save Progress Entry</button>
+                      <button className="btn btn-p btn-s mla" onClick={async()=>{
+                        if(!progressClient) return;
+                        const entry: any = { clientName: progressClient, trainer: name, date: new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}), createdAt: serverTimestamp() };
+                        ["weight","bf","chest","waist","hips","arms","thighs","squat","bench","deadlift","pullup"].forEach(k=>{ if((newProgress as any)[k]) entry[k]=Number((newProgress as any)[k]); });
+                        entry.notes = newProgress.notes;
+                        await addDoc(collection(db,"progressLogs"), { ...entry, trainerId: uid });
+                        const client = myClients.find(c=>c.name===progressClient);
+                        if(client?.id) await updateDoc(doc(db,"trainers",uid,"clients",client.id),{progressLastUpdated:"Just now"});
+                        setProgressSaved(true);
+                        setNewProgress({weight:"",bf:"",chest:"",waist:"",hips:"",arms:"",thighs:"",squat:"",bench:"",deadlift:"",pullup:"",notes:""});
+                        setShowLogProgress(false);
+                        setTimeout(()=>setProgressSaved(false),3000);
+                      }}>Save Progress Entry</button>
                     </div>
                   </div>
                 </div>
@@ -2204,7 +2382,20 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                     <label>Notes (optional)</label>
                     <textarea className="fi" rows={2} placeholder="Ate out, stress, travel, period, illness..." value={newDiet.notes} onChange={e=>setNewDiet((p: typeof newDiet)=>({...p,notes:e.target.value}))} style={{resize:"none"}}/>
                   </div>
-                  <button className="btn btn-p btn-s mt8" style={{width:"100%"}} onClick={()=>{setDietSaved(true);setNewDiet({protein:"",water:"",steps:"",sleep:"",sleepQuality:"Good",notes:""});setTimeout(()=>setDietSaved(false),3000);}}>Save Habit Log</button>
+                  <button className="btn btn-p btn-s mt8" style={{width:"100%"}} onClick={async()=>{
+  if(!dietClient) return;
+  await addDoc(collection(db,"dietLogs"),{
+    clientName: dietClient, trainer: name, trainerId: uid,
+    date: new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}),
+    protein: Number(newDiet.protein)||0, water: Number(newDiet.water)||0,
+    steps: Number(newDiet.steps)||0, sleep: Number(newDiet.sleep)||0,
+    sleepQuality: newDiet.sleepQuality, notes: newDiet.notes,
+    createdAt: serverTimestamp()
+  });
+  setDietSaved(true);
+  setNewDiet({protein:"",water:"",steps:"",sleep:"",sleepQuality:"Good",notes:""});
+  setTimeout(()=>setDietSaved(false),3000);
+}}>Save Habit Log</button>
                 </div>
 
                 {/* TRENDS */}
@@ -2280,7 +2471,7 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
               <div className="sh"><div className="sh-l"><h2>Payments</h2><p>View only — contact admin to modify</p></div></div>
               <div className="alert al-b mb16">ℹ Payments are managed by admin. You can send reminders but cannot edit payment records.</div>
               <div className="g3">
-                {[{ l: "Feb Revenue", v: `₹${((myTrainer?.revenue || 0)/1000).toFixed(0)}K`, c: "var(--green)" }, { l: "Expiring Packages", v: `${myClients.filter(c => c.payment === "Expiring").length} client`, c: "var(--yellow)" }, { l: "Sessions Remaining Total", v: myClients.reduce((s, c) => s + c.sessionsRemaining, 0), c: "var(--blue)" }].map((s, i) => (
+                {[{ l: "Feb Revenue", v: `₹${((myTrainer?.revenue || 0)/1000).toFixed(0)}K`, c: "var(--green)" }, { l: "Expiring Packages", v: `${myClients.filter(c => c.status === "On Hold").length} client`, c: "var(--yellow)" }, { l: "Sessions Remaining Total", v: myClients.reduce((s, c) => s + c.classesLeft, 0), c: "var(--blue)" }].map((s, i) => (
                   <div key={i} className="sc"><div className="sc-bar" style={{ background: `linear-gradient(90deg,${s.c},${s.c}55)` }} /><div className="sl">{s.l}</div><div className="sv" style={{ color: s.c, fontSize: 26 }}>{s.v}</div></div>
                 ))}
               </div>
@@ -2292,10 +2483,10 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
                       {myClients.map(c => (
                         <tr key={c.id}>
                           <td className="t1 fw6">{c.name}</td>
-                          <td><span className={c.sessionsRemaining <= 3 ? "tr fw7" : c.sessionsRemaining <= 6 ? "ty fw7" : "tg fw7"}>{c.sessionsRemaining} remaining</span></td>
-                          <td className="fs11 t3">{c.paymentExpiry}</td>
-                          <td><span className={`badge ${c.payment === "Active" ? "bg" : c.payment === "Expiring" ? "by" : "br"}`}>{c.payment}</span></td>
-                          <td>{c.payment === "Expiring" ? <button className="btn btn-p btn-xs">Send Renewal Reminder</button> : c.payment === "Overdue" ? <button className="btn btn-dn btn-xs">Follow Up</button> : <span className="tg fs11">✓ Active</span>}</td>
+                          <td><span className={c.classesLeft <= 3 ? "tr fw7" : c.classesLeft <= 6 ? "ty fw7" : "tg fw7"}>{c.classesLeft} remaining</span></td>
+                          <td className="fs11 t3">{c.endDate}</td>
+                          <td><span className={`badge ${c.status === "Active" ? "bg" : c.status === "On Hold" ? "by" : "br"}`}>{c.status}</span></td>
+                          <td>{c.status === "On Hold" ? <button className="btn btn-p btn-xs">Send Renewal Reminder</button> : c.status === "Inactive" ? <button className="btn btn-dn btn-xs">Follow Up</button> : <span className="tg fs11">✓ Active</span>}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2334,12 +2525,54 @@ function Trainer({ name, email, logout, sharedClients, sharedTrainers, sharedIns
 // ============================================================
 export default function App() {
   const { user, profile, loading, logout } = useAuth();
-  // Shared state — admin changes reflect in trainer view
-  const [sharedClients, setSharedClients] = useState(MOCK_CLIENTS);
-  const [sharedTrainers, setSharedTrainers] = useState(MOCK_TRAINERS);
-  const [sharedInstructions, setSharedInstructions] = useState(ADMIN_INSTRUCTIONS);
+  // ── Shared state — live from Firestore ──
+  const [sharedClients, setSharedClients] = useState<any[]>([]);
+  const [sharedTrainers, setSharedTrainers] = useState<any[]>([]);
+  const [sharedInstructions, setSharedInstructions] = useState<any[]>([]);
+  const [sharedWarnings, setSharedWarnings] = useState<any[]>([]);
+  const [sharedSessionLogs, setSharedSessionLogs] = useState<any[]>([]);
+  const [dbLoading, setDbLoading] = useState(true);
 
-  if (loading) return (
+  useEffect(() => {
+    if (!user) return;
+    let loaded = 0;
+    const checkDone = () => { if (++loaded >= 3) setDbLoading(false); };
+
+    // Live: ALL clients across all trainers via collectionGroup
+    const unsubClients = onSnapshot(collectionGroup(db, "clients"), snap => {
+      setSharedClients(snap.docs.map(d => ({
+        id: d.id,
+        trainerId: d.ref.parent.parent?.id || "",
+        ...d.data()
+      })));
+      checkDone();
+    });
+    // Live: all trainer docs
+    const unsubTrainers = onSnapshot(collection(db, "trainers"), snap => {
+      setSharedTrainers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      checkDone();
+    });
+    // Live: instructions ordered newest first
+    const unsubInstructions = onSnapshot(
+      query(collection(db, "instructions"), orderBy("createdAt", "desc")), snap => {
+      setSharedInstructions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      checkDone();
+    });
+    // Live: session logs
+    const unsubSessions = onSnapshot(
+      query(collection(db, "sessionLogs"), orderBy("createdAt", "desc")), snap => {
+      setSharedSessionLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    // Live: warnings
+    const unsubWarnings = onSnapshot(
+      query(collection(db, "warnings"), orderBy("createdAt", "desc")), snap => {
+      setSharedWarnings(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => { unsubClients(); unsubTrainers(); unsubInstructions(); unsubSessions(); unsubWarnings(); };
+  }, [user]);
+
+  if (loading || (user && dbLoading)) return (
     <>
       <style>{S}</style>
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#050508", fontFamily: "Outfit,sans-serif" }}>
@@ -2352,8 +2585,8 @@ export default function App() {
   );
 
   if (!user || !profile) return (<><style>{S}</style><Login /></>);
-  if (profile.role === "admin") return <><style>{S}</style><Admin name={profile.name} logout={logout} sharedClients={sharedClients} setSharedClients={setSharedClients} sharedTrainers={sharedTrainers} setSharedTrainers={setSharedTrainers} sharedInstructions={sharedInstructions} setSharedInstructions={setSharedInstructions} /></>;
-  if (profile.role === "trainer") return <><style>{S}</style><Trainer name={profile.name} email={profile.email} logout={logout} sharedClients={sharedClients} sharedTrainers={sharedTrainers} sharedInstructions={sharedInstructions} /></>;
+  if (profile.role === "admin") return <><style>{S}</style><Admin name={profile.name} logout={logout} sharedClients={sharedClients} sharedTrainers={sharedTrainers} sharedInstructions={sharedInstructions} sharedWarnings={sharedWarnings} sharedSessionLogs={sharedSessionLogs} /></>;
+  if (profile.role === "trainer") return <><style>{S}</style><Trainer uid={profile.uid} name={profile.name} email={profile.email} logout={logout} sharedClients={sharedClients} sharedTrainers={sharedTrainers} sharedInstructions={sharedInstructions} /></>;
 
   return (
     <>
