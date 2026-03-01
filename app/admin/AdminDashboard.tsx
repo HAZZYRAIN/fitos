@@ -4,7 +4,6 @@ import { AdminProvider, useAdmin } from "./AdminContext";
 import { S } from "../styles/dashboard";
 import type { Client, Trainer, Instruction, Warning, SessionLog } from "../types";
 
-// ── Tab components ──
 import Overview from "./tabs/Overview";
 import TrainerPerformance from "./tabs/TrainerPerformance";
 import Clients from "./tabs/Clients";
@@ -14,30 +13,35 @@ import Templates from "./tabs/Templates";
 import Instructions from "./tabs/Instructions";
 import TrainersList from "./tabs/TrainersList";
 
+// Bottom nav shows only the most important 5 tabs on mobile
+const BOTTOM_NAV = [
+  { id: "overview",      icon: "◼", label: "Home" },
+  { id: "clients",       icon: "👥", label: "Clients" },
+  { id: "sessions",      icon: "📝", label: "Sessions" },
+  { id: "flags",         icon: "🚨", label: "Flags" },
+  { id: "trainers-list", icon: "👤", label: "Trainers" },
+];
+
 function AdminInner() {
   const router = useRouter();
   const {
     name, logout, tab, setTab,
     trainers, clients, instructions, warnings,
     atRiskClients, flaggedClients, lowAttendance, pendingLogs,
-    // Modals
     showChangePw, setShowChangePw,
     showEditClient, setShowEditClient,
     showAddTrainer, setShowAddTrainer,
     showAddClient, setShowAddClient,
     showInstruction, setShowInstruction,
     showWarning, setShowWarning,
-    // Selected
     selectedTrainer, setSelectedTrainer,
     pwTarget, setPwTarget,
-    // Forms
     newTrainer, setNewTrainer,
     newClient, setNewClient,
     newInstruction, setNewInstruction,
     newWarning, setNewWarning,
     pwForm, setPwForm, pwMsg,
     editForm, setEditForm,
-    // Actions
     addTrainer, addClient,
     postInstruction, addWarning, changePassword,
     toggleTrainerStatus,
@@ -48,9 +52,9 @@ function AdminInner() {
   const navItems = [
     { id: "overview",      icon: "◼",  label: "Control Room" },
     { id: "trainer-perf",  icon: "📊", label: "Trainer Performance" },
-    { id: "clients",       icon: "👥", label: "Client Oversight", badge: atRiskClients.length, badgeColor: "red" },
-    { id: "sessions",      icon: "📝", label: "Session Logs", badge: pendingLogs, badgeColor: "yellow" },
-    { id: "flags",         icon: "🚨", label: "Flags & Alerts", badge: flaggedClients.length + lowAttendance.length, badgeColor: "red" },
+    { id: "clients",       icon: "👥", label: "Client Oversight",   badge: atRiskClients.length,                         badgeColor: "red" },
+    { id: "sessions",      icon: "📝", label: "Session Logs",       badge: pendingLogs,                                  badgeColor: "yellow" },
+    { id: "flags",         icon: "🚨", label: "Flags & Alerts",     badge: flaggedClients.length + lowAttendance.length, badgeColor: "red" },
     { id: "templates",     icon: "🏋", label: "Workout Templates" },
     { id: "comms",         icon: "📣", label: "Instructions Feed" },
     { id: "trainers-list", icon: "👤", label: "Trainers" },
@@ -71,7 +75,7 @@ function AdminInner() {
             <div className="field"><label>Confirm Password</label><input className="fi" type="password" placeholder="Re-enter password" value={pwForm.confirmPw} onChange={(e) => setPwForm((p: any) => ({ ...p, confirmPw: e.target.value }))} /></div>
             <div className="row mt16">
               <button className="btn btn-g btn-s" onClick={() => setShowChangePw(false)}>Cancel</button>
-              <button className="btn btn-p btn-s mla" onClick={changePassword}>Update Password</button>
+              <button className="btn btn-p btn-s mla" onClick={changePassword}>Save</button>
             </div>
           </div>
         </div>
@@ -105,7 +109,7 @@ function AdminInner() {
             <div className="modal-t">Add New Client</div>
             <div className="g2">
               <div className="field"><label>Full Name *</label><input className="fi" placeholder="Client name" value={newClient.name} onChange={(e) => setNewClient((p: any) => ({ ...p, name: e.target.value }))} /></div>
-              <div className="field"><label>Email (optional)</label><input className="fi" type="email" placeholder="client@email.com" value={newClient.email} onChange={(e) => setNewClient((p: any) => ({ ...p, email: e.target.value }))} /></div>
+              <div className="field"><label>Email</label><input className="fi" type="email" placeholder="client@email.com" value={newClient.email} onChange={(e) => setNewClient((p: any) => ({ ...p, email: e.target.value }))} /></div>
             </div>
             <div className="g2">
               <div className="field"><label>Gender</label>
@@ -113,14 +117,11 @@ function AdminInner() {
                   <option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option>
                 </select>
               </div>
-              <div className="field"><label>Age (optional)</label><input className="fi" type="number" placeholder="25" value={newClient.age} onChange={(e) => setNewClient((p: any) => ({ ...p, age: e.target.value }))} /></div>
+              <div className="field"><label>Age</label><input className="fi" type="number" placeholder="25" value={newClient.age} onChange={(e) => setNewClient((p: any) => ({ ...p, age: e.target.value }))} /></div>
             </div>
             <div className="g2">
               <div className="field"><label>Assign Trainer *</label>
-                <select className="fi" value={newClient.trainerId} onChange={(e) => {
-                  const t = trainers.find((tr) => tr.id === e.target.value);
-                  setNewClient((p: any) => ({ ...p, trainerId: e.target.value, trainerName: t?.name || "" }));
-                }}>
+                <select className="fi" value={newClient.trainerId} onChange={(e) => { const t = trainers.find((tr) => tr.id === e.target.value); setNewClient((p: any) => ({ ...p, trainerId: e.target.value, trainerName: t?.name || "" })); }}>
                   <option value="">Select trainer...</option>
                   {trainers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
@@ -132,8 +133,8 @@ function AdminInner() {
               </div>
             </div>
             <div className="g2">
-              <div className="field"><label>Plan Start Date</label><input className="fi" type="date" value={newClient.startDate} onChange={(e) => setNewClient((p: any) => ({ ...p, startDate: e.target.value }))} /></div>
-              <div className="field"><label>Plan End Date</label><input className="fi" type="date" value={newClient.endDate} onChange={(e) => setNewClient((p: any) => ({ ...p, endDate: e.target.value }))} /></div>
+              <div className="field"><label>Start Date</label><input className="fi" type="date" value={newClient.startDate} onChange={(e) => setNewClient((p: any) => ({ ...p, startDate: e.target.value }))} /></div>
+              <div className="field"><label>End Date</label><input className="fi" type="date" value={newClient.endDate} onChange={(e) => setNewClient((p: any) => ({ ...p, endDate: e.target.value }))} /></div>
             </div>
             <div className="g2">
               <div className="field"><label>Sessions Included</label><input className="fi" type="number" placeholder="24" value={newClient.sessionsIncluded} onChange={(e) => setNewClient((p: any) => ({ ...p, sessionsIncluded: e.target.value }))} /></div>
@@ -147,7 +148,7 @@ function AdminInner() {
                 </select>
               </div>
             </div>
-            <div className="field"><label>Medical Notes (optional)</label><textarea className="fi" rows={2} placeholder="Any injuries or conditions..." value={newClient.medicalNotes} onChange={(e) => setNewClient((p: any) => ({ ...p, medicalNotes: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="field"><label>Medical Notes</label><textarea className="fi" rows={2} placeholder="Any injuries or conditions..." value={newClient.medicalNotes} onChange={(e) => setNewClient((p: any) => ({ ...p, medicalNotes: e.target.value }))} style={{ resize: "none" }} /></div>
             <div className="row mt16">
               <button className="btn btn-g btn-s" onClick={() => setShowAddClient(false)}>Cancel</button>
               <button className="btn btn-p btn-s mla" onClick={addClient}>Add Client</button>
@@ -160,8 +161,8 @@ function AdminInner() {
       {showInstruction && (
         <div className="overlay" onClick={() => setShowInstruction(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-t">Post Instruction to Trainers</div>
-            <div className="field"><label>Title *</label><input className="fi" placeholder="e.g. Holi holiday — no sessions Mar 14" value={newInstruction.title} onChange={(e) => setNewInstruction((p: any) => ({ ...p, title: e.target.value }))} /></div>
+            <div className="modal-t">Post Instruction</div>
+            <div className="field"><label>Title *</label><input className="fi" placeholder="e.g. No sessions on Mar 14" value={newInstruction.title} onChange={(e) => setNewInstruction((p: any) => ({ ...p, title: e.target.value }))} /></div>
             <div className="field"><label>Details</label><textarea className="fi" rows={3} placeholder="Additional context..." value={newInstruction.body} onChange={(e) => setNewInstruction((p: any) => ({ ...p, body: e.target.value }))} style={{ resize: "none" }} /></div>
             <div className="field"><label>Priority</label>
               <select className="fi" value={newInstruction.priority} onChange={(e) => setNewInstruction((p: any) => ({ ...p, priority: e.target.value }))}>
@@ -170,7 +171,7 @@ function AdminInner() {
             </div>
             <div className="row mt16">
               <button className="btn btn-g btn-s" onClick={() => setShowInstruction(false)}>Cancel</button>
-              <button className="btn btn-p btn-s mla" onClick={postInstruction}>Post Instruction</button>
+              <button className="btn btn-p btn-s mla" onClick={postInstruction}>Post</button>
             </div>
           </div>
         </div>
@@ -211,7 +212,7 @@ function AdminInner() {
                 {(selectedTrainer.name || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
               </div>
               <div style={{ marginLeft: 12 }}>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>{selectedTrainer.name}</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "var(--t1)" }}>{selectedTrainer.name}</div>
                 <div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedTrainer.speciality}</div>
                 <div className="row gap8 mt4">
                   <span className={`badge fs10 ${selectedTrainer.status === "active" ? "bg" : "br"}`}>{selectedTrainer.status}</span>
@@ -222,77 +223,45 @@ function AdminInner() {
             </div>
             <div className="g4 mb16">
               {[
-                { l: "Clients", v: clients.filter((c) => c.trainerId === selectedTrainer.id).length },
-                { l: "Sessions", v: `${selectedTrainer.sessions || 0}/${selectedTrainer.sessionsAssigned || 0}` },
+                { l: "Clients",   v: clients.filter((c) => c.trainerId === selectedTrainer.id).length },
+                { l: "Sessions",  v: `${selectedTrainer.sessions || 0}/${selectedTrainer.sessionsAssigned || 0}` },
                 { l: "Late Logs", v: selectedTrainer.lateSubmissions || 0 },
-                { l: "Score", v: `${selectedTrainer.accountabilityScore || 0}%` },
+                { l: "Score",     v: `${selectedTrainer.accountabilityScore || 0}%` },
               ].map((m, i) => (
                 <div key={i} className="card-sm" style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: 1 }}>{m.l}</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "var(--fd)", marginTop: 4 }}>{m.v}</div>
+                  <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{m.l}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--fd)", color: "var(--t1)" }}>{m.v}</div>
                 </div>
               ))}
             </div>
-            <div className="g2 mb16">
-              <div>
-                <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Clients</div>
-                {clients.filter((c) => c.trainerId === selectedTrainer.id).map((c) => (
-                  <div
-                    key={c.id}
-                    className="row gap8 mt8"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => { setSelectedTrainer(null); router.push(`/admin/clients/${c.trainerId}/${c.id}`); }}
-                  >
-                    <span className="fs13 fw6 t1">{c.name}</span>
-                    <span className={`badge fs10 ml8 ${c.status === "Inactive" ? "bgr" : "bg"}`}>{c.status === "Inactive" ? "inactive" : "active"}</span>
-                    <div className="pw" style={{ flex: 1, margin: "0 10px" }}>
-                      <div className={`pb ${(c.compliance || 0) >= 85 ? "pb-g" : (c.compliance || 0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance || 0}%` }} />
-                    </div>
-                    <span className="fs11 t3">{c.compliance || 0}%</span>
-                  </div>
-                ))}
-                {clients.filter((c) => c.trainerId === selectedTrainer.id).length === 0 && (
-                  <div className="fs12 t3">No clients assigned yet</div>
-                )}
+            <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Clients</div>
+            {clients.filter((c) => c.trainerId === selectedTrainer.id).map((c) => (
+              <div key={c.id} className="row gap8 mt8" style={{ cursor: "pointer", padding: "6px 0", borderBottom: "1px solid var(--b1)" }}
+                onClick={() => { setSelectedTrainer(null); router.push(`/admin/clients/${c.trainerId}/${c.id}`); }}>
+                <span className="fs13 fw6 t1">{c.name}</span>
+                <span className={`badge fs10 ${c.status === "Inactive" ? "br" : "bg"}`}>{c.status}</span>
+                <div className="pw mla" style={{ width: 60 }}><div className={`pb ${(c.compliance || 0) >= 85 ? "pb-g" : (c.compliance || 0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance || 0}%` }} /></div>
+                <span className="fs11 t3">{c.compliance || 0}%</span>
               </div>
-              <div>
-                <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Accountability</div>
-                {[
-                  { l: "Log Consistency", v: Math.max(0, 100 - (selectedTrainer.lateSubmissions || 0) * 8) },
-                  { l: "Client Attendance", v: selectedTrainer.retention || 0 },
-                  { l: "Progress Updates", v: Math.min(100, (selectedTrainer.progressUpdatesThisMonth || 0) * 5) },
-                ].map((m, i) => (
-                  <div key={i} className="row" style={{ padding: "8px 0", borderBottom: "1px solid var(--b1)" }}>
-                    <span className="fs12">{m.l}</span>
-                    <div className="pw mla" style={{ width: 80 }}>
-                      <div className={`pb ${m.v >= 85 ? "pb-g" : m.v >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${m.v}%` }} />
-                    </div>
-                    <span className="fs11 fw7" style={{ marginLeft: 8 }}>{m.v}%</span>
-                  </div>
-                ))}
-                {warnings.filter((w) => w.trainer === selectedTrainer.name).length > 0 && (
-                  <div className="alert al-r mt8">⚠ {warnings.filter((w) => w.trainer === selectedTrainer.name).length} warning(s) on record</div>
-                )}
-              </div>
-            </div>
-            <div className="row gap8 flex-wrap">
+            ))}
+            {clients.filter((c) => c.trainerId === selectedTrainer.id).length === 0 && <div className="fs12 t3">No clients assigned yet</div>}
+            <div className="row gap8 flex-wrap mt16">
               <button className={`btn btn-s ${selectedTrainer.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(selectedTrainer.id, selectedTrainer.status || "active")}>
                 {selectedTrainer.status === "active" ? "Suspend" : "Activate"}
               </button>
-              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning((p: any) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Log Warning</button>
-              <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>🔑 Change Password</button>
-              <button className="btn btn-g btn-s" onClick={() => { setTrainerFilter(selectedTrainer.name); setClientSearch(""); setClientStatusFilter("all"); setSelectedTrainer(null); setTab("clients"); }}>View All Clients</button>
-              <button className="btn btn-p btn-s mla" onClick={() => { setNC((p: any) => ({ ...p, trainerName: selectedTrainer.name, trainerId: selectedTrainer.id })); setSelectedTrainer(null); setShowAddClient(true); }}>+ Add Client</button>
+              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning((p: any) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Warn</button>
+              <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>🔑 Password</button>
+              <button className="btn btn-p btn-s mla" onClick={() => { setNC((p: any) => ({ ...p, trainerName: selectedTrainer.name, trainerId: selectedTrainer.id })); setSelectedTrainer(null); setShowAddClient(true); }}>+ Client</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── SIDEBAR ── */}
+      {/* ── DESKTOP SIDEBAR ── */}
       <div className="sb">
         <div className="sb-logo">
           <div className="logo-yt">Your<span>Trainer</span></div>
-          <div className="logo-tag">Admin Control Panel</div>
+          <div className="logo-tag">Admin Panel</div>
           <div className="rp rp-a">⚡ Super Admin</div>
         </div>
         <div className="sb-nav">
@@ -300,12 +269,15 @@ function AdminInner() {
             <div key={item.id} className={`ni ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
               <span className="ni-ic">{item.icon}</span>
               <span>{item.label}</span>
-              {(item as any).badge > 0 ? <span className={`ni-b ${(item as any).badgeColor || ""}`}>{(item as any).badge}</span> : null}
+              {(item as any).badge > 0 && <span className={`ni-b ${(item as any).badgeColor || ""}`}>{(item as any).badge}</span>}
             </div>
           ))}
         </div>
         <div className="sb-foot">
-          <div className="uc"><div className="av av-a">SA</div><div><div className="uc-n">{name}</div><div className="uc-r">Super Admin</div></div></div>
+          <div className="uc">
+            <div className="av av-a">SA</div>
+            <div><div className="uc-n">{name}</div><div className="uc-r">Super Admin</div></div>
+          </div>
           <button className="btn-so" onClick={logout}>Sign Out</button>
         </div>
       </div>
@@ -314,9 +286,9 @@ function AdminInner() {
       <div className="main">
         <div className="topbar">
           <div className="tb-t">{navItems.find((n) => n.id === tab)?.label || "Dashboard"}</div>
-          {tab === "trainers-list" && <button className="btn btn-p btn-s" onClick={() => setShowAddTrainer(true)}>+ Add Trainer</button>}
-          {tab === "clients" && <button className="btn btn-p btn-s" onClick={() => setShowAddClient(true)}>+ Add Client</button>}
-          {tab === "comms" && <button className="btn btn-p btn-s" onClick={() => setShowInstruction(true)}>+ Post Instruction</button>}
+          {tab === "trainers-list" && <button className="btn btn-p btn-s" onClick={() => setShowAddTrainer(true)}>+ Trainer</button>}
+          {tab === "clients"       && <button className="btn btn-p btn-s" onClick={() => setShowAddClient(true)}>+ Client</button>}
+          {tab === "comms"         && <button className="btn btn-p btn-s" onClick={() => setShowInstruction(true)}>+ Post</button>}
         </div>
         <div className="content">
           {tab === "overview"      && <Overview />}
@@ -329,6 +301,27 @@ function AdminInner() {
           {tab === "trainers-list" && <TrainersList />}
         </div>
       </div>
+
+      {/* ── MOBILE BOTTOM NAV ── */}
+      <nav className="bottom-nav">
+        {BOTTOM_NAV.map((item) => {
+          const full = navItems.find((n) => n.id === item.id);
+          const badge = (full as any)?.badge || 0;
+          return (
+            <button key={item.id} className={`bn-item ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
+              {badge > 0 && <span className="bn-badge">{badge}</span>}
+              <span className="bn-icon">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+        {/* More button opens trainer-perf, templates, comms */}
+        <button className={`bn-item ${["trainer-perf","templates","comms"].includes(tab) ? "on" : ""}`}
+          onClick={() => setTab(tab === "trainer-perf" ? "templates" : tab === "templates" ? "comms" : "trainer-perf")}>
+          <span className="bn-icon">⋯</span>
+          <span>More</span>
+        </button>
+      </nav>
     </div>
   );
 }
