@@ -40,6 +40,7 @@ import { WORKOUT_LIBRARY, WORKOUT_CATEGORIES } from "./data/workoutLibrary";
 import { APPROVED_TEMPLATES } from "./data/templates";
 import { LineChart, BarChart, ScoreRing, Donut } from "./components/ui/Charts";
 import Login from "./components/Login";
+import AdminDashboard from "./admin/AdminDashboard";
 import type {
   Client,
   Trainer,
@@ -2048,7 +2049,7 @@ export default function App() {
 
   // ── Admin ──
   if (profile.role === "admin") return (
-    <Admin
+    <AdminDashboard
       name={profile.name || "Admin"}
       logout={logout}
       clients={sharedClients}
