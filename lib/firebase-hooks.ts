@@ -13,7 +13,7 @@
 //   3. Use in component — no other changes needed
 // ============================================================
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
+import { db } from "./firebase";
 import {
   collection,
   collectionGroup,
@@ -21,16 +21,18 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import {
+import type {
   Client,
   Trainer,
+  Instruction,
   Warning,
   SessionLog,
-} from "@/app/types";
+} from "../app/types";
 
 export interface FirestoreData {
   clients: Client[];
   trainers: Trainer[];
+  instructions: Instruction[];
   warnings: Warning[];
   sessionLogs: SessionLog[];
   dbLoading: boolean;
