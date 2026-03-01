@@ -12,7 +12,6 @@ import Sessions from "./tabs/Sessions";
 import Flags from "./tabs/Flags";
 import Templates from "./tabs/Templates";
 import Instructions from "./tabs/Instructions";
-import Audit from "./tabs/Audit";
 import TrainersList from "./tabs/TrainersList";
 
 function AdminInner() {
@@ -54,7 +53,6 @@ function AdminInner() {
     { id: "flags",         icon: "🚨", label: "Flags & Alerts", badge: flaggedClients.length + lowAttendance.length, badgeColor: "red" },
     { id: "templates",     icon: "🏋", label: "Workout Templates" },
     { id: "comms",         icon: "📣", label: "Instructions Feed" },
-    { id: "audit",         icon: "🔒", label: "Audit Trail" },
     { id: "trainers-list", icon: "👤", label: "Trainers" },
   ];
 
@@ -328,7 +326,6 @@ function AdminInner() {
           {tab === "flags"         && <Flags />}
           {tab === "templates"     && <Templates />}
           {tab === "comms"         && <Instructions />}
-          {tab === "audit"         && <Audit />}
           {tab === "trainers-list" && <TrainersList />}
         </div>
       </div>
