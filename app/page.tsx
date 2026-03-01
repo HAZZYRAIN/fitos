@@ -245,7 +245,10 @@ function Admin({
   };
 
   const filteredClients = clients.filter((c) => {
-    const matchSearch = c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.trainerName?.toLowerCase().includes(clientSearch.toLowerCase());
+    const name = (c.name || "").toLowerCase();
+    const trainer = (c.trainerName || "").toLowerCase();
+    const search = clientSearch.toLowerCase();
+    const matchSearch = name.includes(search) || trainer.includes(search);
     const matchTrainer = trainerFilter === "all" || c.trainerName === trainerFilter;
     const matchStatus = clientStatusFilter === "all" || (clientStatusFilter === "active" ? c.status !== "Inactive" : c.status === "Inactive");
     return matchSearch && matchTrainer && matchStatus;
