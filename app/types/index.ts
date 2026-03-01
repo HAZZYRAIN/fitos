@@ -184,9 +184,3 @@ export interface SharedData {
   sessionLogs: SessionLog[];
   dbLoading: boolean;
 }
-export interface Instruction {
-  id: string;
-  title: string;
-  description: string;
-  createdAt?: string;
-}
