@@ -41,6 +41,7 @@ import { APPROVED_TEMPLATES } from "./data/templates";
 import { LineChart, BarChart, ScoreRing, Donut } from "./components/ui/Charts";
 import Login from "./components/Login";
 import AdminDashboard from "./admin/AdminDashboard";
+import TrainerDashboard from "./trainer/TrainerDashboard";
 import type {
   Client,
   Trainer,
@@ -2062,7 +2063,7 @@ export default function App() {
 
   // ── Trainer ──
   if (profile.role === "trainer") return (
-    <Trainer
+    <TrainerDashboard
       uid={profile.uid || ""}
       name={profile.name || "Trainer"}
       email={profile.email || ""}
