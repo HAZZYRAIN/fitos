@@ -21,13 +21,12 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import type {
+import {
   Client,
   Trainer,
-  Instruction,
   Warning,
   SessionLog,
-} from "../types";
+} from "@/app/types";
 
 export interface FirestoreData {
   clients: Client[];
