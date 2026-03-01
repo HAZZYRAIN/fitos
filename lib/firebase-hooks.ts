@@ -31,7 +31,6 @@ import {
 export interface FirestoreData {
   clients: Client[];
   trainers: Trainer[];
-  instructions: Instruction[];
   warnings: Warning[];
   sessionLogs: SessionLog[];
   dbLoading: boolean;
