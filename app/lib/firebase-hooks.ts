@@ -13,7 +13,7 @@
 //   3. Use in component — no other changes needed
 // ============================================================
 import { useState, useEffect } from "react";
-import { db } from "../../lib/firebase";
+import { db } from "@/lib/firebase";
 import {
   collection,
   collectionGroup,
