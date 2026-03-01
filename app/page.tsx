@@ -1,5 +1,23 @@
 "use client";
 // ============================================================
+// YOURTRAINER — APP ROUTER
+// This file's only job: decide which dashboard to show.
+// Admin → <Admin />
+// Trainer → <Trainer />
+// Logged out → <Login />
+//
+// All shared code now lives in:
+//   app/types/index.ts         — TypeScript interfaces
+//   app/styles/dashboard.ts    — CSS
+//   app/data/workoutLibrary.ts — Exercise data
+//   app/data/templates.ts      — Workout templates
+//   app/components/ui/Charts.tsx
+//   app/components/Login.tsx
+//   app/lib/firebase-hooks.ts  — Firestore listeners
+//
+// Part 2: Admin tabs split into app/admin/
+// Part 3: Trainer tabs split into app/trainer/
+// ============================================================
 import { useState, useEffect } from "react";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
@@ -477,7 +495,7 @@ function Admin({
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="row mb16">
               <div className="av av-c" style={{ width: 48, height: 48, fontSize: 15 }}>
-                {selectedClient.name.split(" ").map((n: string) => n[0]).join("")}
+                {(selectedClient.name || "?").split(" ").map((n: string) => n[0]).join("")}
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800 }}>{selectedClient.name}</div>
@@ -1210,7 +1228,7 @@ function Trainer({
     return () => { unsubProgress(); unsubDiet(); };
   }, [uid]);
 
-  const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase();
+  const initials = (name || "?").split(" ").map((n: string) => n[0] || "").join("").toUpperCase() || "?";
   const myClients = clients.filter((c: any) => c.trainerId === uid);
   const myInstructions = instructions;
   const myTrainer = trainers.find((t: any) => t.id === uid);
@@ -1279,7 +1297,7 @@ function Trainer({
         <div className="overlay" onClick={() => setSelectedClient(null)}>
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="row mb16">
-              <div className="av av-c" style={{ width: 48, height: 48, fontSize: 15 }}>{selectedClient.name.split(" ").map((n: string) => n[0]).join("")}</div>
+              <div className="av av-c" style={{ width: 48, height: 48, fontSize: 15 }}>{(selectedClient.name || "?").split(" ").map((n: string) => n[0] || "").join("")}</div>
               <div><div style={{ fontSize: 18, fontWeight: 800 }}>{selectedClient.name}</div><div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedClient.programType} · {selectedClient.location}</div></div>
               <button className="btn btn-g btn-xs mla" onClick={() => setSelectedClient(null)}>✕</button>
             </div>
@@ -1365,7 +1383,7 @@ function Trainer({
                 {myClients.map((c) => (
                   <div key={c.id} className="cc" onClick={() => setSelectedClient(c)}>
                     <div className="row mb12">
-                      <div className="av av-c">{c.name.split(" ").map((n: string) => n[0]).join("")}</div>
+                      <div className="av av-c">{(c.name || "?").split(" ").map((n: string) => n[0] || "").join("")}</div>
                       <div><div className="fw7 fs14 t1">{c.name}</div><div className="fs11 t3">{c.programType} · {c.location}</div></div>
                       <span className={`badge fs10 mla ${c.status === "Active" ? "bg" : c.status === "On Hold" ? "by" : "br"}`}>{c.status}</span>
                     </div>
@@ -2028,7 +2046,7 @@ export default function App() {
   // ── Admin ──
   if (profile.role === "admin") return (
     <Admin
-      name={profile.name}
+      name={profile.name || "Admin"}
       logout={logout}
       clients={sharedClients}
       trainers={sharedTrainers}
@@ -2041,9 +2059,9 @@ export default function App() {
   // ── Trainer ──
   if (profile.role === "trainer") return (
     <Trainer
-      uid={profile.uid}
-      name={profile.name}
-      email={profile.email}
+      uid={profile.uid || ""}
+      name={profile.name || "Trainer"}
+      email={profile.email || ""}
       logout={logout}
       clients={sharedClients}
       trainers={sharedTrainers}
