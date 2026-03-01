@@ -1,5 +1,6 @@
 "use client";
 import { AdminProvider, useAdmin } from "./AdminContext";
+import { S } from "../styles/dashboard";
 import type { Client, Trainer, Instruction, Warning, SessionLog } from "../types";
 
 // ── Tab components ──
@@ -62,6 +63,7 @@ function AdminInner() {
 
   return (
     <div className="app">
+      <style>{S}</style>
 
       {/* ── CHANGE PASSWORD MODAL ── */}
       {showChangePw && (
