@@ -1,13 +1,15 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useAdmin } from "../AdminContext";
 
 export default function Clients() {
+  const router = useRouter();
   const {
     clients, trainers,
     filteredClients, clientSearch, setClientSearch,
     trainerFilter, setTrainerFilter,
     clientStatusFilter, setClientStatusFilter,
-    setSelectedClient, setShowAddClient,
+    setShowAddClient,
   } = useAdmin();
 
   return (
@@ -31,21 +33,34 @@ export default function Clients() {
       <div className="card" style={{ padding: 0 }}>
         <div className="tw">
           <table>
-            <thead><tr><th>Client</th><th>Status</th><th>Trainer</th><th>Attendance</th><th>Missed</th><th>Sessions Left</th><th>Progress</th><th>Plan</th><th>Expires</th><th>Risk</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Client</th><th>Status</th><th>Trainer</th><th>Attendance</th>
+                <th>Missed</th><th>Sessions Left</th><th>Progress</th>
+                <th>Plan</th><th>Expires</th><th>Risk</th><th>Actions</th>
+              </tr>
+            </thead>
             <tbody>
               {filteredClients.map((c) => {
                 const expired = c.endDate && new Date(c.endDate) < new Date() && c.status !== "Inactive";
                 const lowSessions = (c.classesLeft || 0) <= 2 && (c.sessionsIncluded || 0) > 0;
                 const lowAttend = (c.compliance || 0) < 70;
                 const riskCount = [expired, lowSessions, lowAttend].filter(Boolean).length;
+                const goToProfile = () => router.push(`/admin/clients/${c.trainerId}/${c.id}`);
                 return (
-                  <tr key={c.id} style={{ cursor: "pointer", opacity: c.status === "Inactive" ? 0.6 : 1 }} onClick={() => setSelectedClient(c)}>
+                  <tr
+                    key={c.id}
+                    style={{ cursor: "pointer", opacity: c.status === "Inactive" ? 0.6 : 1 }}
+                    onClick={goToProfile}
+                  >
                     <td><div className="col gap4"><span className="t1 fw6 fs13">{c.name}</span><span className="fs10 t3">{c.programType}</span></div></td>
                     <td><span className={`badge fs10 ${c.status === "Inactive" ? "bgr" : "bg"}`}>{c.status === "Inactive" ? "inactive" : "active"}</span></td>
                     <td className="fs12">{c.trainerName}</td>
                     <td>
                       <div className="row gap8">
-                        <div className="pw" style={{ width: 44 }}><div className={`pb ${(c.compliance || 0) >= 85 ? "pb-g" : (c.compliance || 0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance || 0}%` }} /></div>
+                        <div className="pw" style={{ width: 44 }}>
+                          <div className={`pb ${(c.compliance || 0) >= 85 ? "pb-g" : (c.compliance || 0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance || 0}%` }} />
+                        </div>
                         <span className="fs11 fw7">{c.compliance || 0}%</span>
                       </div>
                     </td>
@@ -55,10 +70,12 @@ export default function Clients() {
                     <td className="fs11 t3">{c.plan || "—"}</td>
                     <td className="fs11 t3">{c.endDate || "—"}</td>
                     <td>
-                      {riskCount === 0 ? <span className="badge bg fs10">✓ OK</span> : <span className="badge br fs10">{riskCount} flag{riskCount > 1 ? "s" : ""}</span>}
+                      {riskCount === 0
+                        ? <span className="badge bg fs10">✓ OK</span>
+                        : <span className="badge br fs10">{riskCount} flag{riskCount > 1 ? "s" : ""}</span>}
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <button className="btn btn-g btn-xs" onClick={() => setSelectedClient(c)}>View</button>
+                      <button className="btn btn-g btn-xs" onClick={goToProfile}>View</button>
                     </td>
                   </tr>
                 );
