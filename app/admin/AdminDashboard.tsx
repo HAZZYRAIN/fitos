@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { AdminProvider, useAdmin } from "./AdminContext";
 import { S } from "../styles/dashboard";
 import type { Client, Trainer, Instruction, Warning, SessionLog } from "../types";
@@ -13,64 +13,103 @@ import Templates from "./tabs/Templates";
 import Instructions from "./tabs/Instructions";
 import TrainersList from "./tabs/TrainersList";
 
-const BOTTOM_NAV = [
-  { id: "overview",      icon: "◼", label: "Home" },
-  { id: "clients",       icon: "👥", label: "Clients" },
-  { id: "sessions",      icon: "📝", label: "Sessions" },
-  { id: "flags",         icon: "🚨", label: "Flags" },
+const NAV_ITEMS = [
+  { id: "overview",      icon: "◼",  label: "Control Room" },
+  { id: "trainer-perf",  icon: "📊", label: "Trainer Performance" },
+  { id: "clients",       icon: "👥", label: "Client Oversight",  badgeKey: "atRisk",   badgeColor: "" },
+  { id: "sessions",      icon: "📝", label: "Session Logs",      badgeKey: "pending",  badgeColor: "yellow" },
+  { id: "flags",         icon: "🚨", label: "Flags & Alerts",    badgeKey: "flags",    badgeColor: "" },
+  { id: "templates",     icon: "🏋", label: "Workout Templates" },
+  { id: "comms",         icon: "📣", label: "Instructions Feed" },
   { id: "trainers-list", icon: "👤", label: "Trainers" },
 ];
 
 function AdminInner() {
-  const router = useRouter();
   const {
     name, logout, tab, setTab,
     trainers, clients, instructions, warnings,
     atRiskClients, flaggedClients, lowAttendance, pendingLogs,
-    // Modals
     showChangePw, setShowChangePw,
     showEditClient, setShowEditClient,
     showAddTrainer, setShowAddTrainer,
     showAddClient, setShowAddClient,
     showInstruction, setShowInstruction,
     showWarning, setShowWarning,
-    showRenewClient, setShowRenewClient, // NEW
-    // Selected
+    showRenewClient, setShowRenewClient,
     selectedTrainer, setSelectedTrainer,
-    renewTarget, renewForm, setRenewForm, renewLoading, renewMsg, // NEW
+    renewTarget, renewForm, setRenewForm, renewLoading, renewMsg,
     pwTarget, setPwTarget,
-    // Forms
     newTrainer, setNewTrainer,
     newClient, setNewClient,
     newInstruction, setNewInstruction,
     newWarning, setNewWarning,
     pwForm, setPwForm, pwMsg,
     editForm, setEditForm,
-    // Actions
     addTrainer, addClient, saveEditClient,
-    renewClient, openRenewClient, // NEW
+    renewClient, openRenewClient,
     postInstruction, addWarning, changePassword,
     toggleTrainerStatus,
-    setTrainerFilter, setClientSearch, setClientStatusFilter,
     setNewClient: setNC,
   } = useAdmin();
 
-  const navItems = [
-    { id: "overview",      icon: "◼",  label: "Control Room" },
-    { id: "trainer-perf",  icon: "📊", label: "Trainer Performance" },
-    { id: "clients",       icon: "👥", label: "Client Oversight",   badge: atRiskClients.length,                          badgeColor: "red" },
-    { id: "sessions",      icon: "📝", label: "Session Logs",       badge: pendingLogs,                                   badgeColor: "yellow" },
-    { id: "flags",         icon: "🚨", label: "Flags & Alerts",     badge: flaggedClients.length + lowAttendance.length,  badgeColor: "red" },
-    { id: "templates",     icon: "🏋", label: "Workout Templates" },
-    { id: "comms",         icon: "📣", label: "Instructions Feed" },
-    { id: "trainers-list", icon: "👤", label: "Trainers" },
-  ];
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const badges: Record<string, number> = {
+    atRisk:  atRiskClients.length,
+    pending: pendingLogs,
+    flags:   flaggedClients.length + lowAttendance.length,
+  };
+
+  const closeDrawer = () => setDrawerOpen(false);
+  const navigate = (id: string) => { setTab(id); closeDrawer(); };
+
+  const currentLabel = NAV_ITEMS.find((n) => n.id === tab)?.label || "Dashboard";
 
   return (
     <div className="app">
       <style>{S}</style>
 
-      {/* ── CHANGE PASSWORD MODAL ── */}
+      {/* ── MOBILE DRAWER OVERLAY ── */}
+      <div className={`drawer-overlay ${drawerOpen ? "open" : ""}`} onClick={closeDrawer} />
+
+      {/* ── MOBILE DRAWER ── */}
+      <div className={`drawer ${drawerOpen ? "open" : ""}`}>
+        {/* Drawer header */}
+        <div className="drawer-head">
+          <div>
+            <div className="logo-yt">Your<span>Trainer</span></div>
+            <div className="logo-tag">Admin Panel</div>
+          </div>
+          <div className="drawer-close" onClick={closeDrawer}>✕</div>
+        </div>
+
+        {/* Drawer nav */}
+        <div className="drawer-nav">
+          <div className="drawer-section">Navigation</div>
+          {NAV_ITEMS.map((item) => {
+            const badge = item.badgeKey ? badges[item.badgeKey] || 0 : 0;
+            return (
+              <div key={item.id} className={`dni ${tab === item.id ? "on" : ""}`} onClick={() => navigate(item.id)}>
+                <span className="dni-ic">{item.icon}</span>
+                <span>{item.label}</span>
+                {badge > 0 && <span className={`dni-b ${item.badgeColor || ""}`}>{badge}</span>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Drawer footer */}
+        <div className="drawer-foot">
+          <div className="uc">
+            <div className="av av-a">SA</div>
+            <div><div className="uc-n">{name}</div><div className="uc-r">Super Admin</div></div>
+          </div>
+          <button className="btn-so" onClick={() => { closeDrawer(); logout(); }}>Sign Out</button>
+        </div>
+      </div>
+
+      {/* ── ALL MODALS (unchanged) ── */}
+
       {showChangePw && (
         <div className="overlay" onClick={() => setShowChangePw(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -91,7 +130,6 @@ function AdminInner() {
         </div>
       )}
 
-      {/* ── ADD TRAINER MODAL ── */}
       {showAddTrainer && (
         <div className="overlay" onClick={() => setShowAddTrainer(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -118,7 +156,6 @@ function AdminInner() {
         </div>
       )}
 
-      {/* ── ADD CLIENT MODAL ── */}
       {showAddClient && (
         <div className="overlay" onClick={() => setShowAddClient(false)}>
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
@@ -191,7 +228,6 @@ function AdminInner() {
         </div>
       )}
 
-      {/* ── POST INSTRUCTION MODAL — FIXED: added target dropdown ── */}
       {showInstruction && (
         <div className="overlay" onClick={() => setShowInstruction(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -207,19 +243,15 @@ function AdminInner() {
                 <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
               </select>
             </div>
-            {/* NEW: Target — all trainers or a specific trainer */}
-            <div className="field">
-              <label>Send To</label>
+            <div className="field"><label>Send To</label>
               <select className="fi" value={newInstruction.target} onChange={(e) => setNewInstruction((p: any) => ({ ...p, target: e.target.value }))}>
                 <option value="all">📢 All Trainers</option>
-                {trainers.map((t) => (
-                  <option key={t.id} value={t.id}>👤 {t.name}</option>
-                ))}
+                {trainers.map((t) => <option key={t.id} value={t.id}>👤 {t.name}</option>)}
               </select>
             </div>
             {newInstruction.target !== "all" && (
               <div className="alert al-b fs11 mb8">
-                📌 This instruction will only be visible to {trainers.find((t) => t.id === newInstruction.target)?.name || "selected trainer"}.
+                📌 Only visible to {trainers.find((t) => t.id === newInstruction.target)?.name || "selected trainer"}.
               </div>
             )}
             <div className="row mt16">
@@ -230,7 +262,6 @@ function AdminInner() {
         </div>
       )}
 
-      {/* ── LOG WARNING MODAL ── */}
       {showWarning && (
         <div className="overlay" onClick={() => setShowWarning(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -260,13 +291,10 @@ function AdminInner() {
         </div>
       )}
 
-      {/* ── NEW: RENEW CLIENT MODAL ── */}
       {showRenewClient && renewTarget && (
-        <div className="overlay" onClick={() => { setShowRenewClient(false); }}>
+        <div className="overlay" onClick={() => setShowRenewClient(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-t">🔄 Renew Client — {renewTarget.name}</div>
-
-            {/* Current status snapshot */}
             <div className="g2 mb16">
               <div className="card-sm" style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Sessions Used</div>
@@ -277,79 +305,37 @@ function AdminInner() {
                 <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--fd)", color: (renewTarget.classesLeft || 0) <= 2 ? "var(--red)" : "var(--t1)" }}>{renewTarget.classesLeft || 0}</div>
               </div>
             </div>
-
-            {/* Mode selector */}
             <div className="field">
               <label>Renewal Type</label>
               <div className="row gap8 mt4">
-                <button
-                  className={`btn btn-s ${renewForm.mode === "add" ? "btn-p" : "btn-g"}`}
-                  style={{ flex: 1 }}
-                  onClick={() => setRenewForm((p: any) => ({ ...p, mode: "add" }))}
-                >
-                  ➕ Add Sessions
-                </button>
-                <button
-                  className={`btn btn-s ${renewForm.mode === "reset" ? "btn-p" : "btn-g"}`}
-                  style={{ flex: 1 }}
-                  onClick={() => setRenewForm((p: any) => ({ ...p, mode: "reset" }))}
-                >
-                  🔄 Fresh Reset
-                </button>
+                <button className={`btn btn-s ${renewForm.mode === "add" ? "btn-p" : "btn-g"}`} style={{ flex: 1 }} onClick={() => setRenewForm((p: any) => ({ ...p, mode: "add" }))}>➕ Add Sessions</button>
+                <button className={`btn btn-s ${renewForm.mode === "reset" ? "btn-p" : "btn-g"}`} style={{ flex: 1 }} onClick={() => setRenewForm((p: any) => ({ ...p, mode: "reset" }))}>🔄 Fresh Reset</button>
               </div>
             </div>
-
-            {/* Mode explanation */}
             <div className="alert al-b fs11 mb12">
               {renewForm.mode === "add"
-                ? `➕ Add sessions adds to existing count. Current: ${renewTarget.sessionsIncluded || 0} sessions, ${renewTarget.classesLeft || 0} remaining. History is kept.`
-                : "🔄 Fresh reset starts the client from zero. Sessions logged, compliance, and missed sessions all reset. Use for a new contract."}
+                ? `➕ Adds to existing. Currently ${renewTarget.sessionsIncluded || 0} sessions, ${renewTarget.classesLeft || 0} remaining.`
+                : "🔄 Fresh reset — sessions logged, compliance, missed all reset to zero."}
             </div>
-
             <div className="field">
               <label>{renewForm.mode === "add" ? "Sessions to Add *" : "New Session Count *"}</label>
-              <input
-                className="fi"
-                type="number"
-                placeholder={renewForm.mode === "add" ? "e.g. 12" : "e.g. 24"}
-                value={renewForm.sessions}
-                onChange={(e) => setRenewForm((p: any) => ({ ...p, sessions: e.target.value }))}
-              />
+              <input className="fi" type="number" placeholder={renewForm.mode === "add" ? "e.g. 12" : "e.g. 24"} value={renewForm.sessions} onChange={(e) => setRenewForm((p: any) => ({ ...p, sessions: e.target.value }))} />
             </div>
-
             <div className="field">
               <label>New End Date *</label>
-              <input
-                className="fi"
-                type="date"
-                value={renewForm.endDate}
-                onChange={(e) => setRenewForm((p: any) => ({ ...p, endDate: e.target.value }))}
-              />
+              <input className="fi" type="date" value={renewForm.endDate} onChange={(e) => setRenewForm((p: any) => ({ ...p, endDate: e.target.value }))} />
             </div>
-
-            {/* Preview */}
             {renewForm.sessions && (
               <div className="alert al-b fs11 mb8">
                 {renewForm.mode === "add"
-                  ? `After renewal: ${(renewTarget.sessionsIncluded || 0) + Number(renewForm.sessions)} total sessions, ${(renewTarget.classesLeft || 0) + Number(renewForm.sessions)} remaining.`
-                  : `After renewal: ${renewForm.sessions} sessions, starting fresh from today.`}
+                  ? `After: ${(renewTarget.sessionsIncluded || 0) + Number(renewForm.sessions)} total, ${(renewTarget.classesLeft || 0) + Number(renewForm.sessions)} remaining.`
+                  : `After: ${renewForm.sessions} sessions, fresh start.`}
               </div>
             )}
-
-            {renewMsg && (
-              <div className={`alert ${renewMsg.startsWith("✓") ? "al-g" : "al-r"} mb8`}>
-                {renewMsg}
-              </div>
-            )}
-
+            {renewMsg && <div className={`alert ${renewMsg.startsWith("✓") ? "al-g" : "al-r"} mb8`}>{renewMsg}</div>}
             <div className="row mt16 gap8">
               <button className="btn btn-g btn-s" onClick={() => setShowRenewClient(false)}>Cancel</button>
-              <button
-                className="btn btn-p btn-s mla"
-                onClick={renewClient}
-                disabled={renewLoading}
-                style={{ opacity: renewLoading ? 0.7 : 1 }}
-              >
+              <button className="btn btn-p btn-s mla" onClick={renewClient} disabled={renewLoading} style={{ opacity: renewLoading ? 0.7 : 1 }}>
                 {renewLoading ? "Saving..." : "✓ Confirm Renewal"}
               </button>
             </div>
@@ -357,7 +343,6 @@ function AdminInner() {
         </div>
       )}
 
-      {/* ── TRAINER DETAIL MODAL ── */}
       {selectedTrainer && (
         <div className="overlay" onClick={() => setSelectedTrainer(null)}>
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
@@ -393,14 +378,8 @@ function AdminInner() {
               <div key={c.id} className="row gap8 mt8" style={{ padding: "6px 0", borderBottom: "1px solid var(--b1)" }}>
                 <span className="fs13 fw6 t1" style={{ flex: 1 }}>{c.name}</span>
                 <span className={`badge fs10 ${c.status === "Inactive" ? "br" : "bg"}`}>{c.status}</span>
-                {/* NEW: Renew button inline per client */}
                 {((c.classesLeft || 0) <= 2 || (c.endDate && new Date(c.endDate) < new Date())) && (
-                  <button
-                    className="btn btn-warn btn-xs"
-                    onClick={(e) => { e.stopPropagation(); setSelectedTrainer(null); openRenewClient(c); }}
-                  >
-                    Renew
-                  </button>
+                  <button className="btn btn-warn btn-xs" onClick={(e) => { e.stopPropagation(); setSelectedTrainer(null); openRenewClient(c); }}>Renew</button>
                 )}
                 <div className="pw" style={{ width: 60 }}>
                   <div className={`pb ${(c.compliance || 0) >= 85 ? "pb-g" : (c.compliance || 0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance || 0}%` }} />
@@ -412,21 +391,12 @@ function AdminInner() {
               <div className="fs12 t3">No clients assigned yet</div>
             )}
             <div className="row gap8 flex-wrap mt16">
-              <button
-                className={`btn btn-s ${selectedTrainer.status === "active" ? "btn-dn" : "btn-ok"}`}
-                onClick={() => toggleTrainerStatus(selectedTrainer.id, selectedTrainer.status || "active")}
-              >
+              <button className={`btn btn-s ${selectedTrainer.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(selectedTrainer.id, selectedTrainer.status || "active")}>
                 {selectedTrainer.status === "active" ? "Suspend" : "Activate"}
               </button>
-              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning((p: any) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>
-                Warn
-              </button>
-              <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>
-                🔑 Password
-              </button>
-              <button className="btn btn-p btn-s mla" onClick={() => { setNC((p: any) => ({ ...p, trainerName: selectedTrainer.name, trainerId: selectedTrainer.id })); setSelectedTrainer(null); setShowAddClient(true); }}>
-                + Client
-              </button>
+              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning((p: any) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Warn</button>
+              <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>🔑 Password</button>
+              <button className="btn btn-p btn-s mla" onClick={() => { setNC((p: any) => ({ ...p, trainerName: selectedTrainer.name, trainerId: selectedTrainer.id })); setSelectedTrainer(null); setShowAddClient(true); }}>+ Client</button>
             </div>
           </div>
         </div>
@@ -440,13 +410,16 @@ function AdminInner() {
           <div className="rp rp-a">⚡ Super Admin</div>
         </div>
         <div className="sb-nav">
-          {navItems.map((item) => (
-            <div key={item.id} className={`ni ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
-              <span className="ni-ic">{item.icon}</span>
-              <span>{item.label}</span>
-              {(item as any).badge > 0 && <span className={`ni-b ${(item as any).badgeColor || ""}`}>{(item as any).badge}</span>}
-            </div>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const badge = item.badgeKey ? badges[item.badgeKey] || 0 : 0;
+            return (
+              <div key={item.id} className={`ni ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
+                <span className="ni-ic">{item.icon}</span>
+                <span>{item.label}</span>
+                {badge > 0 && <span className={`ni-b ${item.badgeColor || ""}`}>{badge}</span>}
+              </div>
+            );
+          })}
         </div>
         <div className="sb-foot">
           <div className="uc">
@@ -459,12 +432,19 @@ function AdminInner() {
 
       {/* ── MAIN CONTENT ── */}
       <div className="main">
+        {/* Topbar */}
         <div className="topbar">
-          <div className="tb-t">{navItems.find((n) => n.id === tab)?.label || "Dashboard"}</div>
+          {/* Hamburger — mobile only */}
+          <div className="ham" onClick={() => setDrawerOpen(true)}>
+            <span /><span /><span />
+          </div>
+          <div className="tb-t">{currentLabel}</div>
           {tab === "trainers-list" && <button className="btn btn-p btn-s" onClick={() => setShowAddTrainer(true)}>+ Trainer</button>}
           {tab === "clients"       && <button className="btn btn-p btn-s" onClick={() => setShowAddClient(true)}>+ Client</button>}
           {tab === "comms"         && <button className="btn btn-p btn-s" onClick={() => setShowInstruction(true)}>+ Post</button>}
         </div>
+
+        {/* Page content */}
         <div className="content">
           {tab === "overview"      && <Overview />}
           {tab === "trainer-perf"  && <TrainerPerformance />}
@@ -476,28 +456,6 @@ function AdminInner() {
           {tab === "trainers-list" && <TrainersList />}
         </div>
       </div>
-
-      {/* ── MOBILE BOTTOM NAV ── */}
-      <nav className="bottom-nav">
-        {BOTTOM_NAV.map((item) => {
-          const full = navItems.find((n) => n.id === item.id);
-          const badge = (full as any)?.badge || 0;
-          return (
-            <button key={item.id} className={`bn-item ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
-              {badge > 0 && <span className="bn-badge">{badge}</span>}
-              <span className="bn-icon">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-        <button
-          className={`bn-item ${["trainer-perf","templates","comms"].includes(tab) ? "on" : ""}`}
-          onClick={() => setTab(tab === "trainer-perf" ? "templates" : tab === "templates" ? "comms" : "trainer-perf")}
-        >
-          <span className="bn-icon">⋯</span>
-          <span>More</span>
-        </button>
-      </nav>
     </div>
   );
 }
