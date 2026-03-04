@@ -1,24 +1,28 @@
 "use client";
 // ============================================================
 // CLIENT DETAIL — FULL PAGE
-// Shared by both Admin and Trainer portals.
-// Props: clientId, trainerId, role ("admin"|"trainer"), onBack
-// Tabs: Overview · Progress · Nutrition · Habits · Sessions
+// Fix 1: Queries by clientId OR clientName (backward compat with old data)
+// Fix 2: All number access wrapped in n() — no more toLocaleString crashes
+// Fix 3: Completely separate data per client
 // ============================================================
 import { useState, useEffect } from "react";
 import { db } from "../../lib/firebase";
 import {
-  collection, addDoc, onSnapshot, orderBy, query,
-  serverTimestamp, where,
+  collection, addDoc, onSnapshot,
+  orderBy, query, serverTimestamp, where,
 } from "firebase/firestore";
 
-// ── tiny sparkline chart (no external dep) ──────────────────
+// Safe number — prevents crashes on undefined/null from old Firestore docs
+const n = (v: any): number => Number(v) || 0;
+
+// ── Sparkline chart ──────────────────────────────────────────
 function Spark({ data, color = "var(--brand)", height = 48 }: { data: number[]; color?: string; height?: number }) {
-  if (!data || data.length < 2) return <div style={{ height, background: "var(--s2)", borderRadius: 6 }} />;
-  const min = Math.min(...data), max = Math.max(...data);
+  const safe = data.map((v) => n(v));
+  if (!safe || safe.length < 2) return <div style={{ height, background: "var(--s2)", borderRadius: 6 }} />;
+  const min = Math.min(...safe), max = Math.max(...safe);
   const range = max - min || 1;
   const w = 300, h = height;
-  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * (h - 8) - 4}`).join(" ");
+  const pts = safe.map((v, i) => `${(i / (safe.length - 1)) * w},${h - ((v - min) / range) * (h - 8) - 4}`).join(" ");
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height }} preserveAspectRatio="none">
       <polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -27,7 +31,7 @@ function Spark({ data, color = "var(--brand)", height = 48 }: { data: number[]; 
   );
 }
 
-// ── stat card ─────────────────────────────────────────────────
+// ── Stat card ─────────────────────────────────────────────────
 function StatCard({ label, value, sub, delta, deltaGood, color = "var(--brand)" }: any) {
   return (
     <div style={{ background: "var(--s2)", borderRadius: "var(--rs)", padding: "12px 14px", position: "relative", overflow: "hidden" }}>
@@ -44,7 +48,7 @@ function StatCard({ label, value, sub, delta, deltaGood, color = "var(--brand)" 
   );
 }
 
-// ── section header ────────────────────────────────────────────
+// ── Section header ────────────────────────────────────────────
 function SectionHead({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -54,7 +58,7 @@ function SectionHead({ title, action }: { title: string; action?: React.ReactNod
   );
 }
 
-// ── log form ──────────────────────────────────────────────────
+// ── Log form ──────────────────────────────────────────────────
 function LogForm({ fields, onSave, saving, saved, title }: {
   fields: { key: string; label: string; type?: string; step?: string; placeholder?: string; options?: string[] }[];
   onSave: (vals: Record<string, any>) => Promise<void>;
@@ -89,7 +93,7 @@ function LogForm({ fields, onSave, saving, saved, title }: {
   );
 }
 
-// ── history table ─────────────────────────────────────────────
+// ── History table ─────────────────────────────────────────────
 function HistoryTable({ rows, cols }: { rows: any[]; cols: { key: string; label: string; format?: (v: any) => string }[] }) {
   if (!rows.length) return <div style={{ fontSize: 12, color: "var(--t3)", padding: "8px 0" }}>No entries yet.</div>;
   return (
@@ -104,7 +108,7 @@ function HistoryTable({ rows, cols }: { rows: any[]; cols: { key: string; label:
         <tbody>
           {rows.slice().reverse().map((r, i) => (
             <tr key={i}>
-              <td className="fw6">{r.date}</td>
+              <td className="fw6">{r.date || "—"}</td>
               {cols.map((c) => <td key={c.key}>{c.format ? c.format(r[c.key]) : (r[c.key] ?? "—")}</td>)}
             </tr>
           ))}
@@ -127,88 +131,92 @@ export default function ClientDetail({
   onBack: () => void;
 }) {
   const [activeTab, setActiveTab] = useState("overview");
-
-  // ── live data ──
   const [progressLogs, setProgressLogs] = useState<any[]>([]);
   const [dietLogs, setDietLogs]         = useState<any[]>([]);
   const [sessionLogs, setSessionLogs]   = useState<any[]>([]);
+  const [dataLoading, setDataLoading]   = useState(true);
 
-  // ── form states ──
-  const [savingWeight, setSavingWeight]         = useState(false);
-  const [savedWeight, setSavedWeight]           = useState(false);
-  const [savingMeasure, setSavingMeasure]       = useState(false);
-  const [savedMeasure, setSavedMeasure]         = useState(false);
-  const [savingStrength, setSavingStrength]     = useState(false);
-  const [savedStrength, setSavedStrength]       = useState(false);
-  const [savingNutrition, setSavingNutrition]   = useState(false);
-  const [savedNutrition, setSavedNutrition]     = useState(false);
-  const [savingHabits, setSavingHabits]         = useState(false);
-  const [savedHabits, setSavedHabits]           = useState(false);
+  const [savingWeight,    setSavingWeight]    = useState(false);
+  const [savedWeight,     setSavedWeight]     = useState(false);
+  const [savingMeasure,   setSavingMeasure]   = useState(false);
+  const [savedMeasure,    setSavedMeasure]    = useState(false);
+  const [savingStrength,  setSavingStrength]  = useState(false);
+  const [savedStrength,   setSavedStrength]   = useState(false);
+  const [savingNutrition, setSavingNutrition] = useState(false);
+  const [savedNutrition,  setSavedNutrition]  = useState(false);
+  const [savingHabits,    setSavingHabits]    = useState(false);
+  const [savedHabits,     setSavedHabits]     = useState(false);
 
   const todayLabel = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
-  // ── Firestore listeners ──
+  // ── Firestore — query by clientId if available, else clientName ──
+  // This handles BOTH new data (has clientId) and old test data (only has clientName)
   useEffect(() => {
-    if (!client?.id) return;
+    if (!client) return;
+    setDataLoading(true);
+    let loaded = 0;
+    const checkLoaded = () => { if (++loaded >= 3) setDataLoading(false); };
 
-    // Progress logs — filtered by clientId for accuracy
-    const unsubP = onSnapshot(
-      query(
-        collection(db, "progressLogs"),
-        where("clientId", "==", client.id),
-        orderBy("createdAt", "asc")
-      ),
-      (snap) => setProgressLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
-      (err) => console.error("progressLogs:", err)
+    // Use clientId if the doc has one, otherwise fall back to clientName
+    const hasId = !!client.id;
+
+    const progressQuery = hasId
+      ? query(collection(db, "progressLogs"), where("clientId", "==", client.id), orderBy("createdAt", "asc"))
+      : query(collection(db, "progressLogs"), where("clientName", "==", client.name), orderBy("createdAt", "asc"));
+
+    const dietQuery = hasId
+      ? query(collection(db, "dietLogs"), where("clientId", "==", client.id), orderBy("createdAt", "asc"))
+      : query(collection(db, "dietLogs"), where("clientName", "==", client.name), orderBy("createdAt", "asc"));
+
+    const sessionQuery = hasId
+      ? query(collection(db, "sessionLogs"), where("clientId", "==", client.id), orderBy("createdAt", "desc"))
+      : query(collection(db, "sessionLogs"), where("client", "==", client.name), orderBy("createdAt", "desc"));
+
+    const unsubP = onSnapshot(progressQuery,
+      (snap) => { setProgressLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); checkLoaded(); },
+      (err) => { console.error("progressLogs:", err); checkLoaded(); }
     );
-
-    // Diet logs — filtered by clientId
-    const unsubD = onSnapshot(
-      query(
-        collection(db, "dietLogs"),
-        where("clientId", "==", client.id),
-        orderBy("createdAt", "asc")
-      ),
-      (snap) => setDietLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
-      (err) => console.error("dietLogs:", err)
+    const unsubD = onSnapshot(dietQuery,
+      (snap) => { setDietLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); checkLoaded(); },
+      (err) => { console.error("dietLogs:", err); checkLoaded(); }
     );
-
-    // Session logs — filtered by clientId
-    const unsubS = onSnapshot(
-      query(
-        collection(db, "sessionLogs"),
-        where("clientId", "==", client.id),
-        orderBy("createdAt", "desc")
-      ),
-      (snap) => setSessionLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
-      (err) => console.error("sessionLogs:", err)
+    const unsubS = onSnapshot(sessionQuery,
+      (snap) => { setSessionLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); checkLoaded(); },
+      (err) => { console.error("sessionLogs:", err); checkLoaded(); }
     );
 
     return () => { unsubP(); unsubD(); unsubS(); };
-  }, [client?.id]);
+  }, [client?.id, client?.name]);
 
-  // ── split progress logs by type ──
-  const weightLogs   = progressLogs.filter((p) => p.type === "weight");
-  const measureLogs  = progressLogs.filter((p) => p.type === "measurements");
-  const strengthLogs = progressLogs.filter((p) => p.type === "strength");
+  // ── Split by type ──
+  const weightLogs    = progressLogs.filter((p) => p.type === "weight" || (!p.type && p.weight));
+  const measureLogs   = progressLogs.filter((p) => p.type === "measurements" || (!p.type && p.chest));
+  const strengthLogs  = progressLogs.filter((p) => p.type === "strength" || (!p.type && p.squat));
+  const nutritionLogs = dietLogs.filter((d) => d.type === "nutrition" || (!d.type && d.protein && !d.steps));
+  const habitLogs     = dietLogs.filter((d) => d.type === "habits" || (!d.type && d.steps));
 
-  // ── split diet logs by type ──
-  const nutritionLogs = dietLogs.filter((d) => d.type === "nutrition");
-  const habitLogs     = dietLogs.filter((d) => d.type === "habits");
+  // ── Latest entries ──
+  const latestWeight    = weightLogs[weightLogs.length - 1];
+  const firstWeight     = weightLogs[0];
+  const latestMeasure   = measureLogs[measureLogs.length - 1];
+  const firstMeasure    = measureLogs[0];
+  const latestStrength  = strengthLogs[strengthLogs.length - 1];
+  const firstStrength   = strengthLogs[0];
+  const latestHabits    = habitLogs[habitLogs.length - 1];
 
-  // ── save helpers ──
+  // ── Save helpers ──
   const saveProgressLog = async (type: string, data: Record<string, any>, setSaving: any, setSaved: any) => {
     setSaving(true);
     try {
       await addDoc(collection(db, "progressLogs"), {
-        clientId: client.id,
+        clientId: client.id || "",
         clientName: client.name,
         trainerId: client.trainerId,
         trainer: loggerName,
         loggedBy: loggerUid,
         type,
         date: todayLabel,
-        ...Object.fromEntries(Object.entries(data).map(([k, v]) => [k, Number(v) || 0])),
+        ...Object.fromEntries(Object.entries(data).map(([k, v]) => [k, n(v)])),
         createdAt: serverTimestamp(),
       });
       setSaved(true);
@@ -222,11 +230,11 @@ export default function ClientDetail({
     try {
       const processed = Object.fromEntries(
         Object.entries(data).map(([k, v]) =>
-          typeof v === "string" && !isNaN(Number(v)) && v !== "" ? [k, Number(v)] : [k, v]
+          typeof v === "string" && v !== "" && !isNaN(Number(v)) ? [k, Number(v)] : [k, v]
         )
       );
       await addDoc(collection(db, "dietLogs"), {
-        clientId: client.id,
+        clientId: client.id || "",
         clientName: client.name,
         trainerId: client.trainerId,
         trainer: loggerName,
@@ -242,27 +250,25 @@ export default function ClientDetail({
     finally { setSaving(false); }
   };
 
-  // ── tab helpers ──
   const TABS = [
-    { id: "overview",   label: "Overview" },
-    { id: "progress",   label: "Progress" },
-    { id: "nutrition",  label: "Nutrition" },
-    { id: "habits",     label: "Habits" },
-    { id: "sessions",   label: "Sessions" },
+    { id: "overview",  label: "Overview" },
+    { id: "progress",  label: "Progress" },
+    { id: "nutrition", label: "Nutrition" },
+    { id: "habits",    label: "Habits" },
+    { id: "sessions",  label: "Sessions" },
   ];
 
-  // ── latest entries ──
-  const latestWeight   = weightLogs[weightLogs.length - 1];
-  const firstWeight    = weightLogs[0];
-  const latestMeasure  = measureLogs[measureLogs.length - 1];
-  const latestStrength = strengthLogs[strengthLogs.length - 1];
-  const latestNutrition = nutritionLogs[nutritionLogs.length - 1];
-  const latestHabits    = habitLogs[habitLogs.length - 1];
+  if (dataLoading) return (
+    <div style={{ padding: 24 }}>
+      <button className="btn btn-g btn-s" onClick={onBack} style={{ marginBottom: 16 }}>← Back</button>
+      <div className="alert al-b">Loading {client?.name}'s data...</div>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100%", paddingBottom: 80 }}>
 
-      {/* ── HEADER ── */}
+      {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         <button className="btn btn-g btn-s" onClick={onBack}>← Back</button>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
@@ -281,74 +287,64 @@ export default function ClientDetail({
         </span>
       </div>
 
-      {/* ── TABS ── */}
+      {/* ── Tabs ── */}
       <div className="tabs mb16" style={{ overflowX: "auto", flexWrap: "nowrap" }}>
         {TABS.map((t) => (
-          <div key={t.id} className={`tab ${activeTab === t.id ? "on" : ""}`} onClick={() => setActiveTab(t.id)}
-            style={{ whiteSpace: "nowrap" }}>
+          <div key={t.id} className={`tab ${activeTab === t.id ? "on" : ""}`}
+            onClick={() => setActiveTab(t.id)} style={{ whiteSpace: "nowrap" }}>
             {t.label}
           </div>
         ))}
       </div>
 
-      {/* ════════════════════════════════════════════
-          TAB: OVERVIEW
-      ════════════════════════════════════════════ */}
+      {/* ══════════════ OVERVIEW ══════════════ */}
       {activeTab === "overview" && (
         <div>
-          {client.medicalNotes && (
-            <div className="alert al-y mb12">🩹 Medical: {client.medicalNotes}</div>
-          )}
-          {(client.classesLeft || 0) <= 2 && (
-            <div className="alert al-r mb12">⚠ Only {client.classesLeft || 0} sessions remaining — needs renewal.</div>
-          )}
+          {client.medicalNotes && <div className="alert al-y mb12">🩹 Medical: {client.medicalNotes}</div>}
+          {(client.classesLeft || 0) <= 2 && <div className="alert al-r mb12">⚠ Only {client.classesLeft || 0} sessions remaining — needs renewal.</div>}
 
-          {/* Sessions stats */}
           <SectionHead title="Session Stats" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 20 }}>
-            <StatCard label="Sessions Done" value={`${client.sessionsLogged || 0}/${client.sessionsIncluded || 0}`} color="var(--blue)" />
-            <StatCard label="Classes Left" value={client.classesLeft || 0} color={(client.classesLeft || 0) <= 2 ? "var(--red)" : "var(--green)"} />
-            <StatCard label="Compliance" value={`${client.compliance || 0}%`} color="var(--brand)" />
-            <StatCard label="Missed" value={client.missedSessions || 0} color="var(--yellow)" />
+            <StatCard label="Sessions Done" value={`${n(client.sessionsLogged)}/${n(client.sessionsIncluded)}`} color="var(--blue)" />
+            <StatCard label="Classes Left"  value={n(client.classesLeft)} color={(client.classesLeft || 0) <= 2 ? "var(--red)" : "var(--green)"} />
+            <StatCard label="Compliance"    value={`${n(client.compliance)}%`} color="var(--brand)" />
+            <StatCard label="Missed"        value={n(client.missedSessions)} color="var(--yellow)" />
           </div>
 
-          {/* Latest weight */}
           {latestWeight && (
             <>
               <SectionHead title="Latest Weight" />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 20 }}>
-                <StatCard label="Current Weight" value={`${latestWeight.weight}kg`}
-                  sub={firstWeight ? `Started: ${firstWeight.weight}kg` : undefined}
-                  delta={firstWeight ? `${Math.abs(latestWeight.weight - firstWeight.weight).toFixed(1)}kg ${latestWeight.weight < firstWeight.weight ? "lost" : "gained"}` : undefined}
-                  deltaGood={firstWeight ? latestWeight.weight <= firstWeight.weight : true}
+                <StatCard label="Current Weight" value={`${n(latestWeight.weight)}kg`}
+                  sub={firstWeight ? `Started: ${n(firstWeight.weight)}kg` : undefined}
+                  delta={firstWeight ? `${Math.abs(n(latestWeight.weight) - n(firstWeight.weight)).toFixed(1)}kg ${n(latestWeight.weight) < n(firstWeight.weight) ? "lost" : "gained"}` : undefined}
+                  deltaGood={firstWeight ? n(latestWeight.weight) <= n(firstWeight.weight) : true}
                   color="var(--brand)" />
-                <StatCard label="Body Fat" value={`${latestWeight.bf}%`} color="var(--purple)" />
+                <StatCard label="Body Fat" value={`${n(latestWeight.bf)}%`} color="var(--purple)" />
               </div>
             </>
           )}
 
-          {/* Latest habits */}
           {latestHabits && (
             <>
               <SectionHead title="Latest Habits" />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 20 }}>
-                <StatCard label="Steps" value={(latestHabits.steps || 0).toLocaleString()} color="var(--green)" />
-                <StatCard label="Sleep" value={`${latestHabits.sleep}h`} color="var(--purple)" />
+                <StatCard label="Steps" value={n(latestHabits.steps).toLocaleString()} color="var(--green)" />
+                <StatCard label="Sleep" value={`${n(latestHabits.sleep)}h`} color="var(--purple)" />
               </div>
             </>
           )}
 
-          {/* Plan info */}
           <SectionHead title="Plan Info" />
           <div style={{ background: "var(--s2)", borderRadius: "var(--rs)", padding: 14 }}>
             {[
-              ["Plan",        client.plan || "—"],
-              ["Start Date",  client.startDate || "—"],
-              ["End Date",    client.endDate || "—"],
-              ["Last Session",client.lastSession || "—"],
-              ["Email",       client.email || "—"],
-              ["Gender",      client.gender || "—"],
-              ["Age",         client.age || "—"],
+              ["Plan",         client.plan || "—"],
+              ["Start Date",   client.startDate || "—"],
+              ["End Date",     client.endDate || "—"],
+              ["Last Session", client.lastSession || "—"],
+              ["Email",        client.email || "—"],
+              ["Gender",       client.gender || "—"],
+              ["Age",          client.age || "—"],
             ].map(([l, v]) => (
               <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--b1)", fontSize: 13 }}>
                 <span style={{ color: "var(--t3)" }}>{l}</span>
@@ -359,41 +355,30 @@ export default function ClientDetail({
         </div>
       )}
 
-      {/* ════════════════════════════════════════════
-          TAB: PROGRESS
-      ════════════════════════════════════════════ */}
+      {/* ══════════════ PROGRESS ══════════════ */}
       {activeTab === "progress" && (
         <div>
 
-          {/* ── WEIGHT & BODY FAT ── */}
+          {/* Weight & Body Fat */}
           <SectionHead title="⚖️ Weight & Body Fat" />
-
-          {weightLogs.length > 0 && (
+          {weightLogs.length > 0 && latestWeight && firstWeight && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 12 }}>
-              <StatCard label="Current Weight" value={`${latestWeight.weight}kg`}
-                sub={`Start: ${firstWeight?.weight}kg`}
-                delta={firstWeight ? `${Math.abs(latestWeight.weight - firstWeight.weight).toFixed(1)}kg` : undefined}
-                deltaGood={firstWeight ? latestWeight.weight <= firstWeight.weight : true}
-                color="var(--brand)" />
-              <StatCard label="Body Fat" value={`${latestWeight.bf}%`}
-                delta={firstWeight ? `${Math.abs(latestWeight.bf - firstWeight.bf).toFixed(1)}%` : undefined}
-                deltaGood={firstWeight ? latestWeight.bf <= firstWeight.bf : true}
-                color="var(--purple)" />
+              <StatCard label="Current Weight" value={`${n(latestWeight.weight)}kg`}
+                sub={`Start: ${n(firstWeight.weight)}kg`}
+                delta={`${Math.abs(n(latestWeight.weight) - n(firstWeight.weight)).toFixed(1)}kg`}
+                deltaGood={n(latestWeight.weight) <= n(firstWeight.weight)} color="var(--brand)" />
+              <StatCard label="Body Fat" value={`${n(latestWeight.bf)}%`}
+                delta={`${Math.abs(n(latestWeight.bf) - n(firstWeight.bf)).toFixed(1)}%`}
+                deltaGood={n(latestWeight.bf) <= n(firstWeight.bf)} color="var(--purple)" />
             </div>
           )}
-
           {weightLogs.length >= 2 && (
             <div className="card mb12">
               <div className="ch"><span className="ct">Weight Trend (kg)</span></div>
-              <Spark data={weightLogs.map((p) => p.weight)} color="var(--brand)" height={64} />
-              <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-                <span style={{ fontSize: 11, color: "var(--t3)" }}>Body Fat: <b style={{ color: "var(--purple)" }}>{latestWeight?.bf}%</b></span>
-              </div>
+              <Spark data={weightLogs.map((p) => n(p.weight))} color="var(--brand)" height={64} />
             </div>
           )}
-
-          <LogForm
-            title="Log Weight Entry"
+          <LogForm title="Log Weight Entry"
             fields={[
               { key: "weight", label: "Weight (kg)", placeholder: "e.g. 72.5" },
               { key: "bf",     label: "Body Fat %",  placeholder: "e.g. 18" },
@@ -401,21 +386,16 @@ export default function ClientDetail({
             onSave={(vals) => saveProgressLog("weight", vals, setSavingWeight, setSavedWeight)}
             saving={savingWeight} saved={savedWeight}
           />
-
-          <HistoryTable
-            rows={weightLogs}
-            cols={[
-              { key: "weight", label: "Weight (kg)" },
-              { key: "bf",     label: "Body Fat %" },
-            ]}
-          />
+          <HistoryTable rows={weightLogs} cols={[
+            { key: "weight", label: "Weight (kg)" },
+            { key: "bf",     label: "Body Fat %" },
+          ]} />
 
           <div style={{ height: 1, background: "var(--b1)", margin: "24px 0" }} />
 
-          {/* ── MEASUREMENTS ── */}
+          {/* Measurements */}
           <SectionHead title="📏 Body Measurements" />
-
-          {measureLogs.length > 0 && (
+          {measureLogs.length > 0 && latestMeasure && firstMeasure && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 12 }}>
               {[
                 { l: "Chest",  k: "chest",  c: "var(--brand)" },
@@ -424,28 +404,22 @@ export default function ClientDetail({
                 { l: "Arms",   k: "arms",   c: "var(--green)" },
                 { l: "Thighs", k: "thighs", c: "var(--yellow)" },
               ].map((m) => {
-                const first = measureLogs[0];
-                const last  = measureLogs[measureLogs.length - 1];
-                const delta = last[m.k] - first[m.k];
+                const delta = n(latestMeasure[m.k]) - n(firstMeasure[m.k]);
                 const good  = m.k === "arms" ? delta > 0 : delta < 0;
                 return (
-                  <StatCard key={m.k} label={m.l} value={`${last[m.k]}cm`}
-                    delta={`${delta > 0 ? "+" : ""}${delta}cm`}
-                    deltaGood={good} color={m.c} />
+                  <StatCard key={m.k} label={m.l} value={`${n(latestMeasure[m.k])}cm`}
+                    delta={`${delta > 0 ? "+" : ""}${delta}cm`} deltaGood={good} color={m.c} />
                 );
               })}
             </div>
           )}
-
           {measureLogs.length >= 2 && (
             <div className="card mb12">
               <div className="ch"><span className="ct">Waist Trend (cm)</span></div>
-              <Spark data={measureLogs.map((p) => p.waist)} color="var(--blue)" height={56} />
+              <Spark data={measureLogs.map((p) => n(p.waist))} color="var(--blue)" height={56} />
             </div>
           )}
-
-          <LogForm
-            title="Log Measurements"
+          <LogForm title="Log Measurements"
             fields={[
               { key: "chest",  label: "Chest (cm)" },
               { key: "waist",  label: "Waist (cm)" },
@@ -456,24 +430,19 @@ export default function ClientDetail({
             onSave={(vals) => saveProgressLog("measurements", vals, setSavingMeasure, setSavedMeasure)}
             saving={savingMeasure} saved={savedMeasure}
           />
-
-          <HistoryTable
-            rows={measureLogs}
-            cols={[
-              { key: "chest",  label: "Chest" },
-              { key: "waist",  label: "Waist" },
-              { key: "hips",   label: "Hips" },
-              { key: "arms",   label: "Arms" },
-              { key: "thighs", label: "Thighs" },
-            ]}
-          />
+          <HistoryTable rows={measureLogs} cols={[
+            { key: "chest",  label: "Chest" },
+            { key: "waist",  label: "Waist" },
+            { key: "hips",   label: "Hips" },
+            { key: "arms",   label: "Arms" },
+            { key: "thighs", label: "Thighs" },
+          ]} />
 
           <div style={{ height: 1, background: "var(--b1)", margin: "24px 0" }} />
 
-          {/* ── STRENGTH ── */}
+          {/* Strength */}
           <SectionHead title="💪 Strength Progress" />
-
-          {strengthLogs.length > 0 && (
+          {strengthLogs.length > 0 && latestStrength && firstStrength && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 12 }}>
               {[
                 { l: "Squat",    k: "squat",    c: "var(--green)",  unit: "kg" },
@@ -482,21 +451,17 @@ export default function ClientDetail({
                 { l: "Push-ups", k: "pushup",   c: "var(--blue)",   unit: "reps" },
                 { l: "Plank",    k: "plank",    c: "var(--yellow)", unit: "sec" },
               ].map((m) => {
-                const first = strengthLogs[0];
-                const last  = strengthLogs[strengthLogs.length - 1];
-                const delta = (last[m.k] || 0) - (first[m.k] || 0);
+                const delta = n(latestStrength[m.k]) - n(firstStrength[m.k]);
                 return (
                   <StatCard key={m.k} label={m.l}
-                    value={`${last[m.k] || 0}${m.unit}`}
-                    sub={`Start: ${first[m.k] || 0}${m.unit}`}
+                    value={`${n(latestStrength[m.k])}${m.unit}`}
+                    sub={`Start: ${n(firstStrength[m.k])}${m.unit}`}
                     delta={`${delta > 0 ? "+" : ""}${delta}${m.unit}`}
-                    deltaGood={delta >= 0}
-                    color={m.c} />
+                    deltaGood={delta >= 0} color={m.c} />
                 );
               })}
             </div>
           )}
-
           {strengthLogs.length >= 2 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 12 }}>
               {[
@@ -505,14 +470,12 @@ export default function ClientDetail({
               ].map((m) => (
                 <div key={m.k} className="card">
                   <div className="ch"><span className="ct" style={{ fontSize: 12 }}>{m.l} (kg)</span></div>
-                  <Spark data={strengthLogs.map((p) => p[m.k] || 0)} color={m.c} height={48} />
+                  <Spark data={strengthLogs.map((p) => n(p[m.k]))} color={m.c} height={48} />
                 </div>
               ))}
             </div>
           )}
-
-          <LogForm
-            title="Log Strength"
+          <LogForm title="Log Strength"
             fields={[
               { key: "squat",    label: "Squat (kg)" },
               { key: "bench",    label: "Bench (kg)" },
@@ -523,52 +486,38 @@ export default function ClientDetail({
             onSave={(vals) => saveProgressLog("strength", vals, setSavingStrength, setSavedStrength)}
             saving={savingStrength} saved={savedStrength}
           />
-
-          <HistoryTable
-            rows={strengthLogs}
-            cols={[
-              { key: "squat",    label: "Squat" },
-              { key: "bench",    label: "Bench" },
-              { key: "deadlift", label: "Deadlift" },
-              { key: "pushup",   label: "Push-ups" },
-              { key: "plank",    label: "Plank (s)" },
-            ]}
-          />
+          <HistoryTable rows={strengthLogs} cols={[
+            { key: "squat",    label: "Squat" },
+            { key: "bench",    label: "Bench" },
+            { key: "deadlift", label: "Deadlift" },
+            { key: "pushup",   label: "Push-ups" },
+            { key: "plank",    label: "Plank (s)" },
+          ]} />
         </div>
       )}
 
-      {/* ════════════════════════════════════════════
-          TAB: NUTRITION
-      ════════════════════════════════════════════ */}
+      {/* ══════════════ NUTRITION ══════════════ */}
       {activeTab === "nutrition" && (
         <div>
           <SectionHead title="🥩 Nutrition Tracking" />
-
           {nutritionLogs.length > 0 && (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 12 }}>
-                {(() => {
-                  const avg = (k: string) =>
-                    Math.round(nutritionLogs.reduce((s, d) => s + (d[k] || 0), 0) / nutritionLogs.length);
-                  return [
-                    { l: "Avg Protein", v: `${avg("protein")}g`,  target: "120g",  pct: Math.round(avg("protein") / 120 * 100), c: "var(--brand)" },
-                    { l: "Avg Water",   v: `${(nutritionLogs.reduce((s,d)=>s+(d.water||0),0)/nutritionLogs.length).toFixed(1)}L`, target: "3L", pct: 0, c: "var(--blue)" },
-                    { l: "Avg Calories",v: `${avg("calories")}`,   target: "—",     pct: 0, c: "var(--green)" },
-                  ].map((s) => <StatCard key={s.l} label={s.l} value={s.v} sub={`Target: ${s.target}`} color={s.c} />);
-                })()}
+                <StatCard label="Avg Protein"  value={`${Math.round(nutritionLogs.reduce((s,d)=>s+n(d.protein),0)/nutritionLogs.length)}g`}  sub="Target: 120g"  color="var(--brand)" />
+                <StatCard label="Avg Water"    value={`${(nutritionLogs.reduce((s,d)=>s+n(d.water),0)/nutritionLogs.length).toFixed(1)}L`}    sub="Target: 3L"   color="var(--blue)" />
+                <StatCard label="Avg Calories" value={`${Math.round(nutritionLogs.reduce((s,d)=>s+n(d.calories),0)/nutritionLogs.length)}`}   sub="kcal"         color="var(--green)" />
+                <StatCard label="Avg Carbs"    value={`${Math.round(nutritionLogs.reduce((s,d)=>s+n(d.carbs),0)/nutritionLogs.length)}g`}     sub="carbohydrates" color="var(--yellow)" />
               </div>
-
               {nutritionLogs.length >= 2 && (
                 <div className="card mb12">
                   <div className="ch"><span className="ct">Protein Trend (g)</span></div>
-                  <Spark data={nutritionLogs.map((d) => d.protein || 0)} color="var(--brand)" height={56} />
+                  <Spark data={nutritionLogs.map((d) => n(d.protein))} color="var(--brand)" height={56} />
                 </div>
               )}
             </>
           )}
-
-          <LogForm
-            title="Log Nutrition"
+          {nutritionLogs.length === 0 && <div className="alert al-b mb12">No nutrition logs yet. Log the first entry below.</div>}
+          <LogForm title="Log Nutrition"
             fields={[
               { key: "protein",  label: "Protein (g)",  placeholder: "e.g. 120" },
               { key: "calories", label: "Calories",      placeholder: "e.g. 2000" },
@@ -579,57 +528,42 @@ export default function ClientDetail({
             onSave={(vals) => saveDietLog("nutrition", vals, setSavingNutrition, setSavedNutrition)}
             saving={savingNutrition} saved={savedNutrition}
           />
-
-          <HistoryTable
-            rows={nutritionLogs}
-            cols={[
-              { key: "protein",  label: "Protein (g)" },
-              { key: "calories", label: "Calories" },
-              { key: "water",    label: "Water (L)" },
-              { key: "carbs",    label: "Carbs (g)" },
-              { key: "fats",     label: "Fats (g)" },
-            ]}
-          />
+          <HistoryTable rows={nutritionLogs} cols={[
+            { key: "protein",  label: "Protein (g)" },
+            { key: "calories", label: "Calories" },
+            { key: "water",    label: "Water (L)" },
+            { key: "carbs",    label: "Carbs (g)" },
+            { key: "fats",     label: "Fats (g)" },
+          ]} />
         </div>
       )}
 
-      {/* ════════════════════════════════════════════
-          TAB: HABITS
-      ════════════════════════════════════════════ */}
+      {/* ══════════════ HABITS ══════════════ */}
       {activeTab === "habits" && (
         <div>
           <SectionHead title="🔁 Daily Habits" />
-
           {habitLogs.length > 0 && (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 12 }}>
-                {(() => {
-                  const avg = (k: string) =>
-                    Math.round(habitLogs.reduce((s, d) => s + (Number(d[k]) || 0), 0) / habitLogs.length);
-                  return [
-                    { l: "Avg Steps", v: avg("steps").toLocaleString(), c: "var(--green)" },
-                    { l: "Avg Sleep", v: `${(habitLogs.reduce((s,d)=>s+(d.sleep||0),0)/habitLogs.length).toFixed(1)}h`, c: "var(--purple)" },
-                  ].map((s) => <StatCard key={s.l} label={s.l} value={s.v} color={s.c} />);
-                })()}
+                <StatCard label="Avg Steps" value={Math.round(habitLogs.reduce((s,d)=>s+n(d.steps),0)/habitLogs.length).toLocaleString()} color="var(--green)" />
+                <StatCard label="Avg Sleep" value={`${(habitLogs.reduce((s,d)=>s+n(d.sleep),0)/habitLogs.length).toFixed(1)}h`} color="var(--purple)" />
               </div>
-
               {habitLogs.length >= 2 && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 12 }}>
                   <div className="card">
                     <div className="ch"><span className="ct" style={{ fontSize: 12 }}>Steps Trend</span></div>
-                    <Spark data={habitLogs.map((d) => d.steps || 0)} color="var(--green)" height={48} />
+                    <Spark data={habitLogs.map((d) => n(d.steps))} color="var(--green)" height={48} />
                   </div>
                   <div className="card">
                     <div className="ch"><span className="ct" style={{ fontSize: 12 }}>Sleep (hrs)</span></div>
-                    <Spark data={habitLogs.map((d) => d.sleep || 0)} color="var(--purple)" height={48} />
+                    <Spark data={habitLogs.map((d) => n(d.sleep))} color="var(--purple)" height={48} />
                   </div>
                 </div>
               )}
-
-              {/* Sleep quality breakdown */}
+              {/* Sleep quality bars */}
               <div className="card mb12">
                 <div className="ch"><span className="ct">Sleep Quality</span></div>
-                {["Great", "Good", "Average", "Poor"].map((q) => {
+                {["Great","Good","Average","Poor"].map((q) => {
                   const count = habitLogs.filter((d) => d.sleepQuality === q).length;
                   const pct   = habitLogs.length ? Math.round((count / habitLogs.length) * 100) : 0;
                   const color = q === "Great" ? "var(--green)" : q === "Good" ? "var(--blue)" : q === "Average" ? "var(--yellow)" : "var(--red)";
@@ -644,64 +578,54 @@ export default function ClientDetail({
                   );
                 })}
               </div>
-
-              {/* Trainer insights */}
+              {/* Insights */}
               <div className="card mb12">
                 <div className="ch"><span className="ct">Insights</span><span className="badge bb fs10">Auto</span></div>
-                {habitLogs.length > 0 && (() => {
-                  const avgSteps = Math.round(habitLogs.reduce((s, d) => s + (d.steps || 0), 0) / habitLogs.length);
-                  const avgSleep = habitLogs.reduce((s, d) => s + (d.sleep || 0), 0) / habitLogs.length;
+                {(() => {
+                  const avgSteps = Math.round(habitLogs.reduce((s,d)=>s+n(d.steps),0)/habitLogs.length);
+                  const avgSleep = habitLogs.reduce((s,d)=>s+n(d.sleep),0)/habitLogs.length;
                   return (
                     <div className="col gap8">
-                      {avgSteps < 7000  && <div className="alert al-y">🚶 Avg steps {avgSteps.toLocaleString()} — below 7k target.</div>}
+                      {avgSteps < 7000   && <div className="alert al-y">🚶 Avg steps {avgSteps.toLocaleString()} — below 7k target.</div>}
                       {avgSteps >= 10000 && <div className="alert al-g">✓ Consistently hitting 10k+ steps.</div>}
-                      {avgSleep < 7     && <div className="alert al-r">😴 Avg sleep {avgSleep.toFixed(1)}h — below 7h minimum.</div>}
-                      {avgSleep >= 7.5  && <div className="alert al-g">✓ Sleep quality good — averaging {avgSleep.toFixed(1)}h.</div>}
+                      {avgSleep < 7      && <div className="alert al-r">😴 Avg sleep {avgSleep.toFixed(1)}h — below 7h minimum.</div>}
+                      {avgSleep >= 7.5   && <div className="alert al-g">✓ Sleep quality good — averaging {avgSleep.toFixed(1)}h.</div>}
                     </div>
                   );
                 })()}
               </div>
             </>
           )}
-
-          <LogForm
-            title="Log Habits"
+          {habitLogs.length === 0 && <div className="alert al-b mb12">No habit logs yet. Log the first entry below.</div>}
+          <LogForm title="Log Habits"
             fields={[
-              { key: "steps",        label: "Steps",         placeholder: "e.g. 8000" },
-              { key: "sleep",        label: "Sleep (hours)", placeholder: "e.g. 7.5", step: "0.5" },
-              { key: "sleepQuality", label: "Sleep Quality", options: ["Great", "Good", "Average", "Poor"] },
-              { key: "activeMinutes",label: "Active Minutes",placeholder: "e.g. 45" },
+              { key: "steps",         label: "Steps",          placeholder: "e.g. 8000" },
+              { key: "sleep",         label: "Sleep (hours)",  placeholder: "e.g. 7.5", step: "0.5" },
+              { key: "sleepQuality",  label: "Sleep Quality",  options: ["Great","Good","Average","Poor"] },
+              { key: "activeMinutes", label: "Active Minutes", placeholder: "e.g. 45" },
             ]}
             onSave={(vals) => saveDietLog("habits", vals, setSavingHabits, setSavedHabits)}
             saving={savingHabits} saved={savedHabits}
           />
-
-          <HistoryTable
-            rows={habitLogs}
-            cols={[
-              { key: "steps",        label: "Steps",   format: (v) => (v || 0).toLocaleString() },
-              { key: "sleep",        label: "Sleep" },
-              { key: "sleepQuality", label: "Quality" },
-              { key: "activeMinutes",label: "Active (min)" },
-            ]}
-          />
+          <HistoryTable rows={habitLogs} cols={[
+            { key: "steps",        label: "Steps",   format: (v) => n(v).toLocaleString() },
+            { key: "sleep",        label: "Sleep" },
+            { key: "sleepQuality", label: "Quality" },
+            { key: "activeMinutes",label: "Active (min)" },
+          ]} />
         </div>
       )}
 
-      {/* ════════════════════════════════════════════
-          TAB: SESSIONS
-      ════════════════════════════════════════════ */}
+      {/* ══════════════ SESSIONS ══════════════ */}
       {activeTab === "sessions" && (
         <div>
           <SectionHead title="📝 Session History" />
-          {sessionLogs.length === 0 && (
-            <div className="alert al-b">No sessions logged yet for this client.</div>
-          )}
+          {sessionLogs.length === 0 && <div className="alert al-b">No sessions logged yet.</div>}
           <div className="col gap10">
             {sessionLogs.map((s) => (
               <div key={s.id} className="card">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>{s.date}</span>
                       <span className={`badge fs10 ${s.status === "completed" ? "bg" : "br"}`}>{s.status}</span>
@@ -714,28 +638,22 @@ export default function ClientDetail({
                     {s.notes && <div style={{ fontSize: 12, color: "var(--t2)" }}>{s.notes}</div>}
                   </div>
                 </div>
-
-                {/* Exercises */}
                 {s.exercises && s.exercises.length > 0 && (
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--b1)" }}>
                     <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Exercises</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                      {s.exercises.map((ex: any, i: number) => (
-                        <div key={i} style={{ display: "flex", gap: 8, fontSize: 12 }}>
-                          <span style={{ color: "var(--t1)", fontWeight: 600, flex: 1 }}>{ex.name}</span>
-                          <span style={{ color: "var(--t3)" }}>{ex.sets}×{ex.reps} @ {ex.weight}kg</span>
-                        </div>
-                      ))}
-                    </div>
+                    {s.exercises.map((ex: any, i: number) => (
+                      <div key={i} style={{ display: "flex", gap: 8, fontSize: 12, marginBottom: 2 }}>
+                        <span style={{ color: "var(--t1)", fontWeight: 600, flex: 1 }}>{ex.name}</span>
+                        <span style={{ color: "var(--t3)" }}>{ex.sets}×{ex.reps} @ {ex.weight}kg</span>
+                      </div>
+                    ))}
                   </div>
                 )}
-
-                {/* Nutrition + Habits logged with session */}
                 {(s.steps || s.water || s.sleep) && (
-                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--b1)", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-                    {s.steps && <div style={{ fontSize: 11, color: "var(--t3)" }}>👟 {(s.steps).toLocaleString()} steps</div>}
-                    {s.water && <div style={{ fontSize: 11, color: "var(--t3)" }}>💧 {s.water}L water</div>}
-                    {s.sleep && <div style={{ fontSize: 11, color: "var(--t3)" }}>😴 {s.sleep}h sleep</div>}
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--b1)", display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    {s.steps && <span style={{ fontSize: 11, color: "var(--t3)" }}>👟 {n(s.steps).toLocaleString()} steps</span>}
+                    {s.water && <span style={{ fontSize: 11, color: "var(--t3)" }}>💧 {s.water}L water</span>}
+                    {s.sleep && <span style={{ fontSize: 11, color: "var(--t3)" }}>😴 {s.sleep}h sleep</span>}
                   </div>
                 )}
               </div>
