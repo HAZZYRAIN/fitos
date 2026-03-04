@@ -13,7 +13,6 @@ import Templates from "./tabs/Templates";
 import Instructions from "./tabs/Instructions";
 import TrainersList from "./tabs/TrainersList";
 
-// Bottom nav shows only the most important 5 tabs on mobile
 const BOTTOM_NAV = [
   { id: "overview",      icon: "◼", label: "Home" },
   { id: "clients",       icon: "👥", label: "Clients" },
@@ -28,21 +27,28 @@ function AdminInner() {
     name, logout, tab, setTab,
     trainers, clients, instructions, warnings,
     atRiskClients, flaggedClients, lowAttendance, pendingLogs,
+    // Modals
     showChangePw, setShowChangePw,
     showEditClient, setShowEditClient,
     showAddTrainer, setShowAddTrainer,
     showAddClient, setShowAddClient,
     showInstruction, setShowInstruction,
     showWarning, setShowWarning,
+    showRenewClient, setShowRenewClient, // NEW
+    // Selected
     selectedTrainer, setSelectedTrainer,
+    renewTarget, renewForm, setRenewForm, renewLoading, renewMsg, // NEW
     pwTarget, setPwTarget,
+    // Forms
     newTrainer, setNewTrainer,
     newClient, setNewClient,
     newInstruction, setNewInstruction,
     newWarning, setNewWarning,
     pwForm, setPwForm, pwMsg,
     editForm, setEditForm,
-    addTrainer, addClient,
+    // Actions
+    addTrainer, addClient, saveEditClient,
+    renewClient, openRenewClient, // NEW
     postInstruction, addWarning, changePassword,
     toggleTrainerStatus,
     setTrainerFilter, setClientSearch, setClientStatusFilter,
@@ -52,9 +58,9 @@ function AdminInner() {
   const navItems = [
     { id: "overview",      icon: "◼",  label: "Control Room" },
     { id: "trainer-perf",  icon: "📊", label: "Trainer Performance" },
-    { id: "clients",       icon: "👥", label: "Client Oversight",   badge: atRiskClients.length,                         badgeColor: "red" },
-    { id: "sessions",      icon: "📝", label: "Session Logs",       badge: pendingLogs,                                  badgeColor: "yellow" },
-    { id: "flags",         icon: "🚨", label: "Flags & Alerts",     badge: flaggedClients.length + lowAttendance.length, badgeColor: "red" },
+    { id: "clients",       icon: "👥", label: "Client Oversight",   badge: atRiskClients.length,                          badgeColor: "red" },
+    { id: "sessions",      icon: "📝", label: "Session Logs",       badge: pendingLogs,                                   badgeColor: "yellow" },
+    { id: "flags",         icon: "🚨", label: "Flags & Alerts",     badge: flaggedClients.length + lowAttendance.length,  badgeColor: "red" },
     { id: "templates",     icon: "🏋", label: "Workout Templates" },
     { id: "comms",         icon: "📣", label: "Instructions Feed" },
     { id: "trainers-list", icon: "👤", label: "Trainers" },
@@ -71,8 +77,12 @@ function AdminInner() {
             <div className="modal-t">Change Password — {pwTarget?.name}</div>
             <div className="fs12 t3 mb16">Use Firebase Console → Authentication to change passwords in production.</div>
             {pwMsg && <div className={`alert ${pwMsg.startsWith("✓") ? "al-g" : "al-r"} mb12`}>{pwMsg}</div>}
-            <div className="field"><label>New Password</label><input className="fi" type="password" placeholder="Min 6 characters" value={pwForm.newPw} onChange={(e) => setPwForm((p: any) => ({ ...p, newPw: e.target.value }))} /></div>
-            <div className="field"><label>Confirm Password</label><input className="fi" type="password" placeholder="Re-enter password" value={pwForm.confirmPw} onChange={(e) => setPwForm((p: any) => ({ ...p, confirmPw: e.target.value }))} /></div>
+            <div className="field"><label>New Password</label>
+              <input className="fi" type="password" placeholder="Min 6 characters" value={pwForm.newPw} onChange={(e) => setPwForm((p: any) => ({ ...p, newPw: e.target.value }))} />
+            </div>
+            <div className="field"><label>Confirm Password</label>
+              <input className="fi" type="password" placeholder="Re-enter password" value={pwForm.confirmPw} onChange={(e) => setPwForm((p: any) => ({ ...p, confirmPw: e.target.value }))} />
+            </div>
             <div className="row mt16">
               <button className="btn btn-g btn-s" onClick={() => setShowChangePw(false)}>Cancel</button>
               <button className="btn btn-p btn-s mla" onClick={changePassword}>Save</button>
@@ -86,9 +96,15 @@ function AdminInner() {
         <div className="overlay" onClick={() => setShowAddTrainer(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-t">Add New Trainer</div>
-            <div className="field"><label>Full Name</label><input className="fi" placeholder="e.g. Rahul Verma" value={newTrainer.name} onChange={(e) => setNewTrainer((p: any) => ({ ...p, name: e.target.value }))} /></div>
-            <div className="field"><label>Email</label><input className="fi" type="email" placeholder="trainer@yourtrainer.in" value={newTrainer.email} onChange={(e) => setNewTrainer((p: any) => ({ ...p, email: e.target.value }))} /></div>
-            <div className="field"><label>Speciality</label><input className="fi" placeholder="e.g. Weight Loss & HIIT" value={newTrainer.speciality} onChange={(e) => setNewTrainer((p: any) => ({ ...p, speciality: e.target.value }))} /></div>
+            <div className="field"><label>Full Name</label>
+              <input className="fi" placeholder="e.g. Rahul Verma" value={newTrainer.name} onChange={(e) => setNewTrainer((p: any) => ({ ...p, name: e.target.value }))} />
+            </div>
+            <div className="field"><label>Email</label>
+              <input className="fi" type="email" placeholder="trainer@yourtrainer.in" value={newTrainer.email} onChange={(e) => setNewTrainer((p: any) => ({ ...p, email: e.target.value }))} />
+            </div>
+            <div className="field"><label>Speciality</label>
+              <input className="fi" placeholder="e.g. Weight Loss & HIIT" value={newTrainer.speciality} onChange={(e) => setNewTrainer((p: any) => ({ ...p, speciality: e.target.value }))} />
+            </div>
             <div className="field"><label>Plan</label>
               <select className="fi" value={newTrainer.plan} onChange={(e) => setNewTrainer((p: any) => ({ ...p, plan: e.target.value }))}>
                 <option>Starter</option><option>Pro</option>
@@ -108,8 +124,12 @@ function AdminInner() {
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-t">Add New Client</div>
             <div className="g2">
-              <div className="field"><label>Full Name *</label><input className="fi" placeholder="Client name" value={newClient.name} onChange={(e) => setNewClient((p: any) => ({ ...p, name: e.target.value }))} /></div>
-              <div className="field"><label>Email</label><input className="fi" type="email" placeholder="client@email.com" value={newClient.email} onChange={(e) => setNewClient((p: any) => ({ ...p, email: e.target.value }))} /></div>
+              <div className="field"><label>Full Name *</label>
+                <input className="fi" placeholder="Client name" value={newClient.name} onChange={(e) => setNewClient((p: any) => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div className="field"><label>Email</label>
+                <input className="fi" type="email" placeholder="client@email.com" value={newClient.email} onChange={(e) => setNewClient((p: any) => ({ ...p, email: e.target.value }))} />
+              </div>
             </div>
             <div className="g2">
               <div className="field"><label>Gender</label>
@@ -117,7 +137,9 @@ function AdminInner() {
                   <option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option>
                 </select>
               </div>
-              <div className="field"><label>Age</label><input className="fi" type="number" placeholder="25" value={newClient.age} onChange={(e) => setNewClient((p: any) => ({ ...p, age: e.target.value }))} /></div>
+              <div className="field"><label>Age</label>
+                <input className="fi" type="number" placeholder="25" value={newClient.age} onChange={(e) => setNewClient((p: any) => ({ ...p, age: e.target.value }))} />
+              </div>
             </div>
             <div className="g2">
               <div className="field"><label>Assign Trainer *</label>
@@ -133,22 +155,34 @@ function AdminInner() {
               </div>
             </div>
             <div className="g2">
-              <div className="field"><label>Start Date</label><input className="fi" type="date" value={newClient.startDate} onChange={(e) => setNewClient((p: any) => ({ ...p, startDate: e.target.value }))} /></div>
-              <div className="field"><label>End Date</label><input className="fi" type="date" value={newClient.endDate} onChange={(e) => setNewClient((p: any) => ({ ...p, endDate: e.target.value }))} /></div>
+              <div className="field"><label>Start Date</label>
+                <input className="fi" type="date" value={newClient.startDate} onChange={(e) => setNewClient((p: any) => ({ ...p, startDate: e.target.value }))} />
+              </div>
+              <div className="field"><label>End Date</label>
+                <input className="fi" type="date" value={newClient.endDate} onChange={(e) => setNewClient((p: any) => ({ ...p, endDate: e.target.value }))} />
+              </div>
             </div>
             <div className="g2">
-              <div className="field"><label>Sessions Included</label><input className="fi" type="number" placeholder="24" value={newClient.sessionsIncluded} onChange={(e) => setNewClient((p: any) => ({ ...p, sessionsIncluded: e.target.value }))} /></div>
-              <div className="field"><label>Plan Name</label><input className="fi" placeholder="e.g. Monthly 24-session" value={newClient.plan} onChange={(e) => setNewClient((p: any) => ({ ...p, plan: e.target.value }))} /></div>
+              <div className="field"><label>Sessions Included</label>
+                <input className="fi" type="number" placeholder="24" value={newClient.sessionsIncluded} onChange={(e) => setNewClient((p: any) => ({ ...p, sessionsIncluded: e.target.value }))} />
+              </div>
+              <div className="field"><label>Plan Name</label>
+                <input className="fi" placeholder="e.g. Monthly 24-session" value={newClient.plan} onChange={(e) => setNewClient((p: any) => ({ ...p, plan: e.target.value }))} />
+              </div>
             </div>
             <div className="g2">
-              <div className="field"><label>Location</label><input className="fi" placeholder="e.g. HSR Layout" value={newClient.location} onChange={(e) => setNewClient((p: any) => ({ ...p, location: e.target.value }))} /></div>
+              <div className="field"><label>Location</label>
+                <input className="fi" placeholder="e.g. HSR Layout" value={newClient.location} onChange={(e) => setNewClient((p: any) => ({ ...p, location: e.target.value }))} />
+              </div>
               <div className="field"><label>Status</label>
                 <select className="fi" value={newClient.status} onChange={(e) => setNewClient((p: any) => ({ ...p, status: e.target.value }))}>
                   <option>Active</option><option>On Hold</option><option>Inactive</option>
                 </select>
               </div>
             </div>
-            <div className="field"><label>Medical Notes</label><textarea className="fi" rows={2} placeholder="Any injuries or conditions..." value={newClient.medicalNotes} onChange={(e) => setNewClient((p: any) => ({ ...p, medicalNotes: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="field"><label>Medical Notes</label>
+              <textarea className="fi" rows={2} placeholder="Any injuries or conditions..." value={newClient.medicalNotes} onChange={(e) => setNewClient((p: any) => ({ ...p, medicalNotes: e.target.value }))} style={{ resize: "none" }} />
+            </div>
             <div className="row mt16">
               <button className="btn btn-g btn-s" onClick={() => setShowAddClient(false)}>Cancel</button>
               <button className="btn btn-p btn-s mla" onClick={addClient}>Add Client</button>
@@ -157,18 +191,37 @@ function AdminInner() {
         </div>
       )}
 
-      {/* ── POST INSTRUCTION MODAL ── */}
+      {/* ── POST INSTRUCTION MODAL — FIXED: added target dropdown ── */}
       {showInstruction && (
         <div className="overlay" onClick={() => setShowInstruction(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-t">Post Instruction</div>
-            <div className="field"><label>Title *</label><input className="fi" placeholder="e.g. No sessions on Mar 14" value={newInstruction.title} onChange={(e) => setNewInstruction((p: any) => ({ ...p, title: e.target.value }))} /></div>
-            <div className="field"><label>Details</label><textarea className="fi" rows={3} placeholder="Additional context..." value={newInstruction.body} onChange={(e) => setNewInstruction((p: any) => ({ ...p, body: e.target.value }))} style={{ resize: "none" }} /></div>
+            <div className="field"><label>Title *</label>
+              <input className="fi" placeholder="e.g. No sessions on Mar 14" value={newInstruction.title} onChange={(e) => setNewInstruction((p: any) => ({ ...p, title: e.target.value }))} />
+            </div>
+            <div className="field"><label>Details</label>
+              <textarea className="fi" rows={3} placeholder="Additional context..." value={newInstruction.body} onChange={(e) => setNewInstruction((p: any) => ({ ...p, body: e.target.value }))} style={{ resize: "none" }} />
+            </div>
             <div className="field"><label>Priority</label>
               <select className="fi" value={newInstruction.priority} onChange={(e) => setNewInstruction((p: any) => ({ ...p, priority: e.target.value }))}>
                 <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
               </select>
             </div>
+            {/* NEW: Target — all trainers or a specific trainer */}
+            <div className="field">
+              <label>Send To</label>
+              <select className="fi" value={newInstruction.target} onChange={(e) => setNewInstruction((p: any) => ({ ...p, target: e.target.value }))}>
+                <option value="all">📢 All Trainers</option>
+                {trainers.map((t) => (
+                  <option key={t.id} value={t.id}>👤 {t.name}</option>
+                ))}
+              </select>
+            </div>
+            {newInstruction.target !== "all" && (
+              <div className="alert al-b fs11 mb8">
+                📌 This instruction will only be visible to {trainers.find((t) => t.id === newInstruction.target)?.name || "selected trainer"}.
+              </div>
+            )}
             <div className="row mt16">
               <button className="btn btn-g btn-s" onClick={() => setShowInstruction(false)}>Cancel</button>
               <button className="btn btn-p btn-s mla" onClick={postInstruction}>Post</button>
@@ -193,11 +246,112 @@ function AdminInner() {
                 <option>Verbal Warning</option><option>Written Warning</option><option>Final Warning</option>
               </select>
             </div>
-            <div className="field"><label>Note *</label><textarea className="fi" rows={3} placeholder="What happened?" value={newWarning.note} onChange={(e) => setNewWarning((p: any) => ({ ...p, note: e.target.value }))} style={{ resize: "none" }} /></div>
-            <div className="field"><label>Follow-up Action</label><input className="fi" placeholder="e.g. Review in 2 weeks" value={newWarning.followUp} onChange={(e) => setNewWarning((p: any) => ({ ...p, followUp: e.target.value }))} /></div>
+            <div className="field"><label>Note *</label>
+              <textarea className="fi" rows={3} placeholder="What happened?" value={newWarning.note} onChange={(e) => setNewWarning((p: any) => ({ ...p, note: e.target.value }))} style={{ resize: "none" }} />
+            </div>
+            <div className="field"><label>Follow-up Action</label>
+              <input className="fi" placeholder="e.g. Review in 2 weeks" value={newWarning.followUp} onChange={(e) => setNewWarning((p: any) => ({ ...p, followUp: e.target.value }))} />
+            </div>
             <div className="row mt16">
               <button className="btn btn-g btn-s" onClick={() => setShowWarning(false)}>Cancel</button>
               <button className="btn btn-dn btn-s mla" onClick={addWarning}>Log Warning</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── NEW: RENEW CLIENT MODAL ── */}
+      {showRenewClient && renewTarget && (
+        <div className="overlay" onClick={() => { setShowRenewClient(false); }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-t">🔄 Renew Client — {renewTarget.name}</div>
+
+            {/* Current status snapshot */}
+            <div className="g2 mb16">
+              <div className="card-sm" style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Sessions Used</div>
+                <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--fd)", color: "var(--t1)" }}>{renewTarget.sessionsLogged || 0}/{renewTarget.sessionsIncluded || 0}</div>
+              </div>
+              <div className="card-sm" style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Classes Left</div>
+                <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--fd)", color: (renewTarget.classesLeft || 0) <= 2 ? "var(--red)" : "var(--t1)" }}>{renewTarget.classesLeft || 0}</div>
+              </div>
+            </div>
+
+            {/* Mode selector */}
+            <div className="field">
+              <label>Renewal Type</label>
+              <div className="row gap8 mt4">
+                <button
+                  className={`btn btn-s ${renewForm.mode === "add" ? "btn-p" : "btn-g"}`}
+                  style={{ flex: 1 }}
+                  onClick={() => setRenewForm((p: any) => ({ ...p, mode: "add" }))}
+                >
+                  ➕ Add Sessions
+                </button>
+                <button
+                  className={`btn btn-s ${renewForm.mode === "reset" ? "btn-p" : "btn-g"}`}
+                  style={{ flex: 1 }}
+                  onClick={() => setRenewForm((p: any) => ({ ...p, mode: "reset" }))}
+                >
+                  🔄 Fresh Reset
+                </button>
+              </div>
+            </div>
+
+            {/* Mode explanation */}
+            <div className="alert al-b fs11 mb12">
+              {renewForm.mode === "add"
+                ? `➕ Add sessions adds to existing count. Current: ${renewTarget.sessionsIncluded || 0} sessions, ${renewTarget.classesLeft || 0} remaining. History is kept.`
+                : "🔄 Fresh reset starts the client from zero. Sessions logged, compliance, and missed sessions all reset. Use for a new contract."}
+            </div>
+
+            <div className="field">
+              <label>{renewForm.mode === "add" ? "Sessions to Add *" : "New Session Count *"}</label>
+              <input
+                className="fi"
+                type="number"
+                placeholder={renewForm.mode === "add" ? "e.g. 12" : "e.g. 24"}
+                value={renewForm.sessions}
+                onChange={(e) => setRenewForm((p: any) => ({ ...p, sessions: e.target.value }))}
+              />
+            </div>
+
+            <div className="field">
+              <label>New End Date *</label>
+              <input
+                className="fi"
+                type="date"
+                value={renewForm.endDate}
+                onChange={(e) => setRenewForm((p: any) => ({ ...p, endDate: e.target.value }))}
+              />
+            </div>
+
+            {/* Preview */}
+            {renewForm.sessions && (
+              <div className="alert al-b fs11 mb8">
+                {renewForm.mode === "add"
+                  ? `After renewal: ${(renewTarget.sessionsIncluded || 0) + Number(renewForm.sessions)} total sessions, ${(renewTarget.classesLeft || 0) + Number(renewForm.sessions)} remaining.`
+                  : `After renewal: ${renewForm.sessions} sessions, starting fresh from today.`}
+              </div>
+            )}
+
+            {renewMsg && (
+              <div className={`alert ${renewMsg.startsWith("✓") ? "al-g" : "al-r"} mb8`}>
+                {renewMsg}
+              </div>
+            )}
+
+            <div className="row mt16 gap8">
+              <button className="btn btn-g btn-s" onClick={() => setShowRenewClient(false)}>Cancel</button>
+              <button
+                className="btn btn-p btn-s mla"
+                onClick={renewClient}
+                disabled={renewLoading}
+                style={{ opacity: renewLoading ? 0.7 : 1 }}
+              >
+                {renewLoading ? "Saving..." : "✓ Confirm Renewal"}
+              </button>
             </div>
           </div>
         </div>
@@ -236,22 +390,43 @@ function AdminInner() {
             </div>
             <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Clients</div>
             {clients.filter((c) => c.trainerId === selectedTrainer.id).map((c) => (
-              <div key={c.id} className="row gap8 mt8" style={{ cursor: "pointer", padding: "6px 0", borderBottom: "1px solid var(--b1)" }}
-                onClick={() => { setSelectedTrainer(null); router.push(`/admin/clients/${c.trainerId}/${c.id}`); }}>
-                <span className="fs13 fw6 t1">{c.name}</span>
+              <div key={c.id} className="row gap8 mt8" style={{ padding: "6px 0", borderBottom: "1px solid var(--b1)" }}>
+                <span className="fs13 fw6 t1" style={{ flex: 1 }}>{c.name}</span>
                 <span className={`badge fs10 ${c.status === "Inactive" ? "br" : "bg"}`}>{c.status}</span>
-                <div className="pw mla" style={{ width: 60 }}><div className={`pb ${(c.compliance || 0) >= 85 ? "pb-g" : (c.compliance || 0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance || 0}%` }} /></div>
+                {/* NEW: Renew button inline per client */}
+                {((c.classesLeft || 0) <= 2 || (c.endDate && new Date(c.endDate) < new Date())) && (
+                  <button
+                    className="btn btn-warn btn-xs"
+                    onClick={(e) => { e.stopPropagation(); setSelectedTrainer(null); openRenewClient(c); }}
+                  >
+                    Renew
+                  </button>
+                )}
+                <div className="pw" style={{ width: 60 }}>
+                  <div className={`pb ${(c.compliance || 0) >= 85 ? "pb-g" : (c.compliance || 0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance || 0}%` }} />
+                </div>
                 <span className="fs11 t3">{c.compliance || 0}%</span>
               </div>
             ))}
-            {clients.filter((c) => c.trainerId === selectedTrainer.id).length === 0 && <div className="fs12 t3">No clients assigned yet</div>}
+            {clients.filter((c) => c.trainerId === selectedTrainer.id).length === 0 && (
+              <div className="fs12 t3">No clients assigned yet</div>
+            )}
             <div className="row gap8 flex-wrap mt16">
-              <button className={`btn btn-s ${selectedTrainer.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(selectedTrainer.id, selectedTrainer.status || "active")}>
+              <button
+                className={`btn btn-s ${selectedTrainer.status === "active" ? "btn-dn" : "btn-ok"}`}
+                onClick={() => toggleTrainerStatus(selectedTrainer.id, selectedTrainer.status || "active")}
+              >
                 {selectedTrainer.status === "active" ? "Suspend" : "Activate"}
               </button>
-              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning((p: any) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Warn</button>
-              <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>🔑 Password</button>
-              <button className="btn btn-p btn-s mla" onClick={() => { setNC((p: any) => ({ ...p, trainerName: selectedTrainer.name, trainerId: selectedTrainer.id })); setSelectedTrainer(null); setShowAddClient(true); }}>+ Client</button>
+              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning((p: any) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>
+                Warn
+              </button>
+              <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>
+                🔑 Password
+              </button>
+              <button className="btn btn-p btn-s mla" onClick={() => { setNC((p: any) => ({ ...p, trainerName: selectedTrainer.name, trainerId: selectedTrainer.id })); setSelectedTrainer(null); setShowAddClient(true); }}>
+                + Client
+              </button>
             </div>
           </div>
         </div>
@@ -315,9 +490,10 @@ function AdminInner() {
             </button>
           );
         })}
-        {/* More button opens trainer-perf, templates, comms */}
-        <button className={`bn-item ${["trainer-perf","templates","comms"].includes(tab) ? "on" : ""}`}
-          onClick={() => setTab(tab === "trainer-perf" ? "templates" : tab === "templates" ? "comms" : "trainer-perf")}>
+        <button
+          className={`bn-item ${["trainer-perf","templates","comms"].includes(tab) ? "on" : ""}`}
+          onClick={() => setTab(tab === "trainer-perf" ? "templates" : tab === "templates" ? "comms" : "trainer-perf")}
+        >
           <span className="bn-icon">⋯</span>
           <span>More</span>
         </button>
