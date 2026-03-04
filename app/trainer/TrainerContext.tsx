@@ -1,12 +1,10 @@
 "use client";
 // ============================================================
-// TRAINER CONTEXT — v3
-// Changes from v2:
-// - sessionHabits state (steps, water, sleep, sleepQuality, protein, calories, carbs, fats, activeMinutes)
-// - saveSession now validates steps/water/sleep as required
-// - saveSession writes habits + nutrition separately to dietLogs (type: "habits" / "nutrition")
-//   with clientId field so ClientDetail listeners pick them up correctly
-// - All previous fixes retained (no double-write, increment trainer sessions, filtered instructions)
+// TRAINER CONTEXT — v4
+// Changes from v3:
+// - saveSession now also writes to progressLogs (measurements + habits + nutrition + performance)
+//   so admin Client Progress tab reflects data immediately
+// - sessionMeasurements state added (weight, chest, waist, hips, arms) — optional
 // ============================================================
 import { createContext, useContext, useState, useEffect } from "react";
 import { db } from "../../lib/firebase";
@@ -21,6 +19,11 @@ import type { Client, Trainer, Instruction } from "../types";
 const DEFAULT_HABITS = {
   steps: "", water: "", sleep: "", sleepQuality: "Good",
   activeMinutes: "", protein: "", calories: "", carbs: "", fats: "",
+};
+
+// ── default measurements shape ───────────────────────────────
+const DEFAULT_MEASUREMENTS = {
+  weight: "", chest: "", waist: "", hips: "", arms: "",
 };
 
 export interface TrainerContextValue {
@@ -41,7 +44,8 @@ export interface TrainerContextValue {
   sessionNotes: string; setSessionNotes: (v: string) => void;
   sessionModReason: string; setSessionModReason: (v: string) => void;
   sessionExercises: any[]; setSessionExercises: (v: any) => void;
-  sessionHabits: typeof DEFAULT_HABITS; setSessionHabits: (v: any) => void; // NEW
+  sessionHabits: typeof DEFAULT_HABITS; setSessionHabits: (v: any) => void;
+  sessionMeasurements: typeof DEFAULT_MEASUREMENTS; setSessionMeasurements: (v: any) => void;
   saveSession: () => Promise<void>;
   libCat: string; setLibCat: (v: string) => void;
   progressClient: string; setProgressClient: (v: string) => void;
@@ -90,7 +94,8 @@ export function TrainerProvider({
   const [sessionType, setSessionType] = useState("Strength Training");
   const [sessionNotes, setSessionNotes] = useState("");
   const [sessionModReason, setSessionModReason] = useState("");
-  const [sessionHabits, setSessionHabits] = useState<typeof DEFAULT_HABITS>({ ...DEFAULT_HABITS }); // NEW
+  const [sessionHabits, setSessionHabits] = useState<typeof DEFAULT_HABITS>({ ...DEFAULT_HABITS });
+  const [sessionMeasurements, setSessionMeasurements] = useState<typeof DEFAULT_MEASUREMENTS>({ ...DEFAULT_MEASUREMENTS });
 
   const [progressClientOverride, setProgressClientOverride] = useState("");
   const [dietClientOverride, setDietClientOverride] = useState("");
@@ -110,7 +115,7 @@ export function TrainerProvider({
   const [progressHistory, setProgressHistory] = useState<Record<string, any[]>>({});
   const [dietHistory, setDietHistory] = useState<Record<string, any[]>>({});
 
-  // ── Derived ──
+  // ── Derived ─────────────────────────────────────────────────
   const initials = (name || "?").split(" ").map((n: string) => n[0] || "").join("").toUpperCase() || "?";
   const myClients = clients.filter((c: any) => c.trainerId === uid);
   const myTrainer = trainers.find((t: any) => t.id === uid);
@@ -128,7 +133,7 @@ export function TrainerProvider({
     (c) => (c.classesLeft || 0) <= 2 && (c.sessionsIncluded || 0) > 0 && c.status === "Active"
   );
 
-  // ── Firestore listeners (legacy Diet & Habits tab) ──
+  // ── Firestore listeners ──────────────────────────────────────
   useEffect(() => {
     if (!uid) return;
     const unsubProgress = onSnapshot(
@@ -164,124 +169,192 @@ export function TrainerProvider({
     return () => { unsubProgress(); unsubDiet(); };
   }, [uid]);
 
-  // ── saveSession ───────────────────────────────────────────────
+  // ── saveSession ──────────────────────────────────────────────
   const saveSession = async () => {
-    // Validate required fields
-    if (!logClient)              { setSessionError("Please select a client."); return; }
-    if (!sessionNotes.trim())    { setSessionError("Quality notes are required."); return; }
-    if (!sessionHabits.steps)    { setSessionError("Step count is required (Habits section)."); return; }
-    if (!sessionHabits.water)    { setSessionError("Water intake is required (Habits section)."); return; }
-    if (!sessionHabits.sleep)    { setSessionError("Sleep hours are required (Habits section)."); return; }
+    // Validate
+    if (!logClient)           { setSessionError("Please select a client."); return; }
+    if (!sessionNotes.trim()) { setSessionError("Quality notes are required."); return; }
+    if (!sessionHabits.steps) { setSessionError("Step count is required (Habits section)."); return; }
+    if (!sessionHabits.water) { setSessionError("Water intake is required (Habits section)."); return; }
+    if (!sessionHabits.sleep) { setSessionError("Sleep hours are required (Habits section)."); return; }
 
     setSessionError("");
     setSessionLoading(true);
 
     try {
-      const dateStr = new Date(sessionDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const dateStr       = new Date(sessionDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
       const fullDateLabel = new Date(sessionDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-      const loggedAt = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-      const now = new Date();
+      const loggedAt      = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+      const now           = new Date();
       const sessionDateTime = new Date(sessionDate);
-      const hoursDiff = (now.getTime() - sessionDateTime.getTime()) / (1000 * 60 * 60);
-      const isLate = hoursDiff > 2;
+      const hoursDiff     = (now.getTime() - sessionDateTime.getTime()) / (1000 * 60 * 60);
+      const isLate        = hoursDiff > 2;
 
       const client = myClients.find((c) => c.name === logClient);
 
-      // ── 1. Write session log (top-level only — no subcollection) ──
+      // ── 1. Session log ───────────────────────────────────────
       await addDoc(collection(db, "sessionLogs"), {
-        client: logClient,
-        clientId: client?.id || "",    // important: ClientDetail uses this
+        client:     logClient,
+        clientId:   client?.id || "",
         clientName: logClient,
-        trainer: name,
-        trainerId: uid,
-        date: dateStr,
+        trainer:    name,
+        trainerId:  uid,
+        date:       dateStr,
         loggedAt,
-        type: sessionType,
-        status: sessionStatus.toLowerCase().split(" ")[0],
-        duration: Number(sessionDuration) || 0,
-        late: isLate,
-        notes: sessionNotes,
-        modReason: sessionModReason,
+        type:       sessionType,
+        status:     sessionStatus.toLowerCase().split(" ")[0],
+        duration:   Number(sessionDuration) || 0,
+        late:       isLate,
+        notes:      sessionNotes,
+        modReason:  sessionModReason,
         injuryFlag: injuryFlag || null,
-        exercises: sessionExercises.map((e) => ({
+        exercises:  sessionExercises.map((e) => ({
           name: e.name, sets: e.sets, reps: e.reps, weight: e.weight,
         })),
-        // snapshot of habits inline for session history view
-        steps: Number(sessionHabits.steps) || 0,
-        water: Number(sessionHabits.water) || 0,
-        sleep: Number(sessionHabits.sleep) || 0,
+        // inline habit snapshot for session history view
+        steps:        Number(sessionHabits.steps) || 0,
+        water:        Number(sessionHabits.water) || 0,
+        sleep:        Number(sessionHabits.sleep) || 0,
         sleepQuality: sessionHabits.sleepQuality,
+        // inline measurement snapshot
+        weight: Number(sessionMeasurements.weight) || null,
+        chest:  Number(sessionMeasurements.chest)  || null,
+        waist:  Number(sessionMeasurements.waist)  || null,
+        hips:   Number(sessionMeasurements.hips)   || null,
+        arms:   Number(sessionMeasurements.arms)   || null,
         createdAt: serverTimestamp(),
       });
 
-      // ── 2. Write habits to dietLogs (type: "habits") ──
-      await addDoc(collection(db, "dietLogs"), {
-        clientId: client?.id || "",
+      // ── 2. progressLogs — admin Client Progress tab reads this ─
+      // Combines measurements + habits + nutrition + performance into one entry
+      const hasMeasurements = sessionMeasurements.weight || sessionMeasurements.chest ||
+        sessionMeasurements.waist || sessionMeasurements.hips || sessionMeasurements.arms;
+
+      const hasNutrition = sessionHabits.protein || sessionHabits.calories ||
+        sessionHabits.carbs || sessionHabits.fats;
+
+      const hasPerformance = sessionExercises.length > 0;
+
+      // Always write a progressLog entry when a session is saved
+      // so admin can see habits + any optional measurements/nutrition/performance
+      await addDoc(collection(db, "progressLogs"), {
+        clientId:   client?.id || "",
         clientName: logClient,
-        trainerId: uid,
-        trainer: name,
-        loggedBy: uid,
-        type: "habits",
-        date: fullDateLabel,
-        steps: Number(sessionHabits.steps) || 0,
-        water: Number(sessionHabits.water) || 0,
-        sleep: Number(sessionHabits.sleep) || 0,
-        sleepQuality: sessionHabits.sleepQuality || "Good",
+        trainerId:  uid,
+        loggedBy:   name,         // human-readable trainer name for admin view
+        source:     "session_log",
+        date:       fullDateLabel,
+
+        // ── Measurements (optional) ──
+        ...(hasMeasurements ? {
+          weight: Number(sessionMeasurements.weight) || undefined,
+          chest:  Number(sessionMeasurements.chest)  || undefined,
+          waist:  Number(sessionMeasurements.waist)  || undefined,
+          hips:   Number(sessionMeasurements.hips)   || undefined,
+          arms:   Number(sessionMeasurements.arms)   || undefined,
+        } : {}),
+
+        // ── Habits (always present — required fields) ──
+        steps:        Number(sessionHabits.steps)         || 0,
+        water:        Number(sessionHabits.water)         || 0,
+        sleep:        Number(sessionHabits.sleep)         || 0,
+        sleepQuality: sessionHabits.sleepQuality          || "Good",
         activeMinutes: Number(sessionHabits.activeMinutes) || 0,
-        source: "session_log", // so we know this came from a session
+        mood:         undefined, // trainers don't log mood here
+
+        // ── Nutrition (optional) ──
+        ...(hasNutrition ? {
+          calories: Number(sessionHabits.calories) || undefined,
+          protein:  Number(sessionHabits.protein)  || undefined,
+          water:    Number(sessionHabits.water)     || undefined,
+        } : {}),
+
+        // ── Session Performance ──
+        ...(hasPerformance ? {
+          exercise:     sessionExercises[0]?.name || undefined,
+          reps:         Number(sessionExercises[0]?.reps)   || undefined,
+          weightLifted: Number(sessionExercises[0]?.weight) || undefined,
+          endurance:    sessionType === "Cardio" ? Number(sessionDuration) || undefined : undefined,
+        } : {}),
+
+        notes:     sessionNotes,
+        sessionType,
         createdAt: serverTimestamp(),
       });
 
-      // ── 3. Write nutrition to dietLogs (type: "nutrition") — only if any filled ──
-      const hasNutrition = sessionHabits.protein || sessionHabits.calories || sessionHabits.carbs || sessionHabits.fats;
+      // ── 3. Habits → dietLogs ─────────────────────────────────
+      await addDoc(collection(db, "dietLogs"), {
+        clientId:     client?.id || "",
+        clientName:   logClient,
+        trainerId:    uid,
+        trainer:      name,
+        loggedBy:     uid,
+        type:         "habits",
+        date:         fullDateLabel,
+        steps:        Number(sessionHabits.steps)          || 0,
+        water:        Number(sessionHabits.water)          || 0,
+        sleep:        Number(sessionHabits.sleep)          || 0,
+        sleepQuality: sessionHabits.sleepQuality           || "Good",
+        activeMinutes: Number(sessionHabits.activeMinutes) || 0,
+        source:       "session_log",
+        createdAt:    serverTimestamp(),
+      });
+
+      // ── 4. Nutrition → dietLogs (only if filled) ─────────────
       if (hasNutrition) {
         await addDoc(collection(db, "dietLogs"), {
-          clientId: client?.id || "",
+          clientId:   client?.id || "",
           clientName: logClient,
-          trainerId: uid,
-          trainer: name,
-          loggedBy: uid,
-          type: "nutrition",
-          date: fullDateLabel,
-          protein:  Number(sessionHabits.protein)  || 0,
-          calories: Number(sessionHabits.calories) || 0,
-          carbs:    Number(sessionHabits.carbs)    || 0,
-          fats:     Number(sessionHabits.fats)     || 0,
-          water:    Number(sessionHabits.water)    || 0,
-          source: "session_log",
-          createdAt: serverTimestamp(),
+          trainerId:  uid,
+          trainer:    name,
+          loggedBy:   uid,
+          type:       "nutrition",
+          date:       fullDateLabel,
+          protein:    Number(sessionHabits.protein)  || 0,
+          calories:   Number(sessionHabits.calories) || 0,
+          carbs:      Number(sessionHabits.carbs)    || 0,
+          fats:       Number(sessionHabits.fats)     || 0,
+          water:      Number(sessionHabits.water)    || 0,
+          source:     "session_log",
+          createdAt:  serverTimestamp(),
         });
       }
 
-      // ── 4. Update client doc ──
+      // ── 5. Update client doc ─────────────────────────────────
       if (client?.id) {
         const isMissed =
           sessionStatus.toLowerCase().includes("missed") ||
           sessionStatus.toLowerCase().includes("cancelled");
-        const newSessionsLogged = isMissed ? (client.sessionsLogged || 0) : (client.sessionsLogged || 0) + 1;
+        const newSessionsLogged = isMissed
+          ? (client.sessionsLogged || 0)
+          : (client.sessionsLogged || 0) + 1;
         const newClassesLeft = Math.max(0, (client.sessionsIncluded || 0) - newSessionsLogged);
-        const newCompliance = client.sessionsIncluded > 0
+        const newCompliance  = client.sessionsIncluded > 0
           ? Math.round((newSessionsLogged / client.sessionsIncluded) * 100) : 0;
         const clientUpdates: any = {
-          lastSession: dateStr, lateLog: isLate,
-          sessionsLogged: newSessionsLogged, classesLeft: newClassesLeft,
-          compliance: newCompliance, updatedAt: serverTimestamp(),
+          lastSession:    dateStr,
+          lateLog:        isLate,
+          sessionsLogged: newSessionsLogged,
+          classesLeft:    newClassesLeft,
+          compliance:     newCompliance,
+          updatedAt:      serverTimestamp(),
         };
         if (isMissed) clientUpdates.missedSessions = (client.missedSessions || 0) + 1;
         await updateDoc(doc(db, "trainers", uid, "clients", client.id), clientUpdates);
       }
 
-      // ── 5. Increment trainer sessions count ──
+      // ── 6. Increment trainer stats ───────────────────────────
       const trainerUpdates: any = { sessions: increment(1), updatedAt: serverTimestamp() };
       if (isLate) trainerUpdates.lateSubmissions = increment(1);
       await updateDoc(doc(db, "trainers", uid), trainerUpdates);
 
-      // ── Reset form ──
+      // ── Reset form ───────────────────────────────────────────
       setSessionSaved(true);
       setSessionNotes("");
       setSessionModReason("");
       setInjuryFlag("");
-      setSessionHabits({ ...DEFAULT_HABITS }); // NEW: reset habits
+      setSessionHabits({ ...DEFAULT_HABITS });
+      setSessionMeasurements({ ...DEFAULT_MEASUREMENTS });
       setTimeout(() => setSessionSaved(false), 3000);
 
     } catch (err: any) {
@@ -292,18 +365,19 @@ export function TrainerProvider({
     }
   };
 
-  // ── saveProgress (legacy standalone tab) ──
+  // ── saveProgress (legacy standalone tab) ────────────────────
   const saveProgress = async (last?: any) => {
     if (!progressClient) return;
     setProgressLoading(true);
     try {
       const client = myClients.find((c) => c.name === progressClient);
       await addDoc(collection(db, "progressLogs"), {
-        clientId: client?.id || "",
+        clientId:   client?.id || "",
         clientName: progressClient,
-        trainer: name, trainerId: uid, loggedBy: uid,
-        type: "weight", // legacy tab logs weight type
-        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        trainer:    name, trainerId: uid, loggedBy: name,
+        type:       "weight",
+        source:     "progress_tab",
+        date:       new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
         ...Object.fromEntries(
           Object.entries(newProgress).map(([k, v]) => [k, Number(v) || (last ? (last as any)[k] : 0) || 0])
         ),
@@ -311,31 +385,35 @@ export function TrainerProvider({
       });
       setProgressSaved(true);
       setShowLogProgress(false);
-      setNewProgress({ weight: "", bf: "", chest: "", waist: "", hips: "", arms: "", thighs: "", squat: "", bench: "", deadlift: "", pullup: "", notes: "" });
+      setNewProgress({
+        weight: "", bf: "", chest: "", waist: "", hips: "",
+        arms: "", thighs: "", squat: "", bench: "", deadlift: "", pullup: "", notes: "",
+      });
       setTimeout(() => setProgressSaved(false), 3000);
     } catch (err) { console.error("saveProgress:", err); }
     finally { setProgressLoading(false); }
   };
 
-  // ── saveDiet (legacy standalone tab) ──
+  // ── saveDiet (legacy standalone tab) ────────────────────────
   const saveDiet = async () => {
     if (!dietClient) return;
     setDietLoading(true);
     try {
       const client = myClients.find((c) => c.name === dietClient);
       await addDoc(collection(db, "dietLogs"), {
-        clientId: client?.id || "",
+        clientId:   client?.id || "",
         clientName: dietClient,
-        trainer: name, trainerId: uid, loggedBy: uid,
-        type: "habits",
-        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-        protein: Number(newDiet.protein) || 0,
-        water: Number(newDiet.water) || 0,
-        steps: Number(newDiet.steps) || 0,
-        sleep: Number(newDiet.sleep) || 0,
+        trainer:    name, trainerId: uid, loggedBy: uid,
+        type:       "habits",
+        source:     "diet_tab",
+        date:       new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        protein:      Number(newDiet.protein) || 0,
+        water:        Number(newDiet.water)   || 0,
+        steps:        Number(newDiet.steps)   || 0,
+        sleep:        Number(newDiet.sleep)   || 0,
         sleepQuality: newDiet.sleepQuality,
-        notes: newDiet.notes,
-        createdAt: serverTimestamp(),
+        notes:        newDiet.notes,
+        createdAt:    serverTimestamp(),
       });
       setDietSaved(true);
       setNewDiet({ protein: "", water: "", steps: "", sleep: "", sleepQuality: "Good", notes: "" });
@@ -361,7 +439,8 @@ export function TrainerProvider({
       sessionNotes, setSessionNotes,
       sessionModReason, setSessionModReason,
       sessionExercises, setSessionExercises,
-      sessionHabits, setSessionHabits, // NEW
+      sessionHabits, setSessionHabits,
+      sessionMeasurements, setSessionMeasurements,
       saveSession,
       libCat, setLibCat,
       progressClient, setProgressClient,
