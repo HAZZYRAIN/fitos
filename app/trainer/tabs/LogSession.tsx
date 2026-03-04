@@ -129,7 +129,7 @@ export default function LogSession() {
                 <div key={k} className="field">
                   <label>{l}</label>
                   <input className="fi" type="number" placeholder={p}
-                    value={sessionHabits[k] || ""}
+                    value={sessionHabits[k as keyof typeof sessionHabits] || ""}
                     onChange={(e) => setSessionHabits((prev: any) => ({ ...prev, [k]: e.target.value }))}
                   />
                 </div>
