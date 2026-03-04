@@ -1,11 +1,7 @@
 "use client";
-// ============================================================
-// LOG SESSION — with mandatory Nutrition + Habits section
-// Steps, water, and sleep are required before submit.
-// Saves habits + nutrition separately to dietLogs (type: "habits" / "nutrition")
-// so ClientDetail tabs stay in sync automatically.
-// ============================================================
 import { useTrainer } from "../TrainerContext";
+
+type HabitKey = "steps" | "water" | "sleep" | "sleepQuality" | "activeMinutes" | "protein" | "calories" | "carbs" | "fats";
 
 export default function LogSession() {
   const {
@@ -25,9 +21,13 @@ export default function LogSession() {
     setTab,
   } = useTrainer();
 
-  const missingHabits = (["steps", "water", "sleep"] as const).filter(
+  const missingHabits = (["steps", "water", "sleep"] as HabitKey[]).filter(
     (k) => !sessionHabits[k]
   );
+
+  const getHabit = (k: HabitKey) => sessionHabits[k] || "";
+  const isMissing = (k: string) =>
+    sessionError && ["steps", "water", "sleep"].includes(k) && !sessionHabits[k as HabitKey];
 
   return (
     <>
@@ -76,24 +76,42 @@ export default function LogSession() {
             <div className="field">
               <label>Session Type</label>
               <select className="fi" value={sessionType} onChange={(e) => setSessionType(e.target.value)}>
-                <option>Strength Training</option><option>Cardio</option><option>HIIT</option>
-                <option>Mobility</option><option>Rehab</option><option>Mixed</option>
+                <option>Strength Training</option>
+                <option>Cardio</option>
+                <option>HIIT</option>
+                <option>Mobility</option>
+                <option>Rehab</option>
+                <option>Mixed</option>
               </select>
             </div>
             <div className="field">
-              <label>Quality Notes * <span style={{ color: "var(--red)", fontSize: 10 }}>Required</span></label>
-              <textarea className="fi" rows={3}
+              <label>
+                Quality Notes *{" "}
+                <span style={{ color: "var(--red)", fontSize: 10 }}>Required</span>
+              </label>
+              <textarea
+                className="fi"
+                rows={3}
                 placeholder="What went well? Technique issues? Client energy? Weight changes?"
-                value={sessionNotes} onChange={(e) => setSessionNotes(e.target.value)}
-                style={{ resize: "none", borderColor: !sessionNotes.trim() && sessionError ? "var(--red)" : undefined }}
+                value={sessionNotes}
+                onChange={(e) => setSessionNotes(e.target.value)}
+                style={{
+                  resize: "none",
+                  borderColor: !sessionNotes.trim() && sessionError ? "var(--red)" : undefined,
+                }}
               />
             </div>
             {sessionStatus.toLowerCase().includes("modified") && (
               <div className="field">
                 <label>Modification Reason *</label>
-                <textarea className="fi" rows={2} placeholder="Why was the session modified?"
-                  value={sessionModReason} onChange={(e) => setSessionModReason(e.target.value)}
-                  style={{ resize: "none" }} />
+                <textarea
+                  className="fi"
+                  rows={2}
+                  placeholder="Why was the session modified?"
+                  value={sessionModReason}
+                  onChange={(e) => setSessionModReason(e.target.value)}
+                  style={{ resize: "none" }}
+                />
               </div>
             )}
           </div>
@@ -105,12 +123,17 @@ export default function LogSession() {
               <label>Flag Type (if any)</label>
               <select className="fi" value={injuryFlag} onChange={(e) => setInjuryFlag(e.target.value)}>
                 <option value="">No issues</option>
-                <option>Knee Pain</option><option>Back Pain</option><option>Shoulder Pain</option>
-                <option>Dizziness</option><option>Medical Risk — Needs Review</option>
+                <option>Knee Pain</option>
+                <option>Back Pain</option>
+                <option>Shoulder Pain</option>
+                <option>Dizziness</option>
+                <option>Medical Risk — Needs Review</option>
                 <option>Client Requested Reduced Intensity</option>
               </select>
             </div>
-            {injuryFlag && <div className="alert al-r fs11">⚠ Flag visible to admin immediately</div>}
+            {injuryFlag && (
+              <div className="alert al-r fs11">⚠ Flag visible to admin immediately</div>
+            )}
           </div>
 
           {/* Nutrition — optional */}
@@ -120,16 +143,21 @@ export default function LogSession() {
               <span className="badge by fs10">Optional</span>
             </div>
             <div className="g2">
-              {[
-                { k: "protein",  l: "Protein (g)",  p: "e.g. 120" },
-                { k: "calories", l: "Calories",      p: "e.g. 2000" },
-                { k: "carbs",    l: "Carbs (g)",     p: "e.g. 200" },
-                { k: "fats",     l: "Fats (g)",      p: "e.g. 60" },
-              ].map(({ k, l, p }) => (
+              {(
+                [
+                  { k: "protein",  l: "Protein (g)",  p: "e.g. 120" },
+                  { k: "calories", l: "Calories",      p: "e.g. 2000" },
+                  { k: "carbs",    l: "Carbs (g)",     p: "e.g. 200" },
+                  { k: "fats",     l: "Fats (g)",      p: "e.g. 60" },
+                ] as { k: HabitKey; l: string; p: string }[]
+              ).map(({ k, l, p }) => (
                 <div key={k} className="field">
                   <label>{l}</label>
-                  <input className="fi" type="number" placeholder={p}
-                    value={sessionHabits[k as keyof typeof sessionHabits] || ""}
+                  <input
+                    className="fi"
+                    type="number"
+                    placeholder={p}
+                    value={getHabit(k)}
                     onChange={(e) => setSessionHabits((prev: any) => ({ ...prev, [k]: e.target.value }))}
                   />
                 </div>
@@ -143,35 +171,47 @@ export default function LogSession() {
               <span className="ct">🔁 Daily Habits</span>
               <span className="badge br fs10">Required</span>
             </div>
-            <div className="fs11 t3 mb12">Steps, water, and sleep must be filled for every session.</div>
+            <div className="fs11 t3 mb12">
+              Steps, water, and sleep must be filled for every session.
+            </div>
             <div className="g2">
-              {[
-                { k: "steps",         l: "Step Count *",          p: "e.g. 8000",  t: "number", step: undefined },
-                { k: "water",         l: "Water Intake (L) *",    p: "e.g. 2.5",   t: "number", step: "0.1" },
-                { k: "sleep",         l: "Sleep Last Night (hrs)*",p: "e.g. 7",     t: "number", step: "0.5" },
-                { k: "activeMinutes", l: "Active Minutes",         p: "e.g. 45",   t: "number", step: undefined },
-              ].map(({ k, l, p, t, step }) => (
+              {(
+                [
+                  { k: "steps",         l: "Step Count *",            p: "e.g. 8000", step: undefined },
+                  { k: "water",         l: "Water Intake (L) *",      p: "e.g. 2.5",  step: "0.1" },
+                  { k: "sleep",         l: "Sleep Last Night (hrs) *", p: "e.g. 7",   step: "0.5" },
+                  { k: "activeMinutes", l: "Active Minutes",           p: "e.g. 45",  step: undefined },
+                ] as { k: HabitKey; l: string; p: string; step?: string }[]
+              ).map(({ k, l, p, step }) => (
                 <div key={k} className="field">
                   <label>
                     {l}{" "}
-                    {sessionError && ["steps","water","sleep"].includes(k) && !sessionHabits[k] && (
+                    {isMissing(k) && (
                       <span style={{ color: "var(--red)", fontSize: 10 }}>Required</span>
                     )}
                   </label>
-                  <input className="fi" type={t} step={step} placeholder={p}
-                    value={sessionHabits[k] || ""}
+                  <input
+                    className="fi"
+                    type="number"
+                    step={step}
+                    placeholder={p}
+                    value={getHabit(k)}
                     onChange={(e) => setSessionHabits((prev: any) => ({ ...prev, [k]: e.target.value }))}
-                    style={{ borderColor: sessionError && ["steps","water","sleep"].includes(k) && !sessionHabits[k] ? "var(--red)" : undefined }}
+                    style={{ borderColor: isMissing(k) ? "var(--red)" : undefined }}
                   />
                 </div>
               ))}
               <div className="field" style={{ gridColumn: "1 / -1" }}>
                 <label>Sleep Quality</label>
-                <select className="fi"
+                <select
+                  className="fi"
                   value={sessionHabits.sleepQuality || "Good"}
                   onChange={(e) => setSessionHabits((prev: any) => ({ ...prev, sleepQuality: e.target.value }))}
                 >
-                  <option>Great</option><option>Good</option><option>Average</option><option>Poor</option>
+                  <option>Great</option>
+                  <option>Good</option>
+                  <option>Average</option>
+                  <option>Poor</option>
                 </select>
               </div>
             </div>
@@ -203,14 +243,16 @@ export default function LogSession() {
                     <div className="fs12 fw6 t1">{ex.name}</div>
                     <div className="fs10 t3">{ex.muscles}</div>
                   </div>
-                  <input className="log-inp" type="number" placeholder="3"  value={ex.sets}
+                  <input className="log-inp" type="number" placeholder="3" value={ex.sets}
                     onChange={(e) => setSessionExercises((p: any[]) => p.map((x: any, j: number) => j === i ? { ...x, sets: e.target.value } : x))} />
                   <input className="log-inp" type="number" placeholder="10" value={ex.reps}
                     onChange={(e) => setSessionExercises((p: any[]) => p.map((x: any, j: number) => j === i ? { ...x, reps: e.target.value } : x))} />
-                  <input className="log-inp" type="number" placeholder="0"  value={ex.weight}
+                  <input className="log-inp" type="number" placeholder="0" value={ex.weight}
                     onChange={(e) => setSessionExercises((p: any[]) => p.map((x: any, j: number) => j === i ? { ...x, weight: e.target.value } : x))} />
-                  <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 13, padding: 0 }}
-                    onClick={() => setSessionExercises((p: any[]) => p.filter((_: any, j: number) => j !== i))}>✕</button>
+                  <button
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 13, padding: 0 }}
+                    onClick={() => setSessionExercises((p: any[]) => p.filter((_: any, j: number) => j !== i))}
+                  >✕</button>
                 </div>
               ))}
             </div>
@@ -227,21 +269,26 @@ export default function LogSession() {
                 <div className="col gap8">
                   {c.medicalNotes && <div className="alert al-y fs11">📌 {c.medicalNotes}</div>}
                   <div className="row"><span className="fs12 t3">Sessions Done</span><span className="fs12 fw7 mla">{c.sessionsLogged || 0}/{c.sessionsIncluded || 0}</span></div>
-                  <div className="row"><span className="fs12 t3">Remaining</span><span className={`fs12 fw7 mla ${(c.classesLeft||0)<=3?"tr":"tg"}`}>{c.classesLeft||0}</span></div>
-                  <div className="row"><span className="fs12 t3">Compliance</span><span className="fs12 fw7 mla">{c.compliance||0}%</span></div>
-                  <div className="row"><span className="fs12 t3">Last Session</span><span className="fs12 mla">{c.lastSession||"—"}</span></div>
-                  {(c.classesLeft||0) <= 2 && <div className="alert al-r fs11">⚠ {c.classesLeft||0} session{(c.classesLeft||0)!==1?"s":""} left — inform admin.</div>}
+                  <div className="row"><span className="fs12 t3">Remaining</span><span className={`fs12 fw7 mla ${(c.classesLeft || 0) <= 3 ? "tr" : "tg"}`}>{c.classesLeft || 0}</span></div>
+                  <div className="row"><span className="fs12 t3">Compliance</span><span className="fs12 fw7 mla">{c.compliance || 0}%</span></div>
+                  <div className="row"><span className="fs12 t3">Last Session</span><span className="fs12 mla">{c.lastSession || "—"}</span></div>
+                  {(c.classesLeft || 0) <= 2 && (
+                    <div className="alert al-r fs11">
+                      ⚠ {c.classesLeft || 0} session{(c.classesLeft || 0) !== 1 ? "s" : ""} left — inform admin.
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })()}
 
-          {/* Habit checklist reminder */}
+          {/* Missing habits reminder */}
           {missingHabits.length > 0 && (
             <div className="alert al-y mb8 fs11">
-              📋 Still needed: {missingHabits.map((k) =>
-                ({ steps: "Step Count", water: "Water Intake", sleep: "Sleep" })[k]
-              ).join(", ")}
+              📋 Still needed:{" "}
+              {missingHabits
+                .map((k) => ({ steps: "Step Count", water: "Water Intake", sleep: "Sleep" } as Record<HabitKey, string>)[k])
+                .join(", ")}
             </div>
           )}
 
