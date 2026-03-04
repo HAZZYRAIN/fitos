@@ -10,7 +10,7 @@ import WorkoutPlans from "./tabs/WorkoutPlans";
 import ExerciseLibrary from "./tabs/ExerciseLibrary";
 import ProgressTracking from "./tabs/ProgressTracking";
 import DietHabits  from "./tabs/DietHabits";
-import InstructionsFeed from "./tabs/InstructionsFeed";
+ import InstructionsFeed from "./tabs/TrainerInstructions.tsx";
 
 const NAV_ITEMS = [
   { id: "clients",  icon: "👥", label: "My Clients" },
