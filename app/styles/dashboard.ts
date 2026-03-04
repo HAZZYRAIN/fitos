@@ -1,6 +1,6 @@
 // ============================================================
 // YOURTRAINER — GLOBAL STYLES
-// Mobile-first. Light theme. White / Gold / Black / Red / Green.
+// Added: hamburger menu, slide-in drawer, overlay backdrop
 // ============================================================
 
 export const S = `
@@ -9,30 +9,21 @@ export const S = `
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
   :root {
-    /* ── Backgrounds ── */
     --bg:  #FAF9F6;
     --s1:  #FFFFFF;
     --s2:  #F4F3EF;
     --s3:  #ECEAE4;
     --s4:  #E0DED7;
-
-    /* ── Borders ── */
     --b1: rgba(0,0,0,0.07);
     --b2: rgba(0,0,0,0.11);
     --b3: rgba(0,0,0,0.18);
-
-    /* ── Text ── */
     --t1: #1A1A1A;
     --t2: #4A4A4A;
     --t3: #888880;
     --t4: #BCBCB4;
-
-    /* ── Brand — Gold ── */
     --brand:  #C9A84C;
     --brand2: #B8922E;
     --brand3: rgba(201,168,76,0.12);
-
-    /* ── Semantic colours ── */
     --green:  #1A7A4A;
     --green2: rgba(26,122,74,0.10);
     --red:    #D42B2B;
@@ -43,16 +34,10 @@ export const S = `
     --blue2:  rgba(26,95,168,0.10);
     --purple: #6B3FA8;
     --purple2:rgba(107,63,168,0.10);
-
-    /* ── Typography ── */
     --fd: 'Outfit', sans-serif;
     --fb: 'Outfit', sans-serif;
-
-    /* ── Radius ── */
     --r:  14px;
     --rs: 10px;
-
-    /* ── Shadow ── */
     --sh1: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
     --sh2: 0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
   }
@@ -66,13 +51,13 @@ export const S = `
   }
 
   /* ═══════════════════════════════════════
-     APP LAYOUT — Mobile first
+     APP LAYOUT
   ═══════════════════════════════════════ */
   .app {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    padding-bottom: 64px; /* space for bottom nav */
+    padding-bottom: 0;
   }
 
   @media (min-width: 768px) {
@@ -80,12 +65,11 @@ export const S = `
       flex-direction: row;
       height: 100vh;
       overflow: hidden;
-      padding-bottom: 0;
     }
   }
 
   /* ═══════════════════════════════════════
-     SIDEBAR — hidden on mobile (bottom nav instead)
+     DESKTOP SIDEBAR
   ═══════════════════════════════════════ */
   .sb {
     display: none;
@@ -161,51 +145,135 @@ export const S = `
   .btn-so:hover { background: rgba(212,43,43,0.18); }
 
   /* ═══════════════════════════════════════
-     BOTTOM NAV — Mobile only
+     MOBILE DRAWER NAV
+     Hamburger (☰) in topbar opens a full
+     slide-in drawer from the left with all
+     sections. Replaces the bottom nav.
   ═══════════════════════════════════════ */
-  .bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--s1);
-    border-top: 1px solid var(--b1);
-    display: flex; align-items: stretch;
-    height: 64px;
-    z-index: 100;
-    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+
+  /* Overlay backdrop — behind drawer */
+  .drawer-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    backdrop-filter: blur(2px);
   }
-  .bottom-nav::-webkit-scrollbar { display: none; }
+  .drawer-overlay.open { display: block; }
 
   @media (min-width: 768px) {
-    .bottom-nav { display: none; }
+    .drawer-overlay { display: none !important; }
   }
 
-  .bn-item {
-    flex: 1; min-width: 56px;
+  /* Drawer panel */
+  .drawer {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 280px;
+    background: var(--s1);
+    z-index: 201;
+    display: flex; flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  }
+  .drawer.open { transform: translateX(0); }
+
+  @media (min-width: 768px) {
+    .drawer { display: none !important; }
+  }
+
+  /* Drawer header */
+  .drawer-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 16px 14px;
+    border-bottom: 1px solid var(--b1);
+    background: var(--s1);
+  }
+  .drawer-close {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--s2); border: 1px solid var(--b1);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: var(--t2);
+    flex-shrink: 0;
+  }
+
+  /* Drawer nav items */
+  .drawer-nav {
+    flex: 1; overflow-y: auto;
+    padding: 10px 10px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+
+  /* Section label inside drawer */
+  .drawer-section {
+    font-size: 9px; font-weight: 700;
+    color: var(--t4); text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 10px 10px 4px;
+  }
+
+  .dni {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 12px; border-radius: var(--rs);
+    cursor: pointer; color: var(--t2);
+    font-size: 14px; font-weight: 500;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    position: relative;
+  }
+  .dni:hover { background: var(--s2); color: var(--t1); }
+  .dni.on {
+    background: var(--brand3);
+    color: var(--brand2);
+    border-color: rgba(201,168,76,0.25);
+    font-weight: 700;
+  }
+  .dni.on::before {
+    content: '';
+    position: absolute; left: 0; top: 20%; bottom: 20%;
+    width: 3px; background: var(--brand);
+    border-radius: 0 3px 3px 0;
+  }
+  .dni-ic { font-size: 17px; width: 24px; text-align: center; flex-shrink: 0; }
+  .dni-b {
+    margin-left: auto;
+    background: var(--red); color: white;
+    font-size: 10px; font-weight: 800;
+    padding: 1px 6px; border-radius: 10px;
+    min-width: 18px; text-align: center;
+  }
+  .dni-b.yellow { background: var(--yellow); }
+
+  /* Drawer footer — user info + sign out */
+  .drawer-foot {
+    padding: 12px;
+    border-top: 1px solid var(--b1);
+    background: var(--s1);
+  }
+
+  /* Hamburger button in topbar */
+  .ham {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--s2); border: 1px solid var(--b1);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 3px; cursor: pointer;
-    color: var(--t3); font-size: 10px;
-    font-weight: 600; padding: 0 4px;
-    border: none; background: none;
-    transition: color 0.15s;
-    position: relative;
-    font-family: var(--fb);
+    gap: 5px; cursor: pointer;
+    flex-shrink: 0;
   }
-  .bn-item.on { color: var(--brand2); }
-  .bn-item.on::before {
-    content: '';
-    position: absolute; top: 0; left: 20%; right: 20%;
-    height: 2px; background: var(--brand);
-    border-radius: 0 0 3px 3px;
+  .ham span {
+    display: block; width: 18px; height: 2px;
+    background: var(--t1); border-radius: 2px;
+    transition: all 0.2s;
   }
-  .bn-icon { font-size: 18px; line-height: 1; }
-  .bn-badge {
-    position: absolute; top: 6px; right: calc(50% - 16px);
-    background: var(--red); color: white;
-    font-size: 9px; font-weight: 800;
-    padding: 1px 5px; border-radius: 8px;
+
+  @media (min-width: 768px) {
+    .ham { display: none; }
   }
+
+  /* Hide old bottom nav */
+  .bottom-nav { display: none !important; }
 
   /* ═══════════════════════════════════════
      MAIN CONTENT
@@ -324,7 +392,7 @@ export const S = `
   }
 
   /* ═══════════════════════════════════════
-     GRIDS — stack on mobile
+     GRIDS
   ═══════════════════════════════════════ */
   .g4 { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
   .g3 { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
@@ -346,7 +414,7 @@ export const S = `
   }
 
   /* ═══════════════════════════════════════
-     TABLES — horizontal scroll on mobile
+     TABLES
   ═══════════════════════════════════════ */
   .tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table { width: 100%; border-collapse: collapse; min-width: 500px; }
@@ -556,8 +624,7 @@ export const S = `
   .lw {
     min-height: 100vh; display: flex;
     align-items: center; justify-content: center;
-    background: var(--bg);
-    padding: 20px;
+    background: var(--bg); padding: 20px;
   }
   .lc {
     width: 100%; max-width: 420px;
