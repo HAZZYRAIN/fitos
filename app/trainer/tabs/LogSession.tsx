@@ -168,7 +168,7 @@ export default function LogSession() {
 
         /* ── step card ── */
         .wiz-card{background:var(--bg1);border:1px solid var(--b0);border-radius:12px;
-          padding:18px 16px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+          padding:18px 16px;box-shadow:0 1px 4px rgba(0,0,0,.05);overflow:hidden;}
         .wiz-title{font-size:15px;font-weight:800;color:var(--t1);margin-bottom:16px;
           display:flex;align-items:center;gap:8px;}
 
@@ -179,28 +179,35 @@ export default function LogSession() {
         .ex-muscle{font-size:10px;color:var(--t3);margin-top:1px;}
 
         /* ── set grid ── */
-        .sets-wrap{width:100%;overflow-x:auto;}
-        .sets-wrap::-webkit-scrollbar{height:3px;}
-        .sets-wrap::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px;}
-        .set-table{width:100%;min-width:220px;border-collapse:separate;border-spacing:0 4px;}
-        .set-table th{font-size:9px;font-weight:700;color:var(--t4);text-transform:uppercase;
-          letter-spacing:.5px;text-align:center;padding:0 4px 4px;}
-        .set-table th:first-child{width:28px;}
-        .set-table th:last-child{width:28px;}
-        .set-table td{padding:0 4px;}
-        .set-table td:first-child{text-align:center;font-size:11px;font-weight:700;color:var(--t3);width:28px;}
-        .set-table td:last-child{width:28px;}
-        .set-del{background:none;border:none;cursor:pointer;color:var(--t4);font-size:13px;
-          width:26px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;
-          transition:color .12s,background .12s;margin:auto;}
+        /* ── set cards — big mobile inputs ── */
+        .set-card{background:var(--bg1);border:1.5px solid var(--b0);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+        .set-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+        .set-badge{font-size:10px;font-weight:800;color:var(--brand1);
+          background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.25);
+          border-radius:6px;padding:3px 10px;}
+        .set-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+        .set-field-lbl{font-size:9px;font-weight:700;color:var(--t4);
+          text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;text-align:center;}
+        .set-big-inp{
+          width:100%;box-sizing:border-box;height:52px;border-radius:8px;
+          border:1.5px solid var(--b0);background:var(--bg2);
+          font-size:22px;font-weight:800;font-family:var(--fd);
+          color:var(--t1);text-align:center;padding:0 8px;outline:none;
+          transition:border-color .15s;
+          -moz-appearance:textfield;
+        }
+        .set-big-inp::-webkit-outer-spin-button,.set-big-inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+        .set-big-inp:focus{border-color:var(--brand1);background:var(--bg1);}
+        .set-del{background:none;border:none;cursor:pointer;color:var(--t4);font-size:14px;
+          padding:4px 6px;border-radius:6px;transition:color .12s,background .12s;line-height:1;}
         .set-del:hover{color:var(--red);background:rgba(192,57,43,.08);}
-        .set-del:disabled{opacity:.3;cursor:default;}
+        .set-del:disabled{opacity:.25;cursor:default;}
 
         /* ── RPE ── */
         .rpe-row{display:flex;align-items:center;gap:4px;margin-top:10px;flex-wrap:wrap;row-gap:6px;}
         .rpe-lbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-right:2px;flex-shrink:0;}
-        .rpe-btn{width:28px;height:28px;border-radius:6px;border:1.5px solid var(--b1);flex-shrink:0;
-          background:var(--bg1);font-size:10px;font-weight:700;cursor:pointer;color:var(--t3);
+        .rpe-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--b1);flex-shrink:0;
+          background:var(--bg1);font-size:12px;font-weight:700;cursor:pointer;color:var(--t3);
           transition:all .12s;display:flex;align-items:center;justify-content:center;}
         .rpe-btn.sel{border-color:var(--brand1);background:rgba(201,168,76,.12);color:var(--brand1);}
 
@@ -459,39 +466,35 @@ export default function LogSession() {
                     {ex.sets.map((s, si) => (
                       <tr key={si}>
                         <td>{si + 1}</td>
-                        <td>
-                          <input className="log-inp" type="number" placeholder="10" value={s.reps}
-                            onChange={(e) => updateSet(ei, si, "reps", e.target.value)}
-                            style={{ width: "100%" }} />
-                        </td>
-                        <td>
-                          <input className="log-inp" type="number" placeholder="0" step="0.5" value={s.load}
-                            onChange={(e) => updateSet(ei, si, "load", e.target.value)}
-                            style={{ width: "100%" }} />
-                        </td>
-                        <td>
-                          <button className="set-del" onClick={() => removeSet(ei, si)} disabled={ex.sets.length <= 1}>✕</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <button className="btn btn-g btn-xs" style={{ width: "100%", marginTop: 4, marginBottom: 10 }}
-                onClick={() => addSet(ei)}>
-                + Add Set
-              </button>
-
-              {/* RPE */}
-              <div className="rpe-row">
-                <span className="rpe-lbl">RPE:</span>
-                {[1,2,3,4,5,6,7,8,9,10].map((r) => (
-                  <button
-                    key={r}
-                    className={`rpe-btn ${ex.rpe === String(r) ? "sel" : ""}`}
-                    style={{
-                      color:       ex.rpe === String(r) ? rpeColor(r) : undefined,
+              {/* Sets — big card per set for easy mobile input */}
+              {ex.sets.map((s, si) => (
+                <div key={si} className="set-card">
+                  <div className="set-card-head">
+                    <span className="set-badge">SET {si + 1}</span>
+                    <button className="set-del" onClick={() => removeSet(ei, si)} disabled={ex.sets.length <= 1}>
+                      Remove
+                    </button>
+                  </div>
+                  <div className="set-fields">
+                    <div>
+                      <div className="set-field-lbl">Reps</div>
+                      <input
+                        className="set-big-inp" type="number" inputMode="numeric"
+                        placeholder="10" value={s.reps}
+                        onChange={(e) => updateSet(ei, si, "reps", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <div className="set-field-lbl">Load (kg)</div>
+                      <input
+                        className="set-big-inp" type="number" inputMode="decimal"
+                        placeholder="0" step="0.5" value={s.load}
+                        onChange={(e) => updateSet(ei, si, "load", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
                       borderColor: ex.rpe === String(r) ? rpeColor(r) : undefined,
                       background:  ex.rpe === String(r) ? `${rpeColor(r)}18` : undefined,
                     }}
