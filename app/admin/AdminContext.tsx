@@ -5,8 +5,9 @@
 // Fix 2: addClient now writes the Firestore doc ID back into the document
 //         so clientId is always populated in sessionLogs/progressLogs/dietLogs
 // New:   renewClient action — supports "add" and "reset" modes
+// New:   toast feedback for all save/add/status actions
 // ============================================================
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 import { db } from "../../lib/firebase";
 import {
   collection,
@@ -23,6 +24,11 @@ export interface RenewForm {
   mode: "add" | "reset";
   sessions: string;
   endDate: string;
+}
+
+export interface ToastState {
+  message: string;
+  type: "success" | "error";
 }
 
 export interface AdminContextValue {
@@ -49,6 +55,8 @@ export interface AdminContextValue {
   // Tab navigation
   tab: string;
   setTab: (t: string) => void;
+  // Toast
+  toast: ToastState | null;
   // Modal visibility
   showAddTrainer: boolean;   setShowAddTrainer:   (v: boolean) => void;
   showAddClient: boolean;    setShowAddClient:    (v: boolean) => void;
@@ -127,6 +135,13 @@ export function AdminProvider({
 }) {
   const [tab, setTab] = useState("overview");
 
+  // ── Toast ────────────────────────────────────────────────────
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const showToast = useCallback((message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
+
   const [showAddTrainer, setShowAddTrainer]   = useState(false);
   const [showAddClient, setShowAddClient]     = useState(false);
   const [showInstruction, setShowInstruction] = useState(false);
@@ -200,61 +215,67 @@ export function AdminProvider({
 
   const addTrainer = async () => {
     if (!newTrainer.name || !newTrainer.email) return;
-    await addDoc(collection(db, "trainers"), {
-      name: newTrainer.name,
-      email: newTrainer.email,
-      avatar: newTrainer.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
-      clientCount: 0, retention: 0, revenue: 0, sessions: 0,
-      sessionsAssigned: 0, missedSessions: 0, pendingLogs: 0,
-      status: "active", plan: newTrainer.plan,
-      speciality: newTrainer.speciality,
-      joined: new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" }),
-      rating: 0, accountabilityScore: 100, warnings: 0,
-      progressUpdatesThisMonth: 0, lateSubmissions: 0,
-      createdAt: serverTimestamp(),
-    });
-    setNewTrainer({ name: "", email: "", speciality: "", plan: "Starter" });
-    setShowAddTrainer(false);
+    try {
+      await addDoc(collection(db, "trainers"), {
+        name: newTrainer.name,
+        email: newTrainer.email,
+        avatar: newTrainer.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
+        clientCount: 0, retention: 0, revenue: 0, sessions: 0,
+        sessionsAssigned: 0, missedSessions: 0, pendingLogs: 0,
+        status: "active", plan: newTrainer.plan,
+        speciality: newTrainer.speciality,
+        joined: new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" }),
+        rating: 0, accountabilityScore: 100, warnings: 0,
+        progressUpdatesThisMonth: 0, lateSubmissions: 0,
+        createdAt: serverTimestamp(),
+      });
+      setNewTrainer({ name: "", email: "", speciality: "", plan: "Starter" });
+      setShowAddTrainer(false);
+      showToast(`Trainer "${newTrainer.name}" added successfully!`, "success");
+    } catch (err) {
+      console.error("addTrainer:", err);
+      showToast("Failed to add trainer. Please try again.", "error");
+    }
   };
 
-  // ── FIX: write doc ID back into the document so clientId is always populated ──
   const addClient = async () => {
     if (!newClient.name || !newClient.trainerId) return;
     const sessionsIncluded = Number(newClient.sessionsIncluded) || 0;
-
-    // Step 1: create the doc (Firestore auto-generates ID)
-    const docRef = await addDoc(collection(db, "trainers", newClient.trainerId, "clients"), {
-      name: newClient.name.trim(),
-      email: newClient.email.trim(),
-      gender: newClient.gender,
-      age: newClient.age ? Number(newClient.age) : "",
-      trainerId: newClient.trainerId,
-      trainerName: newClient.trainerName,
-      programType: newClient.programType,
-      status: newClient.status,
-      medicalNotes: newClient.medicalNotes,
-      startDate: newClient.startDate,
-      endDate: newClient.endDate,
-      plan: newClient.plan,
-      sessionsIncluded,
-      sessionsLogged: 0,
-      classesLeft: sessionsIncluded,
-      location: newClient.location,
-      compliance: 0,
-      progressLastUpdated: "Never",
-      createdAt: serverTimestamp(),
-    });
-
-    // Step 2: write the auto-generated ID back into the doc
-    // This ensures clientId is always set correctly in all session/progress/diet logs
-    await updateDoc(docRef, { id: docRef.id });
-
-    setNewClient({
-      name: "", email: "", gender: "", age: "", trainerId: "", trainerName: "",
-      programType: "1-on-1", status: "Active", medicalNotes: "",
-      startDate: "", endDate: "", sessionsIncluded: "", plan: "", location: "",
-    });
-    setShowAddClient(false);
+    const clientName = newClient.name.trim();
+    try {
+      const docRef = await addDoc(collection(db, "trainers", newClient.trainerId, "clients"), {
+        name: clientName,
+        email: newClient.email.trim(),
+        gender: newClient.gender,
+        age: newClient.age ? Number(newClient.age) : "",
+        trainerId: newClient.trainerId,
+        trainerName: newClient.trainerName,
+        programType: newClient.programType,
+        status: newClient.status,
+        medicalNotes: newClient.medicalNotes,
+        startDate: newClient.startDate,
+        endDate: newClient.endDate,
+        plan: newClient.plan,
+        sessionsIncluded,
+        sessionsLogged: 0,
+        classesLeft: sessionsIncluded,
+        location: newClient.location,
+        compliance: 0,
+        progressLastUpdated: "Never",
+        createdAt: serverTimestamp(),
+      });
+      await updateDoc(docRef, { id: docRef.id });
+      setNewClient({
+        name: "", email: "", gender: "", age: "", trainerId: "", trainerName: "",
+        programType: "1-on-1", status: "Active", medicalNotes: "",
+        startDate: "", endDate: "", sessionsIncluded: "", plan: "", location: "",
+      });
+      setShowAddClient(false);
+      showToast(`Client "${clientName}" added successfully!`, "success");
+    } catch (err) {
+      console.error("addClient:", err);
+      showToast("Failed to add client. Please try again.", "error");
+    }
   };
 
   const saveEditClient = async () => {
@@ -266,13 +287,19 @@ export function AdminProvider({
     const compliance       = sessionsIncluded > 0
       ? Math.round((sessionsLogged / sessionsIncluded) * 100)
       : 0;
-    await updateDoc(doc(db, "trainers", trainerId, "clients", id), {
-      ...data, classesLeft, compliance,
-      id, // keep id field in sync
-      updatedAt: serverTimestamp(),
-    });
-    setShowEditClient(false);
-    setSelectedClient({ ...editForm, classesLeft, compliance });
+    try {
+      await updateDoc(doc(db, "trainers", trainerId, "clients", id), {
+        ...data, classesLeft, compliance,
+        id,
+        updatedAt: serverTimestamp(),
+      });
+      setShowEditClient(false);
+      setSelectedClient({ ...editForm, classesLeft, compliance });
+      showToast(`Client "${editForm.name}" updated successfully!`, "success");
+    } catch (err) {
+      console.error("saveEditClient:", err);
+      showToast("Failed to update client. Please try again.", "error");
+    }
   };
 
   const renewClient = async () => {
@@ -319,6 +346,7 @@ export function AdminProvider({
       );
 
       setRenewMsg("✓ Client renewed successfully!");
+      showToast(`Client "${renewTarget.name}" renewed successfully!`, "success");
       setTimeout(() => {
         setShowRenewClient(false);
         setRenewTarget(null);
@@ -328,6 +356,7 @@ export function AdminProvider({
     } catch (err) {
       console.error("renewClient error:", err);
       setRenewMsg("Error renewing client. Please try again.");
+      showToast("Failed to renew client. Please try again.", "error");
     } finally {
       setRenewLoading(false);
     }
@@ -337,25 +366,38 @@ export function AdminProvider({
     clientId: string, trainerId: string, currentStatus: string
   ) => {
     const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
-    await updateDoc(doc(db, "trainers", trainerId, "clients", clientId), { status: newStatus });
-    if (selectedClient?.id === clientId) {
-      setSelectedClient((prev: any) => ({ ...prev, status: newStatus }));
+    try {
+      await updateDoc(doc(db, "trainers", trainerId, "clients", clientId), { status: newStatus });
+      if (selectedClient?.id === clientId) {
+        setSelectedClient((prev: any) => ({ ...prev, status: newStatus }));
+      }
+      const clientName = clients.find((c) => c.id === clientId)?.name || "Client";
+      showToast(`${clientName} marked as ${newStatus}.`, "success");
+    } catch (err) {
+      console.error("toggleClientStatus:", err);
+      showToast("Failed to update client status. Please try again.", "error");
     }
   };
 
   const postInstruction = async () => {
     if (!newInstruction.title) return;
-    await addDoc(collection(db, "instructions"), {
-      title: newInstruction.title,
-      body: newInstruction.body,
-      priority: newInstruction.priority,
-      target: newInstruction.target,
-      by: name,
-      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-      createdAt: serverTimestamp(),
-    });
-    setNewInstruction({ title: "", body: "", priority: "medium", target: "all" });
-    setShowInstruction(false);
+    try {
+      await addDoc(collection(db, "instructions"), {
+        title: newInstruction.title,
+        body: newInstruction.body,
+        priority: newInstruction.priority,
+        target: newInstruction.target,
+        by: name,
+        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        createdAt: serverTimestamp(),
+      });
+      setNewInstruction({ title: "", body: "", priority: "medium", target: "all" });
+      setShowInstruction(false);
+      showToast("Instruction posted successfully!", "success");
+    } catch (err) {
+      console.error("postInstruction:", err);
+      showToast("Failed to post instruction. Please try again.", "error");
+    }
   };
 
   const deleteInstruction = async (id: string) => {
@@ -364,23 +406,30 @@ export function AdminProvider({
 
   const addWarning = async () => {
     if (!newWarning.trainer || !newWarning.note) return;
-    await addDoc(collection(db, "warnings"), {
-      trainer: newWarning.trainer,
-      type: newWarning.type,
-      note: newWarning.note,
-      by: name,
-      followUp: newWarning.followUp,
-      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-      createdAt: serverTimestamp(),
-    });
-    const trainer = trainers.find((t) => t.name === newWarning.trainer);
-    if (trainer?.id) {
-      await updateDoc(doc(db, "trainers", trainer.id), {
-        warnings: (trainer.warnings || 0) + 1,
+    try {
+      await addDoc(collection(db, "warnings"), {
+        trainer: newWarning.trainer,
+        type: newWarning.type,
+        note: newWarning.note,
+        by: name,
+        followUp: newWarning.followUp,
+        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        createdAt: serverTimestamp(),
       });
+      const trainer = trainers.find((t) => t.name === newWarning.trainer);
+      if (trainer?.id) {
+        await updateDoc(doc(db, "trainers", trainer.id), {
+          warnings: (trainer.warnings || 0) + 1,
+        });
+      }
+      const trainerName = newWarning.trainer;
+      setNewWarning({ trainer: "", type: "Verbal Warning", note: "", followUp: "" });
+      setShowWarning(false);
+      showToast(`Warning logged for ${trainerName}.`, "success");
+    } catch (err) {
+      console.error("addWarning:", err);
+      showToast("Failed to log warning. Please try again.", "error");
     }
-    setNewWarning({ trainer: "", type: "Verbal Warning", note: "", followUp: "" });
-    setShowWarning(false);
   };
 
   const changePassword = () => {
@@ -400,9 +449,16 @@ export function AdminProvider({
 
   const toggleTrainerStatus = async (trainerId: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "suspended" : "active";
-    await updateDoc(doc(db, "trainers", trainerId), { status: newStatus });
-    if (selectedTrainer?.id === trainerId) {
-      setSelectedTrainer((prev: any) => ({ ...prev, status: newStatus }));
+    try {
+      await updateDoc(doc(db, "trainers", trainerId), { status: newStatus });
+      if (selectedTrainer?.id === trainerId) {
+        setSelectedTrainer((prev: any) => ({ ...prev, status: newStatus }));
+      }
+      const trainerName = trainers.find((t) => t.id === trainerId)?.name || "Trainer";
+      showToast(`${trainerName} ${newStatus === "active" ? "activated" : "suspended"}.`, "success");
+    } catch (err) {
+      console.error("toggleTrainerStatus:", err);
+      showToast("Failed to update trainer status. Please try again.", "error");
     }
   };
 
@@ -427,6 +483,7 @@ export function AdminProvider({
         lowClassClients, atRiskClients, lowAttendance,
         todayStr, todaySessions, avgAccountability,
         tab, setTab,
+        toast,
         showAddTrainer, setShowAddTrainer,
         showAddClient, setShowAddClient,
         showInstruction, setShowInstruction,
