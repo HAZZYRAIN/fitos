@@ -150,7 +150,7 @@ export default function TrainersList() {
                     {t.plan}
                   </span>
                   {(t.warnings || 0) > 0 && (
-                    <span className="tl-badge tl-badge-w">⚠ {t.warnings} warning{t.warnings > 1 ? "s" : ""}</span>
+                    <span className="tl-badge tl-badge-w">⚠ {t.warnings ?? 0} warning{(t.warnings ?? 0) > 1 ? "s" : ""}</span>
                   )}
                 </div>
 
