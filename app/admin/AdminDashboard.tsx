@@ -2,26 +2,27 @@
 import { useState } from "react";
 import { AdminProvider, useAdmin } from "./AdminContext";
 import { S } from "../styles/dashboard";
+import { MOBILE_FIX } from "../styles/mobileFix";
 import type { Client, Trainer, Instruction, Warning, SessionLog } from "../types";
 
-import Overview from "./tabs/Overview";
+import Overview          from "./tabs/Overview";
 import TrainerPerformance from "./tabs/TrainerPerformance";
-import Clients from "./tabs/Clients";
-import Sessions from "./tabs/Sessions";
-import Flags from "./tabs/Flags";
-import Templates from "./tabs/Templates";
-import Instructions from "./tabs/Instructions";
-import TrainersList from "./tabs/TrainersList";
+import Clients           from "./tabs/Clients";
+import Sessions          from "./tabs/Sessions";
+import Flags             from "./tabs/Flags";
+import Templates         from "./tabs/Templates";
+import Instructions      from "./tabs/Instructions";
+import TrainersList      from "./tabs/TrainersList";
 
 const NAV_ITEMS = [
-  { id: "overview",      icon: "◼",  label: "Control Room" },
-  { id: "trainer-perf",  icon: "📊", label: "Trainer Performance" },
-  { id: "clients",       icon: "👥", label: "Client Oversight",  badgeKey: "atRisk",   badgeColor: "" },
-  { id: "sessions",      icon: "📝", label: "Session Logs",      badgeKey: "pending",  badgeColor: "yellow" },
-  { id: "flags",         icon: "🚨", label: "Flags & Alerts",    badgeKey: "flags",    badgeColor: "" },
-  { id: "templates",     icon: "🏋", label: "Workout Templates" },
-  { id: "comms",         icon: "📣", label: "Instructions Feed" },
-  { id: "trainers-list", icon: "👤", label: "Trainers" },
+  { id: "overview",      icon: "◼",  label: "Control Room"         },
+  { id: "trainer-perf",  icon: "📊", label: "Trainer Performance"  },
+  { id: "clients",       icon: "👥", label: "Client Oversight",    badgeKey: "atRisk",  badgeColor: ""       },
+  { id: "sessions",      icon: "📝", label: "Session Logs",        badgeKey: "pending", badgeColor: "yellow" },
+  { id: "flags",         icon: "🚨", label: "Flags & Alerts",      badgeKey: "flags",   badgeColor: ""       },
+  { id: "templates",     icon: "🏋", label: "Workout Templates"    },
+  { id: "comms",         icon: "📣", label: "Instructions Feed"    },
+  { id: "trainers-list", icon: "👤", label: "Trainers"             },
 ];
 
 function AdminInner() {
@@ -29,20 +30,20 @@ function AdminInner() {
     name, logout, tab, setTab,
     trainers, clients, instructions, warnings,
     atRiskClients, flaggedClients, lowAttendance, pendingLogs,
-    showChangePw, setShowChangePw,
-    showEditClient, setShowEditClient,
-    showAddTrainer, setShowAddTrainer,
-    showAddClient, setShowAddClient,
+    showChangePw,    setShowChangePw,
+    showEditClient,  setShowEditClient,
+    showAddTrainer,  setShowAddTrainer,
+    showAddClient,   setShowAddClient,
     showInstruction, setShowInstruction,
-    showWarning, setShowWarning,
+    showWarning,     setShowWarning,
     showRenewClient, setShowRenewClient,
     selectedTrainer, setSelectedTrainer,
     renewTarget, renewForm, setRenewForm, renewLoading, renewMsg,
     pwTarget, setPwTarget,
     newTrainer, setNewTrainer,
-    newClient, setNewClient,
+    newClient,  setNewClient,
     newInstruction, setNewInstruction,
-    newWarning, setNewWarning,
+    newWarning,     setNewWarning,
     pwForm, setPwForm, pwMsg,
     editForm, setEditForm,
     addTrainer, addClient, saveEditClient,
@@ -60,21 +61,20 @@ function AdminInner() {
     flags:   flaggedClients.length + lowAttendance.length,
   };
 
-  const closeDrawer = () => setDrawerOpen(false);
-  const navigate = (id: string) => { setTab(id); closeDrawer(); };
-
+  const closeDrawer  = () => setDrawerOpen(false);
+  const navigate     = (id: string) => { setTab(id); closeDrawer(); };
   const currentLabel = NAV_ITEMS.find((n) => n.id === tab)?.label || "Dashboard";
 
   return (
     <div className="app">
-      <style>{S}</style>
+      {/* Base styles + mobile fixes in one injection */}
+      <style>{S + MOBILE_FIX}</style>
 
       {/* ── MOBILE DRAWER OVERLAY ── */}
       <div className={`drawer-overlay ${drawerOpen ? "open" : ""}`} onClick={closeDrawer} />
 
       {/* ── MOBILE DRAWER ── */}
       <div className={`drawer ${drawerOpen ? "open" : ""}`}>
-        {/* Drawer header */}
         <div className="drawer-head">
           <div>
             <div className="logo-yt">Your<span>Trainer</span></div>
@@ -82,14 +82,16 @@ function AdminInner() {
           </div>
           <div className="drawer-close" onClick={closeDrawer}>✕</div>
         </div>
-
-        {/* Drawer nav */}
         <div className="drawer-nav">
           <div className="drawer-section">Navigation</div>
           {NAV_ITEMS.map((item) => {
             const badge = item.badgeKey ? badges[item.badgeKey] || 0 : 0;
             return (
-              <div key={item.id} className={`dni ${tab === item.id ? "on" : ""}`} onClick={() => navigate(item.id)}>
+              <div
+                key={item.id}
+                className={`dni ${tab === item.id ? "on" : ""}`}
+                onClick={() => navigate(item.id)}
+              >
                 <span className="dni-ic">{item.icon}</span>
                 <span>{item.label}</span>
                 {badge > 0 && <span className={`dni-b ${item.badgeColor || ""}`}>{badge}</span>}
@@ -97,18 +99,19 @@ function AdminInner() {
             );
           })}
         </div>
-
-        {/* Drawer footer */}
         <div className="drawer-foot">
           <div className="uc">
             <div className="av av-a">SA</div>
-            <div><div className="uc-n">{name}</div><div className="uc-r">Super Admin</div></div>
+            <div>
+              <div className="uc-n">{name}</div>
+              <div className="uc-r">Super Admin</div>
+            </div>
           </div>
           <button className="btn-so" onClick={() => { closeDrawer(); logout(); }}>Sign Out</button>
         </div>
       </div>
 
-      {/* ── ALL MODALS (unchanged) ── */}
+      {/* ── MODALS ── */}
 
       {showChangePw && (
         <div className="overlay" onClick={() => setShowChangePw(false)}>
@@ -249,11 +252,6 @@ function AdminInner() {
                 {trainers.map((t) => <option key={t.id} value={t.id}>👤 {t.name}</option>)}
               </select>
             </div>
-            {newInstruction.target !== "all" && (
-              <div className="alert al-b fs11 mb8">
-                📌 Only visible to {trainers.find((t) => t.id === newInstruction.target)?.name || "selected trainer"}.
-              </div>
-            )}
             <div className="row mt16">
               <button className="btn btn-g btn-s" onClick={() => setShowInstruction(false)}>Cancel</button>
               <button className="btn btn-p btn-s mla" onClick={postInstruction}>Post</button>
@@ -325,13 +323,6 @@ function AdminInner() {
               <label>New End Date *</label>
               <input className="fi" type="date" value={renewForm.endDate} onChange={(e) => setRenewForm((p: any) => ({ ...p, endDate: e.target.value }))} />
             </div>
-            {renewForm.sessions && (
-              <div className="alert al-b fs11 mb8">
-                {renewForm.mode === "add"
-                  ? `After: ${(renewTarget.sessionsIncluded || 0) + Number(renewForm.sessions)} total, ${(renewTarget.classesLeft || 0) + Number(renewForm.sessions)} remaining.`
-                  : `After: ${renewForm.sessions} sessions, fresh start.`}
-              </div>
-            )}
             {renewMsg && <div className={`alert ${renewMsg.startsWith("✓") ? "al-g" : "al-r"} mb8`}>{renewMsg}</div>}
             <div className="row mt16 gap8">
               <button className="btn btn-g btn-s" onClick={() => setShowRenewClient(false)}>Cancel</button>
@@ -360,36 +351,6 @@ function AdminInner() {
               </div>
               <button className="btn btn-g btn-xs mla" onClick={() => setSelectedTrainer(null)}>✕</button>
             </div>
-            <div className="g4 mb16">
-              {[
-                { l: "Clients",   v: clients.filter((c) => c.trainerId === selectedTrainer.id).length },
-                { l: "Sessions",  v: `${selectedTrainer.sessions || 0}/${selectedTrainer.sessionsAssigned || 0}` },
-                { l: "Late Logs", v: selectedTrainer.lateSubmissions || 0 },
-                { l: "Score",     v: `${selectedTrainer.accountabilityScore || 0}%` },
-              ].map((m, i) => (
-                <div key={i} className="card-sm" style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{m.l}</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--fd)", color: "var(--t1)" }}>{m.v}</div>
-                </div>
-              ))}
-            </div>
-            <div className="fs10 t3 mb8" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Clients</div>
-            {clients.filter((c) => c.trainerId === selectedTrainer.id).map((c) => (
-              <div key={c.id} className="row gap8 mt8" style={{ padding: "6px 0", borderBottom: "1px solid var(--b1)" }}>
-                <span className="fs13 fw6 t1" style={{ flex: 1 }}>{c.name}</span>
-                <span className={`badge fs10 ${c.status === "Inactive" ? "br" : "bg"}`}>{c.status}</span>
-                {((c.classesLeft || 0) <= 2 || (c.endDate && new Date(c.endDate) < new Date())) && (
-                  <button className="btn btn-warn btn-xs" onClick={(e) => { e.stopPropagation(); setSelectedTrainer(null); openRenewClient(c); }}>Renew</button>
-                )}
-                <div className="pw" style={{ width: 60 }}>
-                  <div className={`pb ${(c.compliance || 0) >= 85 ? "pb-g" : (c.compliance || 0) >= 70 ? "pb-y" : "pb-r"}`} style={{ width: `${c.compliance || 0}%` }} />
-                </div>
-                <span className="fs11 t3">{c.compliance || 0}%</span>
-              </div>
-            ))}
-            {clients.filter((c) => c.trainerId === selectedTrainer.id).length === 0 && (
-              <div className="fs12 t3">No clients assigned yet</div>
-            )}
             <div className="row gap8 flex-wrap mt16">
               <button className={`btn btn-s ${selectedTrainer.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(selectedTrainer.id, selectedTrainer.status || "active")}>
                 {selectedTrainer.status === "active" ? "Suspend" : "Activate"}
@@ -413,7 +374,11 @@ function AdminInner() {
           {NAV_ITEMS.map((item) => {
             const badge = item.badgeKey ? badges[item.badgeKey] || 0 : 0;
             return (
-              <div key={item.id} className={`ni ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
+              <div
+                key={item.id}
+                className={`ni ${tab === item.id ? "on" : ""}`}
+                onClick={() => setTab(item.id)}
+              >
                 <span className="ni-ic">{item.icon}</span>
                 <span>{item.label}</span>
                 {badge > 0 && <span className={`ni-b ${item.badgeColor || ""}`}>{badge}</span>}
@@ -424,7 +389,10 @@ function AdminInner() {
         <div className="sb-foot">
           <div className="uc">
             <div className="av av-a">SA</div>
-            <div><div className="uc-n">{name}</div><div className="uc-r">Super Admin</div></div>
+            <div>
+              <div className="uc-n">{name}</div>
+              <div className="uc-r">Super Admin</div>
+            </div>
           </div>
           <button className="btn-so" onClick={logout}>Sign Out</button>
         </div>
@@ -432,9 +400,7 @@ function AdminInner() {
 
       {/* ── MAIN CONTENT ── */}
       <div className="main">
-        {/* Topbar */}
         <div className="topbar">
-          {/* Hamburger — mobile only */}
           <div className="ham" onClick={() => setDrawerOpen(true)}>
             <span /><span /><span />
           </div>
@@ -444,7 +410,6 @@ function AdminInner() {
           {tab === "comms"         && <button className="btn btn-p btn-s" onClick={() => setShowInstruction(true)}>+ Post</button>}
         </div>
 
-        {/* Page content */}
         <div className="content">
           {tab === "overview"      && <Overview />}
           {tab === "trainer-perf"  && <TrainerPerformance />}
@@ -469,7 +434,10 @@ export default function AdminDashboard({
   sessionLogs: SessionLog[];
 }) {
   return (
-    <AdminProvider name={name} logout={logout} clients={clients} trainers={trainers} instructions={instructions} warnings={warnings} sessionLogs={sessionLogs}>
+    <AdminProvider
+      name={name} logout={logout} clients={clients} trainers={trainers}
+      instructions={instructions} warnings={warnings} sessionLogs={sessionLogs}
+    >
       <AdminInner />
     </AdminProvider>
   );
