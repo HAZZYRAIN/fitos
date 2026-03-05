@@ -9,18 +9,16 @@ import MyClients        from "./tabs/MyClients";
 import LogSession       from "./tabs/LogSession";
 import WorkoutPlans     from "./tabs/WorkoutPlans";
 import ExerciseLibrary  from "./tabs/ExerciseLibrary";
-import ProgressTracking from "./tabs/ProgressTracking";
-import DietHabits       from "./tabs/DietHabits";
 import InstructionsFeed from "./tabs/TrainerInstructions";
 
+// Progress Tracking + Diet & Habits removed from nav —
+// all that data now lives inside My Clients → View Details → Progress / Habits / Nutrition tabs
 const NAV_ITEMS = [
-  { id: "clients",  icon: "👥", label: "My Clients"        },
-  { id: "log",      icon: "📝", label: "Log Session"       },
-  { id: "plans",    icon: "🏋", label: "Workout Plans"     },
-  { id: "library",  icon: "📚", label: "Exercise Library"  },
-  { id: "progress", icon: "📈", label: "Progress Tracking" },
-  { id: "diet",     icon: "🥗", label: "Diet & Habits"     },
-  { id: "comms",    icon: "📣", label: "Instructions"      },
+  { id: "clients", icon: "👥", label: "My Clients"       },
+  { id: "log",     icon: "📝", label: "Log Session"      },
+  { id: "plans",   icon: "🏋", label: "Workout Plans"    },
+  { id: "library", icon: "📚", label: "Exercise Library" },
+  { id: "comms",   icon: "📣", label: "Instructions"     },
 ];
 
 function TrainerInner() {
@@ -28,13 +26,12 @@ function TrainerInner() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const unreadInstructions = myInstructions.filter((i: any) => !i.read).length;
-  const closeDrawer = () => setDrawerOpen(false);
-  const navigate    = (id: string) => { setTab(id); closeDrawer(); };
+  const closeDrawer  = () => setDrawerOpen(false);
+  const navigate     = (id: string) => { setTab(id); closeDrawer(); };
   const currentLabel = NAV_ITEMS.find((n) => n.id === tab)?.label || "Dashboard";
 
   return (
     <div className="app">
-      {/* Base styles + mobile fixes in one injection */}
       <style>{S + MOBILE_FIX}</style>
 
       {/* ── MOBILE DRAWER OVERLAY ── */}
@@ -134,13 +131,11 @@ function TrainerInner() {
         </div>
 
         <div className="content">
-          {tab === "clients"  && <MyClients />}
-          {tab === "log"      && <LogSession />}
-          {tab === "plans"    && <WorkoutPlans />}
-          {tab === "library"  && <ExerciseLibrary />}
-          {tab === "progress" && <ProgressTracking />}
-          {tab === "diet"     && <DietHabits />}
-          {tab === "comms"    && <InstructionsFeed />}
+          {tab === "clients" && <MyClients />}
+          {tab === "log"     && <LogSession />}
+          {tab === "plans"   && <WorkoutPlans />}
+          {tab === "library" && <ExerciseLibrary />}
+          {tab === "comms"   && <InstructionsFeed />}
         </div>
       </div>
     </div>
