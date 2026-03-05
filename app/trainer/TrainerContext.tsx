@@ -5,6 +5,9 @@
 // - saveSession now also writes to progressLogs (measurements + habits + nutrition + performance)
 //   so admin Client Progress tab reflects data immediately
 // - sessionMeasurements state added (weight, chest, waist, hips, arms) — optional
+// Late detection fix:
+// - Session TODAY → late only if logged after 10 PM
+// - Session ANY PREVIOUS DAY → always late
 // ============================================================
 import { createContext, useContext, useState, useEffect } from "react";
 import { db } from "../../lib/firebase";
@@ -188,9 +191,22 @@ export function TrainerProvider({
       const fullDateLabel = new Date(sessionDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
       const loggedAt      = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
       const now           = new Date();
-      const sessionDateTime = new Date(sessionDate);
-      const hoursDiff     = (now.getTime() - sessionDateTime.getTime()) / (1000 * 60 * 60);
-      const isLate        = hoursDiff > 2;
+
+      // ── Late detection ───────────────────────────────────────
+      // Rule 1: Session is TODAY → late only if logged at or after 10 PM
+      // Rule 2: Session is ANY PREVIOUS DAY → always late
+      const todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
+
+      const sessionMidnight = new Date(sessionDate);
+      sessionMidnight.setHours(0, 0, 0, 0);
+
+      const isToday    = sessionMidnight.getTime() === todayMidnight.getTime();
+      const isPastDay  = sessionMidnight.getTime() <  todayMidnight.getTime();
+      const isAfter10pm = now.getHours() >= 22; // 22:00 onwards = late
+
+      const isLate = isPastDay || (isToday && isAfter10pm);
+      // ────────────────────────────────────────────────────────
 
       const client = myClients.find((c) => c.name === logClient);
 
@@ -234,7 +250,6 @@ export function TrainerProvider({
         sessionHabits.carbs || sessionHabits.fats;
       const hasPerformance = sessionExercises.length > 0;
 
-      // Helper: only include key if value is truthy (no undefined/null to Firebase)
       const maybe = (val: any) => (val && Number(val) !== 0) ? Number(val) : null;
       const clean = (obj: Record<string, any>) =>
         Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== undefined));
