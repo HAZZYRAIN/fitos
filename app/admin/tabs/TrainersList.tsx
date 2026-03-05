@@ -13,47 +13,198 @@ export default function TrainersList() {
 
   return (
     <>
-      <div className="sh">
-        <div className="sh-l"><h2>Trainers</h2><p>{trainers.length} trainers — click any to manage</p></div>
-        <button className="btn btn-p btn-s" onClick={() => setShowAddTrainer(true)}>+ Add Trainer</button>
+      <style>{`
+        /* ── Header ── */
+        .tl-sh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; }
+        .tl-sh h2 { margin: 0 0 2px; font-size: 18px; font-weight: 800; color: var(--t1); }
+        .tl-sh p  { margin: 0; font-size: 12px; color: var(--t3); }
+        .tl-add {
+          height: 40px; padding: 0 16px; border-radius: 9px; border: none;
+          background: var(--brand1); color: #fff;
+          font-size: 13px; font-weight: 800; cursor: pointer;
+          white-space: nowrap; flex-shrink: 0; font-family: inherit;
+          transition: opacity 0.15s;
+        }
+        .tl-add:active { opacity: 0.8; }
+
+        /* ── Grid ── */
+        .tl-grid { display: flex; flex-direction: column; gap: 10px; }
+
+        /* ── Card ── */
+        .tl-card {
+          background: var(--bg1); border: 1px solid var(--b0);
+          border-radius: 13px; overflow: hidden; cursor: pointer;
+          transition: border-color 0.15s;
+        }
+        .tl-card:active { opacity: 0.93; }
+        .tl-card-suspended { opacity: 0.55; }
+
+        .tl-body { padding: 13px 13px 12px; }
+
+        /* top row */
+        .tl-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .tl-av {
+          width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+          background: var(--bg3); border: 1px solid var(--b0);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 20px;
+        }
+        .tl-info { flex: 1; min-width: 0; }
+        .tl-name { font-size: 14px; font-weight: 800; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tl-spec { font-size: 11px; color: var(--t3); margin-top: 2px; }
+
+        /* badges row */
+        .tl-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+        .tl-badge {
+          font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 20px;
+        }
+        .tl-badge-g { background: rgba(34,197,94,0.12);  color: #22c55e; }
+        .tl-badge-r { background: rgba(239,68,68,0.12);  color: #ef4444; }
+        .tl-badge-o { background: rgba(249,115,22,0.12); color: #f97316; }
+        .tl-badge-d { background: var(--bg3); color: var(--t3); }
+        .tl-badge-w { background: rgba(239,68,68,0.1); color: #ef4444; }
+
+        /* mini stats */
+        .tl-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+        .tl-stat {
+          background: var(--bg2); border: 1px solid var(--b0);
+          border-radius: 8px; padding: 8px 6px; text-align: center;
+        }
+        .tl-stat-v { font-size: 14px; font-weight: 800; font-family: var(--fd); }
+        .tl-stat-k { font-size: 9px; color: var(--t4); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+        /* action footer */
+        .tl-foot {
+          display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
+          padding: 9px 13px 12px;
+          border-top: 1px solid var(--b0);
+          background: var(--bg2);
+        }
+        .tl-btn {
+          height: 36px; border-radius: 8px; border: none;
+          font-size: 11px; font-weight: 800; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 4px;
+          transition: opacity 0.1s; font-family: inherit;
+        }
+        .tl-btn:active { opacity: 0.75; }
+        .tl-btn-s { background: var(--bg3); color: var(--t1); border: 1px solid var(--b0); }
+        .tl-btn-suspend { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+        .tl-btn-activate { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.2); }
+
+        /* empty */
+        .tl-empty {
+          background: var(--bg1); border: 1px solid var(--b0);
+          border-radius: 13px; padding: 40px 20px; text-align: center;
+          font-size: 13px; color: var(--t3);
+        }
+
+        @media (min-width: 640px) {
+          .tl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        }
+        @media (min-width: 1024px) {
+          .tl-grid { grid-template-columns: 1fr 1fr 1fr; }
+        }
+      `}</style>
+
+      {/* ── Header ── */}
+      <div className="tl-sh">
+        <div>
+          <h2>Trainers</h2>
+          <p>{trainers.length} trainer{trainers.length !== 1 ? "s" : ""} — tap to manage</p>
+        </div>
+        <button className="tl-add" onClick={() => setShowAddTrainer(true)}>
+          + Add Trainer
+        </button>
       </div>
-      <div className="g3">
-        {trainers.map((t) => (
-          <div key={t.id} className="cc" style={{ opacity: t.status === "suspended" ? 0.6 : 1 }} onClick={() => setSelectedTrainer(t)}>
-            <div className="row mb12">
-              <div className="av av-t" style={{ width: 40, height: 40 }}>{t.avatar}</div>
-              <div style={{ marginLeft: 10 }}>
-                <div className="fw7 fs14 t1">{t.name}</div>
-                <div className="fs11 t3">{t.speciality}</div>
-              </div>
-              <div className="mla"><ScoreRing score={t.accountabilityScore || 0} size={44} /></div>
-            </div>
-            <div className="row mb12 gap8">
-              <span className={`badge fs10 ${t.status === "active" ? "bg" : "br"}`}>{t.status}</span>
-              <span className={`badge fs10 ${t.plan === "Pro" ? "bo" : "bgr"}`}>{t.plan}</span>
-              {(t.warnings || 0) > 0 && <span className="badge br fs10">⚠ {t.warnings}</span>}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
-              {[
-                { v: clients.filter((c) => c.trainerId === t.id).length, k: "Clients" },
-                { v: `${t.retention || 0}%`, k: "Retention" },
-                { v: `₹${((t.revenue || 0) / 1000).toFixed(0)}K`, k: "Revenue" },
-              ].map((s, i) => (
-                <div key={i} style={{ background: "var(--s2)", borderRadius: "var(--rs)", padding: "8px", textAlign: "center" }}>
-                  <div style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 800, color: i === 2 ? "var(--green)" : "var(--t1)" }}>{s.v}</div>
-                  <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>{s.k}</div>
+
+      {/* ── Cards ── */}
+      <div className="tl-grid">
+        {trainers.map((t) => {
+          const clientCount = clients.filter((c) => c.trainerId === t.id).length;
+          const isSuspended = t.status === "suspended";
+
+          return (
+            <div
+              key={t.id}
+              className={`tl-card ${isSuspended ? "tl-card-suspended" : ""}`}
+              onClick={() => setSelectedTrainer(t)}
+            >
+              <div className="tl-body">
+
+                {/* Avatar + name + score ring */}
+                <div className="tl-top">
+                  <div className="tl-av">{t.avatar}</div>
+                  <div className="tl-info">
+                    <div className="tl-name">{t.name}</div>
+                    <div className="tl-spec">{t.speciality}</div>
+                  </div>
+                  <ScoreRing score={t.accountabilityScore || 0} size={44} />
                 </div>
-              ))}
+
+                {/* Badges */}
+                <div className="tl-badges">
+                  <span className={`tl-badge ${isSuspended ? "tl-badge-r" : "tl-badge-g"}`}>
+                    {t.status}
+                  </span>
+                  <span className={`tl-badge ${t.plan === "Pro" ? "tl-badge-o" : "tl-badge-d"}`}>
+                    {t.plan}
+                  </span>
+                  {(t.warnings || 0) > 0 && (
+                    <span className="tl-badge tl-badge-w">⚠ {t.warnings} warning{t.warnings > 1 ? "s" : ""}</span>
+                  )}
+                </div>
+
+                {/* Mini stats */}
+                <div className="tl-stats">
+                  <div className="tl-stat">
+                    <div className="tl-stat-v" style={{ color: "var(--blue)" }}>{clientCount}</div>
+                    <div className="tl-stat-k">Clients</div>
+                  </div>
+                  <div className="tl-stat">
+                    <div className="tl-stat-v" style={{ color: "var(--t1)" }}>{t.retention || 0}%</div>
+                    <div className="tl-stat-k">Retention</div>
+                  </div>
+                  <div className="tl-stat">
+                    <div className="tl-stat-v" style={{ color: "var(--green)" }}>
+                      ₹{((t.revenue || 0) / 1000).toFixed(0)}K
+                    </div>
+                    <div className="tl-stat-k">Revenue</div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Action footer */}
+              <div className="tl-foot" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="tl-btn tl-btn-s"
+                  onClick={() => {
+                    setNewClient((p: any) => ({ ...p, trainerId: t.id, trainerName: t.name }));
+                    setShowAddClient(true);
+                  }}
+                >
+                  + Client
+                </button>
+                <button
+                  className="tl-btn tl-btn-s"
+                  onClick={() => { setPwTarget(t); setShowChangePw(true); }}
+                >
+                  🔑 Password
+                </button>
+                <button
+                  className={`tl-btn ${isSuspended ? "tl-btn-activate" : "tl-btn-suspend"}`}
+                  onClick={() => toggleTrainerStatus(t.id, t.status || "active")}
+                >
+                  {isSuspended ? "✓ Activate" : "Suspend"}
+                </button>
+              </div>
             </div>
-            <div className="row gap8 mt12" onClick={(e) => e.stopPropagation()}>
-              <button className="btn btn-g btn-xs" onClick={() => { setNewClient((p: any) => ({ ...p, trainerId: t.id, trainerName: t.name })); setShowAddClient(true); }}>+ Client</button>
-              <button className="btn btn-g btn-xs" onClick={() => { setPwTarget(t); setShowChangePw(true); }}>🔑 Password</button>
-              <button className={`btn btn-xs mla ${t.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(t.id, t.status || "active")}>
-                {t.status === "active" ? "Suspend" : "Activate"}
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
+
+        {trainers.length === 0 && (
+          <div className="tl-empty">No trainers yet. Add your first trainer above.</div>
+        )}
       </div>
     </>
   );
