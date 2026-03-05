@@ -526,20 +526,6 @@ export default function LogSession() {
 
             </div>
           ))}
-                      borderColor: ex.rpe === String(r) ? rpeColor(r) : undefined,
-                      background:  ex.rpe === String(r) ? `${rpeColor(r)}18` : undefined,
-                    }}
-                    onClick={() => setRpe(ei, String(r))}
-                  >{r}</button>
-                ))}
-                {ex.rpe && (
-                  <span style={{ fontSize: 10, color: rpeColor(Number(ex.rpe)), marginLeft: 4, fontWeight: 600 }}>
-                    {rpeLabel(Number(ex.rpe))}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
 
           <button className="btn btn-p" style={{ width: "100%", marginTop: 4 }} onClick={() => setShowPicker(true)}>
             + Add Exercise
