@@ -2,24 +2,25 @@
 import { useState } from "react";
 import { TrainerProvider, useTrainer } from "./TrainerContext";
 import { S } from "../styles/dashboard";
+import { MOBILE_FIX } from "../styles/mobileFix";
 import type { Client, Trainer, Instruction } from "../types";
 
-import MyClients   from "./tabs/MyClients";
-import LogSession  from "./tabs/LogSession";
-import WorkoutPlans from "./tabs/WorkoutPlans";
-import ExerciseLibrary from "./tabs/ExerciseLibrary";
+import MyClients        from "./tabs/MyClients";
+import LogSession       from "./tabs/LogSession";
+import WorkoutPlans     from "./tabs/WorkoutPlans";
+import ExerciseLibrary  from "./tabs/ExerciseLibrary";
 import ProgressTracking from "./tabs/ProgressTracking";
-import DietHabits  from "./tabs/DietHabits";
- import InstructionsFeed from "./tabs/TrainerInstructions";
+import DietHabits       from "./tabs/DietHabits";
+import InstructionsFeed from "./tabs/TrainerInstructions";
 
 const NAV_ITEMS = [
-  { id: "clients",  icon: "👥", label: "My Clients" },
-  { id: "log",      icon: "📝", label: "Log Session" },
-  { id: "plans",    icon: "🏋", label: "Workout Plans" },
-  { id: "library",  icon: "📚", label: "Exercise Library" },
+  { id: "clients",  icon: "👥", label: "My Clients"        },
+  { id: "log",      icon: "📝", label: "Log Session"       },
+  { id: "plans",    icon: "🏋", label: "Workout Plans"     },
+  { id: "library",  icon: "📚", label: "Exercise Library"  },
   { id: "progress", icon: "📈", label: "Progress Tracking" },
-  { id: "diet",     icon: "🥗", label: "Diet & Habits" },
-  { id: "comms",    icon: "📣", label: "Instructions" },
+  { id: "diet",     icon: "🥗", label: "Diet & Habits"     },
+  { id: "comms",    icon: "📣", label: "Instructions"      },
 ];
 
 function TrainerInner() {
@@ -28,12 +29,13 @@ function TrainerInner() {
 
   const unreadInstructions = myInstructions.filter((i: any) => !i.read).length;
   const closeDrawer = () => setDrawerOpen(false);
-  const navigate = (id: string) => { setTab(id); closeDrawer(); };
+  const navigate    = (id: string) => { setTab(id); closeDrawer(); };
   const currentLabel = NAV_ITEMS.find((n) => n.id === tab)?.label || "Dashboard";
 
   return (
     <div className="app">
-      <style>{S}</style>
+      {/* Base styles + mobile fixes in one injection */}
+      <style>{S + MOBILE_FIX}</style>
 
       {/* ── MOBILE DRAWER OVERLAY ── */}
       <div className={`drawer-overlay ${drawerOpen ? "open" : ""}`} onClick={closeDrawer} />
@@ -53,7 +55,11 @@ function TrainerInner() {
           {NAV_ITEMS.map((item) => {
             const badge = item.id === "comms" ? unreadInstructions : 0;
             return (
-              <div key={item.id} className={`dni ${tab === item.id ? "on" : ""}`} onClick={() => navigate(item.id)}>
+              <div
+                key={item.id}
+                className={`dni ${tab === item.id ? "on" : ""}`}
+                onClick={() => navigate(item.id)}
+              >
                 <span className="dni-ic">{item.icon}</span>
                 <span>{item.label}</span>
                 {badge > 0 && <span className="dni-b">{badge}</span>}
@@ -65,7 +71,10 @@ function TrainerInner() {
         <div className="drawer-foot">
           <div className="uc">
             <div className="av av-t">{initials}</div>
-            <div><div className="uc-n">{name}</div><div className="uc-r">Trainer</div></div>
+            <div>
+              <div className="uc-n">{name}</div>
+              <div className="uc-r">Trainer</div>
+            </div>
           </div>
           <button className="btn-so" onClick={() => { closeDrawer(); logout(); }}>Sign Out</button>
         </div>
@@ -82,7 +91,11 @@ function TrainerInner() {
           {NAV_ITEMS.map((item) => {
             const badge = item.id === "comms" ? unreadInstructions : 0;
             return (
-              <div key={item.id} className={`ni ${tab === item.id ? "on" : ""}`} onClick={() => setTab(item.id)}>
+              <div
+                key={item.id}
+                className={`ni ${tab === item.id ? "on" : ""}`}
+                onClick={() => setTab(item.id)}
+              >
                 <span className="ni-ic">{item.icon}</span>
                 <span>{item.label}</span>
                 {badge > 0 && <span className="ni-b">{badge}</span>}
@@ -93,7 +106,10 @@ function TrainerInner() {
         <div className="sb-foot">
           <div className="uc">
             <div className="av av-t">{initials}</div>
-            <div><div className="uc-n">{name}</div><div className="uc-r">Trainer</div></div>
+            <div>
+              <div className="uc-n">{name}</div>
+              <div className="uc-r">Trainer</div>
+            </div>
           </div>
           <button className="btn-so" onClick={logout}>Sign Out</button>
         </div>
@@ -102,13 +118,16 @@ function TrainerInner() {
       {/* ── MAIN CONTENT ── */}
       <div className="main">
         <div className="topbar">
-          {/* Hamburger — mobile only */}
           <div className="ham" onClick={() => setDrawerOpen(true)}>
             <span /><span /><span />
           </div>
           <div className="tb-t">{currentLabel}</div>
           {unreadInstructions > 0 && (
-            <div style={{ background: "var(--red)", color: "white", fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 10 }}>
+            <div style={{
+              background: "var(--red)", color: "white",
+              fontSize: 11, fontWeight: 800,
+              padding: "2px 8px", borderRadius: 10,
+            }}>
               {unreadInstructions} new
             </div>
           )}
@@ -135,7 +154,10 @@ export default function TrainerDashboard({
   clients: Client[]; trainers: Trainer[]; instructions: Instruction[];
 }) {
   return (
-    <TrainerProvider uid={uid} name={name} email={email} logout={logout} clients={clients} trainers={trainers} instructions={instructions}>
+    <TrainerProvider
+      uid={uid} name={name} email={email} logout={logout}
+      clients={clients} trainers={trainers} instructions={instructions}
+    >
       <TrainerInner />
     </TrainerProvider>
   );
