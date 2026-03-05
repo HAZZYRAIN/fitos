@@ -440,53 +440,83 @@ export default function LogSession() {
           )}
 
           {exercises.map((ex, ei) => (
-            <div key={ei} className="ex-card">
+            <div key={ei} style={{
+              display:"block", width:"100%", boxSizing:"border-box",
+              background:"var(--bg2)", border:"1px solid var(--b0)",
+              borderRadius:10, padding:12, marginBottom:12,
+            }}>
 
-              {/* ── Exercise name + remove ── */}
-              <div style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:12 }}>
-                <div style={{ flex:1 }}>
-                  <div className="ex-name">{ex.name}</div>
-                  {ex.muscles && <div className="ex-muscle">{ex.muscles}</div>}
+              {/* ── Name row ── */}
+              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:14 }}>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:800, color:"var(--t1)" }}>{ex.name}</div>
+                  {ex.muscles && <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>{ex.muscles}</div>}
                 </div>
                 <button
-                  style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:16, padding:2 }}
                   onClick={() => removeEx(ei)}
+                  style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:18, lineHeight:1, padding:"2px 4px" }}
                 >✕</button>
               </div>
 
-              {/* ── Sets — one big card per set ── */}
+              {/* ── Sets — each set is a full-width vertical card ── */}
               {ex.sets.map((s, si) => (
-                <div key={si} className="set-card">
-                  <div className="set-card-head">
-                    <span className="set-badge">SET {si + 1}</span>
+                <div key={si} style={{
+                  display:"block", width:"100%", boxSizing:"border-box",
+                  background:"var(--bg1)", border:"1.5px solid var(--b0)",
+                  borderRadius:10, padding:"10px 12px", marginBottom:8,
+                }}>
+                  {/* Set header */}
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+                    <span style={{
+                      fontSize:11, fontWeight:800, color:"var(--brand1)",
+                      background:"rgba(201,168,76,.12)", border:"1px solid rgba(201,168,76,.3)",
+                      borderRadius:6, padding:"3px 10px",
+                    }}>SET {si + 1}</span>
                     <button
-                      className="set-del"
                       onClick={() => removeSet(ei, si)}
                       disabled={ex.sets.length <= 1}
+                      style={{
+                        background:"none", border:"none", cursor:"pointer",
+                        color: ex.sets.length <= 1 ? "var(--t4)" : "var(--red)",
+                        fontSize:12, fontWeight:600, opacity: ex.sets.length <= 1 ? 0.3 : 1,
+                      }}
                     >Remove</button>
                   </div>
-                  <div className="set-fields">
+                  {/* Reps + Load side by side */}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                     <div>
-                      <div className="set-field-lbl">Reps</div>
+                      <div style={{ fontSize:9, fontWeight:700, color:"var(--t4)", textTransform:"uppercase", letterSpacing:.5, textAlign:"center", marginBottom:5 }}>Reps</div>
                       <input
-                        className="set-big-inp"
                         type="number"
                         inputMode="numeric"
                         placeholder="10"
                         value={s.reps}
                         onChange={(e) => updateSet(ei, si, "reps", e.target.value)}
+                        style={{
+                          display:"block", width:"100%", boxSizing:"border-box",
+                          height:56, borderRadius:8, border:"1.5px solid var(--b0)",
+                          background:"var(--bg2)", fontSize:24, fontWeight:800,
+                          textAlign:"center", color:"var(--t1)", outline:"none",
+                          padding:0, WebkitAppearance:"none", MozAppearance:"textfield",
+                        }}
                       />
                     </div>
                     <div>
-                      <div className="set-field-lbl">Load (kg)</div>
+                      <div style={{ fontSize:9, fontWeight:700, color:"var(--t4)", textTransform:"uppercase", letterSpacing:.5, textAlign:"center", marginBottom:5 }}>Load (kg)</div>
                       <input
-                        className="set-big-inp"
                         type="number"
                         inputMode="decimal"
                         placeholder="0"
                         step="0.5"
                         value={s.load}
                         onChange={(e) => updateSet(ei, si, "load", e.target.value)}
+                        style={{
+                          display:"block", width:"100%", boxSizing:"border-box",
+                          height:56, borderRadius:8, border:"1.5px solid var(--b0)",
+                          background:"var(--bg2)", fontSize:24, fontWeight:800,
+                          textAlign:"center", color:"var(--t1)", outline:"none",
+                          padding:0, WebkitAppearance:"none", MozAppearance:"textfield",
+                        }}
                       />
                     </div>
                   </div>
@@ -495,30 +525,45 @@ export default function LogSession() {
 
               {/* ── Add set ── */}
               <button
-                className="btn btn-g btn-xs"
-                style={{ width:"100%", marginBottom:12 }}
                 onClick={() => addSet(ei)}
+                style={{
+                  display:"block", width:"100%", boxSizing:"border-box",
+                  padding:"11px 0", borderRadius:8, marginBottom:14,
+                  background:"var(--bg1)", border:"1.5px dashed var(--b1)",
+                  fontSize:13, fontWeight:700, color:"var(--brand1)", cursor:"pointer",
+                }}
               >+ Add Set</button>
 
               {/* ── RPE ── */}
-              <div style={{ marginTop:4 }}>
-                <div className="set-field-lbl" style={{ marginBottom:8 }}>RPE (Rate of Perceived Exertion)</div>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                  {[1,2,3,4,5,6,7,8,9,10].map((r) => (
-                    <button
-                      key={r}
-                      className={`rpe-btn${ex.rpe === String(r) ? " sel" : ""}`}
-                      style={{
-                        color:       ex.rpe === String(r) ? rpeColor(r) : undefined,
-                        borderColor: ex.rpe === String(r) ? rpeColor(r) : undefined,
-                        background:  ex.rpe === String(r) ? `${rpeColor(r)}22` : undefined,
-                      }}
-                      onClick={() => setRpe(ei, String(r))}
-                    >{r}</button>
-                  ))}
+              <div style={{ display:"block", width:"100%" }}>
+                <div style={{ fontSize:9, fontWeight:700, color:"var(--t4)", textTransform:"uppercase", letterSpacing:.5, marginBottom:8 }}>
+                  RPE — Rate of Perceived Exertion
+                </div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6, width:"100%" }}>
+                  {[1,2,3,4,5,6,7,8,9,10].map((r) => {
+                    const sel = ex.rpe === String(r);
+                    const col = r <= 4 ? "#1e8a4c" : r <= 7 ? "#b8860b" : "#c0392b";
+                    return (
+                      <button
+                        key={r}
+                        onClick={() => setRpe(ei, String(r))}
+                        style={{
+                          width:38, height:38, borderRadius:8, flexShrink:0,
+                          border: sel ? `2px solid ${col}` : "1.5px solid var(--b1)",
+                          background: sel ? `${col}22` : "var(--bg1)",
+                          fontSize:13, fontWeight:800,
+                          color: sel ? col : "var(--t3)",
+                          cursor:"pointer",
+                        }}
+                      >{r}</button>
+                    );
+                  })}
                 </div>
                 {ex.rpe && (
-                  <div style={{ fontSize:11, fontWeight:700, marginTop:6, color:rpeColor(Number(ex.rpe)) }}>
+                  <div style={{
+                    fontSize:12, fontWeight:700, marginTop:8,
+                    color: Number(ex.rpe) <= 4 ? "#1e8a4c" : Number(ex.rpe) <= 7 ? "#b8860b" : "#c0392b",
+                  }}>
                     RPE {ex.rpe} — {rpeLabel(Number(ex.rpe))}
                   </div>
                 )}
