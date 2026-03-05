@@ -357,7 +357,13 @@ export default function LogSession() {
           <div className="g2">
             <div className="field">
               <label>Date *</label>
-              <input className="fi" type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} />
+             <input
+  className="fi"
+  type="date"
+  value={sessionDate}
+  max={new Date().toISOString().split("T")[0]}
+  onChange={(e) => setSessionDate(e.target.value)}
+/>
             </div>
             <div className="field">
               <label>Duration (min)</label>
