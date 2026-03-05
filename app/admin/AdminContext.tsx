@@ -2,6 +2,8 @@
 // ============================================================
 // ADMIN CONTEXT — FIXED + EXTENDED
 // Fix 1: postInstruction now saves target field ("all" or trainerId)
+// Fix 2: addClient now writes the Firestore doc ID back into the document
+//         so clientId is always populated in sessionLogs/progressLogs/dietLogs
 // New:   renewClient action — supports "add" and "reset" modes
 // ============================================================
 import { createContext, useContext, useState } from "react";
@@ -54,12 +56,12 @@ export interface AdminContextValue {
   showWarning: boolean;      setShowWarning:      (v: boolean) => void;
   showChangePw: boolean;     setShowChangePw:     (v: boolean) => void;
   showEditClient: boolean;   setShowEditClient:   (v: boolean) => void;
-  showRenewClient: boolean;  setShowRenewClient:  (v: boolean) => void; // NEW
+  showRenewClient: boolean;  setShowRenewClient:  (v: boolean) => void;
   // Selected items
   selectedTrainer: Trainer | null; setSelectedTrainer: (t: Trainer | null) => void;
   selectedClient: Client | null;   setSelectedClient:  (c: Client | null) => void;
   pwTarget: Trainer | null;        setPwTarget:        (t: Trainer | null) => void;
-  renewTarget: Client | null;      setRenewTarget:     (c: Client | null) => void; // NEW
+  renewTarget: Client | null;      setRenewTarget:     (c: Client | null) => void;
   // Form state
   newTrainer: { name: string; email: string; speciality: string; plan: string };
   setNewTrainer: (v: any) => void;
@@ -70,7 +72,7 @@ export interface AdminContextValue {
     endDate: string; sessionsIncluded: string; plan: string; location: string;
   };
   setNewClient: (v: any) => void;
-  newInstruction: { title: string; body: string; priority: string; target: string }; // UPDATED: added target
+  newInstruction: { title: string; body: string; priority: string; target: string };
   setNewInstruction: (v: any) => void;
   newWarning: { trainer: string; type: string; note: string; followUp: string };
   setNewWarning: (v: any) => void;
@@ -80,10 +82,10 @@ export interface AdminContextValue {
   setPwMsg: (v: string) => void;
   editForm: any;
   setEditForm: (v: any) => void;
-  renewForm: RenewForm;           // NEW
-  setRenewForm: (v: any) => void; // NEW
-  renewLoading: boolean;          // NEW
-  renewMsg: string;               // NEW
+  renewForm: RenewForm;
+  setRenewForm: (v: any) => void;
+  renewLoading: boolean;
+  renewMsg: string;
   // Filters
   clientSearch: string;       setClientSearch:       (v: string) => void;
   trainerFilter: string;      setTrainerFilter:      (v: string) => void;
@@ -93,7 +95,7 @@ export interface AdminContextValue {
   addTrainer: () => Promise<void>;
   addClient: () => Promise<void>;
   saveEditClient: () => Promise<void>;
-  renewClient: () => Promise<void>; // NEW
+  renewClient: () => Promise<void>;
   toggleClientStatus: (clientId: string, trainerId: string, currentStatus: string) => Promise<void>;
   postInstruction: () => Promise<void>;
   deleteInstruction: (id: string) => Promise<void>;
@@ -101,7 +103,7 @@ export interface AdminContextValue {
   changePassword: () => void;
   toggleTrainerStatus: (trainerId: string, currentStatus: string) => Promise<void>;
   openEditClient: (c: Client) => void;
-  openRenewClient: (c: Client) => void; // NEW
+  openRenewClient: (c: Client) => void;
 }
 
 const AdminContext = createContext<AdminContextValue | null>(null);
@@ -123,25 +125,21 @@ export function AdminProvider({
   instructions: Instruction[]; warnings: Warning[];
   sessionLogs: SessionLog[];
 }) {
-  // ── Tab ──
   const [tab, setTab] = useState("overview");
 
-  // ── Modals ──
-  const [showAddTrainer, setShowAddTrainer]     = useState(false);
-  const [showAddClient, setShowAddClient]       = useState(false);
-  const [showInstruction, setShowInstruction]   = useState(false);
-  const [showWarning, setShowWarning]           = useState(false);
-  const [showChangePw, setShowChangePw]         = useState(false);
-  const [showEditClient, setShowEditClient]     = useState(false);
-  const [showRenewClient, setShowRenewClient]   = useState(false); // NEW
+  const [showAddTrainer, setShowAddTrainer]   = useState(false);
+  const [showAddClient, setShowAddClient]     = useState(false);
+  const [showInstruction, setShowInstruction] = useState(false);
+  const [showWarning, setShowWarning]         = useState(false);
+  const [showChangePw, setShowChangePw]       = useState(false);
+  const [showEditClient, setShowEditClient]   = useState(false);
+  const [showRenewClient, setShowRenewClient] = useState(false);
 
-  // ── Selected ──
   const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null);
   const [selectedClient, setSelectedClient]   = useState<Client | null>(null);
   const [pwTarget, setPwTarget]               = useState<Trainer | null>(null);
-  const [renewTarget, setRenewTarget]         = useState<Client | null>(null); // NEW
+  const [renewTarget, setRenewTarget]         = useState<Client | null>(null);
 
-  // ── Forms ──
   const [newTrainer, setNewTrainer] = useState({
     name: "", email: "", speciality: "", plan: "Starter",
   });
@@ -150,7 +148,6 @@ export function AdminProvider({
     programType: "1-on-1", status: "Active", medicalNotes: "",
     startDate: "", endDate: "", sessionsIncluded: "", plan: "", location: "",
   });
-  // FIX: added target field to instruction
   const [newInstruction, setNewInstruction] = useState({
     title: "", body: "", priority: "medium", target: "all",
   });
@@ -161,32 +158,30 @@ export function AdminProvider({
   const [pwMsg, setPwMsg]     = useState("");
   const [editForm, setEditForm] = useState<any>({});
 
-  // NEW: Renew form state
-  const [renewForm, setRenewForm]     = useState<RenewForm>({ mode: "add", sessions: "", endDate: "" });
+  const [renewForm, setRenewForm]       = useState<RenewForm>({ mode: "add", sessions: "", endDate: "" });
   const [renewLoading, setRenewLoading] = useState(false);
   const [renewMsg, setRenewMsg]         = useState("");
 
-  // ── Filters ──
-  const [clientSearch, setClientSearch]               = useState("");
-  const [trainerFilter, setTrainerFilter]             = useState("all");
-  const [clientStatusFilter, setClientStatusFilter]   = useState("all");
+  const [clientSearch, setClientSearch]             = useState("");
+  const [trainerFilter, setTrainerFilter]           = useState("all");
+  const [clientStatusFilter, setClientStatusFilter] = useState("all");
 
   // ── Derived ──────────────────────────────────────────────────
-  const todayDate = new Date();
-  const totalRevenue        = trainers.reduce((s, t) => s + (t.revenue || 0), 0);
-  const pendingLogs         = trainers.reduce((s, t) => s + (t.pendingLogs || 0), 0);
-  const flaggedClients      = clients.filter((c) => c.medicalNotes);
-  const expiredClients      = clients.filter((c) => c.endDate && new Date(c.endDate) < todayDate && c.status !== "Inactive");
-  const lowClassClients     = clients.filter((c) => (c.classesLeft || 0) <= 2 && (c.sessionsIncluded || 0) > 0 && c.status === "Active");
-  const atRiskClients       = clients.filter((c) => {
+  const todayDate         = new Date();
+  const totalRevenue      = trainers.reduce((s, t) => s + (t.revenue || 0), 0);
+  const pendingLogs       = trainers.reduce((s, t) => s + (t.pendingLogs || 0), 0);
+  const flaggedClients    = clients.filter((c) => c.medicalNotes);
+  const expiredClients    = clients.filter((c) => c.endDate && new Date(c.endDate) < todayDate && c.status !== "Inactive");
+  const lowClassClients   = clients.filter((c) => (c.classesLeft || 0) <= 2 && (c.sessionsIncluded || 0) > 0 && c.status === "Active");
+  const atRiskClients     = clients.filter((c) => {
     const expired    = c.endDate && new Date(c.endDate) < todayDate && c.status !== "Inactive";
     const lowClasses = (c.classesLeft || 0) <= 2 && (c.sessionsIncluded || 0) > 0;
     return expired || lowClasses || (c.compliance || 0) < 75;
   });
-  const lowAttendance       = clients.filter((c) => (c.compliance || 0) < 70);
-  const todayStr            = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-  const todaySessions       = sessionLogs.filter((s) => s.date === todayStr);
-  const avgAccountability   = trainers.length
+  const lowAttendance     = clients.filter((c) => (c.compliance || 0) < 70);
+  const todayStr          = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  const todaySessions     = sessionLogs.filter((s) => s.date === todayStr);
+  const avgAccountability = trainers.length
     ? Math.round(trainers.reduce((s, t) => s + (t.accountabilityScore || 0), 0) / trainers.length)
     : 0;
 
@@ -222,10 +217,13 @@ export function AdminProvider({
     setShowAddTrainer(false);
   };
 
+  // ── FIX: write doc ID back into the document so clientId is always populated ──
   const addClient = async () => {
     if (!newClient.name || !newClient.trainerId) return;
     const sessionsIncluded = Number(newClient.sessionsIncluded) || 0;
-    await addDoc(collection(db, "trainers", newClient.trainerId, "clients"), {
+
+    // Step 1: create the doc (Firestore auto-generates ID)
+    const docRef = await addDoc(collection(db, "trainers", newClient.trainerId, "clients"), {
       name: newClient.name.trim(),
       email: newClient.email.trim(),
       gender: newClient.gender,
@@ -246,6 +244,11 @@ export function AdminProvider({
       progressLastUpdated: "Never",
       createdAt: serverTimestamp(),
     });
+
+    // Step 2: write the auto-generated ID back into the doc
+    // This ensures clientId is always set correctly in all session/progress/diet logs
+    await updateDoc(docRef, { id: docRef.id });
+
     setNewClient({
       name: "", email: "", gender: "", age: "", trainerId: "", trainerName: "",
       programType: "1-on-1", status: "Active", medicalNotes: "",
@@ -264,15 +267,14 @@ export function AdminProvider({
       ? Math.round((sessionsLogged / sessionsIncluded) * 100)
       : 0;
     await updateDoc(doc(db, "trainers", trainerId, "clients", id), {
-      ...data, classesLeft, compliance, updatedAt: serverTimestamp(),
+      ...data, classesLeft, compliance,
+      id, // keep id field in sync
+      updatedAt: serverTimestamp(),
     });
     setShowEditClient(false);
     setSelectedClient({ ...editForm, classesLeft, compliance });
   };
 
-  // NEW: Renew client — two modes
-  // "add"   → adds X sessions on top of existing, extends end date
-  // "reset" → full fresh start: new session count, reset logs, new dates
   const renewClient = async () => {
     if (!renewTarget || !renewForm.sessions || !renewForm.endDate) {
       setRenewMsg("Please fill in all fields.");
@@ -285,7 +287,6 @@ export function AdminProvider({
       let updates: any = { updatedAt: serverTimestamp(), status: "Active" };
 
       if (renewForm.mode === "add") {
-        // Add sessions on top — keeps history, extends plan
         const newSessionsIncluded = (renewTarget.sessionsIncluded || 0) + addSessions;
         const newClassesLeft      = (renewTarget.classesLeft || 0) + addSessions;
         updates = {
@@ -293,13 +294,11 @@ export function AdminProvider({
           sessionsIncluded: newSessionsIncluded,
           classesLeft: newClassesLeft,
           endDate: renewForm.endDate,
-          // Recalculate compliance against new total
           compliance: newSessionsIncluded > 0
             ? Math.round(((renewTarget.sessionsLogged || 0) / newSessionsIncluded) * 100)
             : 0,
         };
       } else {
-        // Fresh reset — clean slate, new plan
         updates = {
           ...updates,
           sessionsIncluded: addSessions,
@@ -335,32 +334,24 @@ export function AdminProvider({
   };
 
   const toggleClientStatus = async (
-    clientId: string,
-    trainerId: string,
-    currentStatus: string
+    clientId: string, trainerId: string, currentStatus: string
   ) => {
     const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
-    await updateDoc(doc(db, "trainers", trainerId, "clients", clientId), {
-      status: newStatus,
-    });
+    await updateDoc(doc(db, "trainers", trainerId, "clients", clientId), { status: newStatus });
     if (selectedClient?.id === clientId) {
       setSelectedClient((prev: any) => ({ ...prev, status: newStatus }));
     }
   };
 
-  // FIX: postInstruction now saves the target field
   const postInstruction = async () => {
     if (!newInstruction.title) return;
     await addDoc(collection(db, "instructions"), {
       title: newInstruction.title,
       body: newInstruction.body,
       priority: newInstruction.priority,
-      target: newInstruction.target, // "all" or a specific trainerId
+      target: newInstruction.target,
       by: name,
-      date: new Date().toLocaleDateString("en-IN", {
-        day: "numeric",
-        month: "short",
-      }),
+      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
       createdAt: serverTimestamp(),
     });
     setNewInstruction({ title: "", body: "", priority: "medium", target: "all" });
@@ -379,10 +370,7 @@ export function AdminProvider({
       note: newWarning.note,
       by: name,
       followUp: newWarning.followUp,
-      date: new Date().toLocaleDateString("en-IN", {
-        day: "numeric",
-        month: "short",
-      }),
+      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
       createdAt: serverTimestamp(),
     });
     const trainer = trainers.find((t) => t.name === newWarning.trainer);
@@ -410,10 +398,7 @@ export function AdminProvider({
     }, 3000);
   };
 
-  const toggleTrainerStatus = async (
-    trainerId: string,
-    currentStatus: string
-  ) => {
+  const toggleTrainerStatus = async (trainerId: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "suspended" : "active";
     await updateDoc(doc(db, "trainers", trainerId), { status: newStatus });
     if (selectedTrainer?.id === trainerId) {
@@ -426,7 +411,6 @@ export function AdminProvider({
     setShowEditClient(true);
   };
 
-  // NEW: Open renew modal pre-filled with client
   const openRenewClient = (c: Client) => {
     setRenewTarget(c);
     setRenewForm({ mode: "add", sessions: "", endDate: "" });
