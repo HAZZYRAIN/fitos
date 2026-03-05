@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "../../../../../lib/firebase";
 import {
   doc, getDoc, updateDoc, collection,
-  query, where, getDocs, orderBy,
+  query, where, onSnapshot, orderBy,
 } from "firebase/firestore";
 import { S } from "../../../../styles/dashboard";
 import type { Client, SessionLog, ProgressLog, DietLog } from "../../../../types";
@@ -51,6 +51,10 @@ export default function ClientProfilePage() {
   const [toast, setToast] = useState("");
 
   useEffect(() => {
+    let unsubSession: (() => void) | null = null;
+    let unsubProgress: (() => void) | null = null;
+    let unsubDiet: (() => void) | null = null;
+
     async function load() {
       try {
         const clientRef = doc(db, "trainers", trainerId, "clients", clientId);
@@ -63,39 +67,56 @@ export default function ClientProfilePage() {
         setMedicalForm(data.medicalNotes || "");
 
         const clientName = data.name || "";
+        const hasId = !!data.id;
 
-        // Session logs — query without orderBy to avoid index requirement, sort in JS
+        // Session logs — real-time listener
         try {
-          const sessSnap = await getDocs(query(collection(db, "sessionLogs"), where("client", "==", clientName)));
-          const logs = sessSnap.docs.map((d) => ({ id: d.id, ...d.data() } as SessionLog));
-          logs.sort((a, b) => {
-            const aTime = (a.createdAt?.seconds || 0);
-            const bTime = (b.createdAt?.seconds || 0);
-            return bTime - aTime;
-          });
-          setSessionLogs(logs);
+          const sessionQ = hasId
+            ? query(collection(db, "sessionLogs"), where("clientId", "==", data.id))
+            : query(collection(db, "sessionLogs"), where("client", "==", clientName));
+
+          unsubSession = onSnapshot(sessionQ, (sessSnap) => {
+            const logs = sessSnap.docs.map((d) => ({ id: d.id, ...d.data() } as SessionLog));
+            logs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+            setSessionLogs(logs);
+          }, (e) => console.error("sessionLogs:", e));
         } catch (e) { /* non-fatal */ }
 
-        // Progress logs
+        // Progress logs — real-time listener
         try {
-          const progSnap = await getDocs(query(collection(db, "progressLogs"), where("clientName", "==", clientName)));
-          const logs = progSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ProgressLog));
-          logs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-          setProgressLogs(logs);
+          const progressQ = hasId
+            ? query(collection(db, "progressLogs"), where("clientId", "==", data.id), orderBy("createdAt", "asc"))
+            : query(collection(db, "progressLogs"), where("clientName", "==", clientName), orderBy("createdAt", "asc"));
+
+          unsubProgress = onSnapshot(progressQ, (progSnap) => {
+            const logs = progSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ProgressLog));
+            setProgressLogs(logs);
+          }, (e) => console.error("progressLogs:", e));
         } catch (e) { /* non-fatal */ }
 
-        // Diet logs
+        // Diet logs — real-time listener
         try {
-          const dietSnap = await getDocs(query(collection(db, "dietLogs"), where("clientName", "==", clientName)));
-          const logs = dietSnap.docs.map((d) => ({ id: d.id, ...d.data() } as DietLog));
-          logs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-          setDietLogs(logs);
+          const dietQ = hasId
+            ? query(collection(db, "dietLogs"), where("clientId", "==", data.id), orderBy("createdAt", "asc"))
+            : query(collection(db, "dietLogs"), where("clientName", "==", clientName), orderBy("createdAt", "asc"));
+
+          unsubDiet = onSnapshot(dietQ, (dietSnap) => {
+            const logs = dietSnap.docs.map((d) => ({ id: d.id, ...d.data() } as DietLog));
+            setDietLogs(logs);
+          }, (e) => console.error("dietLogs:", e));
         } catch (e) { /* non-fatal */ }
 
       } catch (e) { setNotFound(true); }
       setLoading(false);
     }
+
     load();
+
+    return () => {
+      if (unsubSession)  unsubSession();
+      if (unsubProgress) unsubProgress();
+      if (unsubDiet)     unsubDiet();
+    };
   }, [trainerId, clientId]);
 
   const clientRef = doc(db, "trainers", trainerId, "clients", clientId);
