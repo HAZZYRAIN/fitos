@@ -441,60 +441,91 @@ export default function LogSession() {
 
           {exercises.map((ex, ei) => (
             <div key={ei} className="ex-card">
-              {/* Exercise header */}
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
-                <div style={{ flex: 1 }}>
+
+              {/* ── Exercise name + remove ── */}
+              <div style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:12 }}>
+                <div style={{ flex:1 }}>
                   <div className="ex-name">{ex.name}</div>
                   {ex.muscles && <div className="ex-muscle">{ex.muscles}</div>}
                 </div>
-                <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: 2 }}
-                  onClick={() => removeEx(ei)}>✕</button>
+                <button
+                  style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:16, padding:2 }}
+                  onClick={() => removeEx(ei)}
+                >✕</button>
               </div>
 
-              {/* Sets — scrollable table so it never overflows on mobile */}
-              <div className="sets-wrap">
-                <table className="set-table">
-                  <thead>
-                    <tr>
-                      <th>Set</th>
-                      <th>Reps</th>
-                      <th>Load (kg)</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ex.sets.map((s, si) => (
-                      <tr key={si}>
-                        <td>{si + 1}</td>
-              {/* Sets — big card per set for easy mobile input */}
+              {/* ── Sets — one big card per set ── */}
               {ex.sets.map((s, si) => (
                 <div key={si} className="set-card">
                   <div className="set-card-head">
                     <span className="set-badge">SET {si + 1}</span>
-                    <button className="set-del" onClick={() => removeSet(ei, si)} disabled={ex.sets.length <= 1}>
-                      Remove
-                    </button>
+                    <button
+                      className="set-del"
+                      onClick={() => removeSet(ei, si)}
+                      disabled={ex.sets.length <= 1}
+                    >Remove</button>
                   </div>
                   <div className="set-fields">
                     <div>
                       <div className="set-field-lbl">Reps</div>
                       <input
-                        className="set-big-inp" type="number" inputMode="numeric"
-                        placeholder="10" value={s.reps}
+                        className="set-big-inp"
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="10"
+                        value={s.reps}
                         onChange={(e) => updateSet(ei, si, "reps", e.target.value)}
                       />
                     </div>
                     <div>
                       <div className="set-field-lbl">Load (kg)</div>
                       <input
-                        className="set-big-inp" type="number" inputMode="decimal"
-                        placeholder="0" step="0.5" value={s.load}
+                        className="set-big-inp"
+                        type="number"
+                        inputMode="decimal"
+                        placeholder="0"
+                        step="0.5"
+                        value={s.load}
                         onChange={(e) => updateSet(ei, si, "load", e.target.value)}
                       />
                     </div>
                   </div>
                 </div>
               ))}
+
+              {/* ── Add set ── */}
+              <button
+                className="btn btn-g btn-xs"
+                style={{ width:"100%", marginBottom:12 }}
+                onClick={() => addSet(ei)}
+              >+ Add Set</button>
+
+              {/* ── RPE ── */}
+              <div style={{ marginTop:4 }}>
+                <div className="set-field-lbl" style={{ marginBottom:8 }}>RPE (Rate of Perceived Exertion)</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                  {[1,2,3,4,5,6,7,8,9,10].map((r) => (
+                    <button
+                      key={r}
+                      className={`rpe-btn${ex.rpe === String(r) ? " sel" : ""}`}
+                      style={{
+                        color:       ex.rpe === String(r) ? rpeColor(r) : undefined,
+                        borderColor: ex.rpe === String(r) ? rpeColor(r) : undefined,
+                        background:  ex.rpe === String(r) ? `${rpeColor(r)}22` : undefined,
+                      }}
+                      onClick={() => setRpe(ei, String(r))}
+                    >{r}</button>
+                  ))}
+                </div>
+                {ex.rpe && (
+                  <div style={{ fontSize:11, fontWeight:700, marginTop:6, color:rpeColor(Number(ex.rpe)) }}>
+                    RPE {ex.rpe} — {rpeLabel(Number(ex.rpe))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          ))}
                       borderColor: ex.rpe === String(r) ? rpeColor(r) : undefined,
                       background:  ex.rpe === String(r) ? `${rpeColor(r)}18` : undefined,
                     }}
