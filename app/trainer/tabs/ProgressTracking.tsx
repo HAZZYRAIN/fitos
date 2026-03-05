@@ -269,12 +269,12 @@ export default function ProgressTracking() {
           <button key={id}
             onClick={() => setProgressTab(id)}
             style={{
-              height: 36, padding: "0 14px", borderRadius: 8, border: "none",
+              height: 36, padding: "0 14px", borderRadius: 8,
+              border: progressTab === id ? "none" : "1px solid var(--b0)",
               background: progressTab === id ? "var(--brand1)" : "var(--bg2)",
               color: progressTab === id ? "#fff" : "var(--t3)",
               fontSize: 13, fontWeight: 700, cursor: "pointer",
-              border: progressTab === id ? "none" : "1px solid var(--b0)",
-            } as any}
+            }}
           >{label}</button>
         ))}
       </div>
