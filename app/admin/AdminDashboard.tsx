@@ -25,11 +25,38 @@ const NAV_ITEMS = [
   { id: "trainers-list", icon: "👤", label: "Trainers"             },
 ];
 
+// ── Toast ─────────────────────────────────────────────────────
+function Toast({ message, type }: { message: string; type: "success" | "error" }) {
+  return (
+    <>
+      <style>{`@keyframes adminSlideUp { from { opacity:0; transform:translateX(-50%) translateY(16px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }`}</style>
+      <div style={{
+        position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+        zIndex: 99999, minWidth: 260, maxWidth: "90vw",
+        background: type === "success" ? "#1a3d2b" : "#3d1a1a",
+        border: `1.5px solid ${type === "success" ? "#1e8a4c" : "#c0392b"}`,
+        borderRadius: 12, padding: "13px 20px",
+        display: "flex", alignItems: "center", gap: 10,
+        boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+        animation: "adminSlideUp .25s ease",
+        pointerEvents: "none",
+      }}>
+        <span style={{ fontSize: 18 }}>{type === "success" ? "✓" : "✕"}</span>
+        <span style={{
+          fontSize: 14, fontWeight: 700,
+          color: type === "success" ? "#4ade80" : "#f87171",
+        }}>{message}</span>
+      </div>
+    </>
+  );
+}
+
 function AdminInner() {
   const {
     name, logout, tab, setTab,
     trainers, clients, instructions, warnings,
     atRiskClients, flaggedClients, lowAttendance, pendingLogs,
+    toast,
     showChangePw,    setShowChangePw,
     showEditClient,  setShowEditClient,
     showAddTrainer,  setShowAddTrainer,
@@ -67,8 +94,10 @@ function AdminInner() {
 
   return (
     <div className="app">
-      {/* Base styles + mobile fixes in one injection */}
       <style>{S + MOBILE_FIX}</style>
+
+      {/* ── GLOBAL TOAST ── */}
+      {toast && <Toast message={toast.message} type={toast.type} />}
 
       {/* ── MOBILE DRAWER OVERLAY ── */}
       <div className={`drawer-overlay ${drawerOpen ? "open" : ""}`} onClick={closeDrawer} />
