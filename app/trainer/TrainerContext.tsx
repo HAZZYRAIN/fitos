@@ -1,13 +1,8 @@
 "use client";
 // ============================================================
-// TRAINER CONTEXT — v4
-// Changes from v3:
-// - saveSession now also writes to progressLogs (measurements + habits + nutrition + performance)
-//   so admin Client Progress tab reflects data immediately
-// - sessionMeasurements state added (weight, chest, waist, hips, arms) — optional
-// Late detection fix:
-// - Session TODAY → late only if logged after 10 PM
-// - Session ANY PREVIOUS DAY → always late
+// TRAINER CONTEXT — v5
+// Changes from v4:
+// - saveSession blocks future dates (UI + server-side validation)
 // ============================================================
 import { createContext, useContext, useState, useEffect } from "react";
 import { db } from "../../lib/firebase";
@@ -63,6 +58,7 @@ export interface TrainerContextValue {
   newDiet: any; setNewDiet: (v: any) => void;
   dietHistory: Record<string, any[]>;
   saveDiet: () => Promise<void>;
+  todayMax: string;
 }
 
 const TrainerContext = createContext<TrainerContextValue | null>(null);
@@ -80,6 +76,9 @@ export function TrainerProvider({
   uid: string; name: string; email: string; logout: () => void;
   clients: Client[]; trainers: Trainer[]; instructions: Instruction[];
 }) {
+  // ── today's date string for max date cap ─────────────────────
+  const todayMax = new Date().toISOString().split("T")[0];
+
   const [tab, setTab] = useState("clients");
   const [libCat, setLibCat] = useState("Chest");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -91,7 +90,7 @@ export function TrainerProvider({
   const [sessionError, setSessionError] = useState("");
   const [sessionLoading, setSessionLoading] = useState(false);
   const [injuryFlag, setInjuryFlag] = useState("");
-  const [sessionDate, setSessionDate] = useState(new Date().toISOString().split("T")[0]);
+  const [sessionDate, setSessionDate] = useState(todayMax);
   const [sessionDuration, setSessionDuration] = useState("60");
   const [sessionStatus, setSessionStatus] = useState("Completed");
   const [sessionType, setSessionType] = useState("Strength Training");
@@ -176,12 +175,18 @@ export function TrainerProvider({
 
   // ── saveSession ──────────────────────────────────────────────
   const saveSession = async () => {
-    // Validate
+    // ── Validate ─────────────────────────────────────────────
     if (!logClient)           { setSessionError("Please select a client."); return; }
     if (!sessionNotes.trim()) { setSessionError("Quality notes are required."); return; }
     if (!sessionHabits.steps) { setSessionError("Step count is required (Habits section)."); return; }
     if (!sessionHabits.water) { setSessionError("Water intake is required (Habits section)."); return; }
     if (!sessionHabits.sleep) { setSessionError("Sleep hours are required (Habits section)."); return; }
+
+    // ── Block future dates ────────────────────────────────────
+    if (sessionDate > todayMax) {
+      setSessionError("Session date cannot be in the future.");
+      return;
+    }
 
     setSessionError("");
     setSessionLoading(true);
@@ -201,9 +206,9 @@ export function TrainerProvider({
       const sessionMidnight = new Date(sessionDate);
       sessionMidnight.setHours(0, 0, 0, 0);
 
-      const isToday    = sessionMidnight.getTime() === todayMidnight.getTime();
-      const isPastDay  = sessionMidnight.getTime() <  todayMidnight.getTime();
-      const isAfter10pm = now.getHours() >= 22; // 22:00 onwards = late
+      const isToday     = sessionMidnight.getTime() === todayMidnight.getTime();
+      const isPastDay   = sessionMidnight.getTime() <  todayMidnight.getTime();
+      const isAfter10pm = now.getHours() >= 22;
 
       const isLate = isPastDay || (isToday && isAfter10pm);
       // ────────────────────────────────────────────────────────
@@ -229,12 +234,10 @@ export function TrainerProvider({
         exercises:  sessionExercises.map((e) => ({
           name: e.name, sets: e.sets, reps: e.reps, weight: e.weight,
         })),
-        // inline habit snapshot for session history view
         steps:        Number(sessionHabits.steps) || 0,
         water:        Number(sessionHabits.water) || 0,
         sleep:        Number(sessionHabits.sleep) || 0,
         sleepQuality: sessionHabits.sleepQuality,
-        // inline measurement snapshot — only include if filled
         ...(sessionMeasurements.weight ? { weight: Number(sessionMeasurements.weight) } : {}),
         ...(sessionMeasurements.chest  ? { chest:  Number(sessionMeasurements.chest)  } : {}),
         ...(sessionMeasurements.waist  ? { waist:  Number(sessionMeasurements.waist)  } : {}),
@@ -243,7 +246,7 @@ export function TrainerProvider({
         createdAt: serverTimestamp(),
       });
 
-      // ── 2. progressLogs — admin Client Progress tab reads this ─
+      // ── 2. progressLogs ──────────────────────────────────────
       const hasMeasurements = sessionMeasurements.weight || sessionMeasurements.chest ||
         sessionMeasurements.waist || sessionMeasurements.hips || sessionMeasurements.arms;
       const hasNutrition  = sessionHabits.protein || sessionHabits.calories ||
@@ -261,13 +264,11 @@ export function TrainerProvider({
         loggedBy:     name,
         source:       "session_log",
         date:         fullDateLabel,
-        // Habits — always present
         steps:        Number(sessionHabits.steps) || 0,
         water:        Number(sessionHabits.water) || 0,
         sleep:        Number(sessionHabits.sleep) || 0,
         sleepQuality: sessionHabits.sleepQuality  || "Good",
         activeMinutes: Number(sessionHabits.activeMinutes) || 0,
-        // Measurements — only if filled
         ...(hasMeasurements ? clean({
           weight: maybe(sessionMeasurements.weight),
           chest:  maybe(sessionMeasurements.chest),
@@ -275,12 +276,10 @@ export function TrainerProvider({
           hips:   maybe(sessionMeasurements.hips),
           arms:   maybe(sessionMeasurements.arms),
         }) : {}),
-        // Nutrition — only if filled
         ...(hasNutrition ? clean({
           calories: maybe(sessionHabits.calories),
           protein:  maybe(sessionHabits.protein),
         }) : {}),
-        // Performance — only if exercises logged
         ...(hasPerformance ? clean({
           exercise:     sessionExercises[0]?.name || null,
           reps:         maybe(sessionExercises[0]?.reps),
@@ -471,6 +470,7 @@ export function TrainerProvider({
       newDiet, setNewDiet,
       dietHistory,
       saveDiet,
+      todayMax,
     }}>
       {children}
     </TrainerContext.Provider>
