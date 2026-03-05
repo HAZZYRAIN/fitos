@@ -216,71 +216,64 @@ export function TrainerProvider({
         water:        Number(sessionHabits.water) || 0,
         sleep:        Number(sessionHabits.sleep) || 0,
         sleepQuality: sessionHabits.sleepQuality,
-        // inline measurement snapshot
-        weight: Number(sessionMeasurements.weight) || null,
-        chest:  Number(sessionMeasurements.chest)  || null,
-        waist:  Number(sessionMeasurements.waist)  || null,
-        hips:   Number(sessionMeasurements.hips)   || null,
-        arms:   Number(sessionMeasurements.arms)   || null,
+        // inline measurement snapshot — only include if filled
+        ...(sessionMeasurements.weight ? { weight: Number(sessionMeasurements.weight) } : {}),
+        ...(sessionMeasurements.chest  ? { chest:  Number(sessionMeasurements.chest)  } : {}),
+        ...(sessionMeasurements.waist  ? { waist:  Number(sessionMeasurements.waist)  } : {}),
+        ...(sessionMeasurements.hips   ? { hips:   Number(sessionMeasurements.hips)   } : {}),
+        ...(sessionMeasurements.arms   ? { arms:   Number(sessionMeasurements.arms)   } : {}),
         createdAt: serverTimestamp(),
       });
 
       // ── 2. progressLogs — admin Client Progress tab reads this ─
-      // Combines measurements + habits + nutrition + performance into one entry
       const hasMeasurements = sessionMeasurements.weight || sessionMeasurements.chest ||
         sessionMeasurements.waist || sessionMeasurements.hips || sessionMeasurements.arms;
-
-      const hasNutrition = sessionHabits.protein || sessionHabits.calories ||
+      const hasNutrition  = sessionHabits.protein || sessionHabits.calories ||
         sessionHabits.carbs || sessionHabits.fats;
-
       const hasPerformance = sessionExercises.length > 0;
 
-      // Always write a progressLog entry when a session is saved
-      // so admin can see habits + any optional measurements/nutrition/performance
-      await addDoc(collection(db, "progressLogs"), {
-        clientId:   client?.id || "",
-        clientName: logClient,
-        trainerId:  uid,
-        loggedBy:   name,         // human-readable trainer name for admin view
-        source:     "session_log",
-        date:       fullDateLabel,
+      // Helper: only include key if value is truthy (no undefined/null to Firebase)
+      const maybe = (val: any) => (val && Number(val) !== 0) ? Number(val) : null;
+      const clean = (obj: Record<string, any>) =>
+        Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== undefined));
 
-        // ── Measurements (optional) ──
-        ...(hasMeasurements ? {
-          weight: Number(sessionMeasurements.weight) || undefined,
-          chest:  Number(sessionMeasurements.chest)  || undefined,
-          waist:  Number(sessionMeasurements.waist)  || undefined,
-          hips:   Number(sessionMeasurements.hips)   || undefined,
-          arms:   Number(sessionMeasurements.arms)   || undefined,
-        } : {}),
-
-        // ── Habits (always present — required fields) ──
-        steps:        Number(sessionHabits.steps)         || 0,
-        water:        Number(sessionHabits.water)         || 0,
-        sleep:        Number(sessionHabits.sleep)         || 0,
-        sleepQuality: sessionHabits.sleepQuality          || "Good",
+      await addDoc(collection(db, "progressLogs"), clean({
+        clientId:     client?.id   || "",
+        clientName:   logClient,
+        trainerId:    uid,
+        loggedBy:     name,
+        source:       "session_log",
+        date:         fullDateLabel,
+        // Habits — always present
+        steps:        Number(sessionHabits.steps) || 0,
+        water:        Number(sessionHabits.water) || 0,
+        sleep:        Number(sessionHabits.sleep) || 0,
+        sleepQuality: sessionHabits.sleepQuality  || "Good",
         activeMinutes: Number(sessionHabits.activeMinutes) || 0,
-        mood:         undefined, // trainers don't log mood here
-
-        // ── Nutrition (optional) ──
-        ...(hasNutrition ? {
-          calories: Number(sessionHabits.calories) || undefined,
-          protein:  Number(sessionHabits.protein)  || undefined,
-          water:    Number(sessionHabits.water)     || undefined,
-        } : {}),
-
-        // ── Session Performance ──
-        ...(hasPerformance ? {
-          exercise:     sessionExercises[0]?.name || undefined,
-          reps:         Number(sessionExercises[0]?.reps)   || undefined,
-          weightLifted: Number(sessionExercises[0]?.weight) || undefined,
-          endurance:    sessionType === "Cardio" ? Number(sessionDuration) || undefined : undefined,
-        } : {}),
-
-        notes:     sessionNotes,
+        // Measurements — only if filled
+        ...(hasMeasurements ? clean({
+          weight: maybe(sessionMeasurements.weight),
+          chest:  maybe(sessionMeasurements.chest),
+          waist:  maybe(sessionMeasurements.waist),
+          hips:   maybe(sessionMeasurements.hips),
+          arms:   maybe(sessionMeasurements.arms),
+        }) : {}),
+        // Nutrition — only if filled
+        ...(hasNutrition ? clean({
+          calories: maybe(sessionHabits.calories),
+          protein:  maybe(sessionHabits.protein),
+        }) : {}),
+        // Performance — only if exercises logged
+        ...(hasPerformance ? clean({
+          exercise:     sessionExercises[0]?.name || null,
+          reps:         maybe(sessionExercises[0]?.reps),
+          weightLifted: maybe(sessionExercises[0]?.weight),
+          endurance:    sessionType === "Cardio" ? maybe(sessionDuration) : null,
+        }) : {}),
+        notes:       sessionNotes,
         sessionType,
-        createdAt: serverTimestamp(),
-      });
+        createdAt:   serverTimestamp(),
+      }));
 
       // ── 3. Habits → dietLogs ─────────────────────────────────
       await addDoc(collection(db, "dietLogs"), {
