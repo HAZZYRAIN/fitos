@@ -179,19 +179,27 @@ export default function LogSession() {
         .ex-muscle{font-size:10px;color:var(--t3);margin-top:1px;}
 
         /* ── set grid ── */
-        .set-grid{display:grid;grid-template-columns:26px 1fr 1fr 26px;gap:5px;align-items:center;margin-bottom:5px;}
-        .set-hdr{font-size:9px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.5px;text-align:center;}
-        .set-num{font-size:11px;font-weight:700;color:var(--t3);text-align:center;}
+        .sets-wrap{width:100%;overflow-x:auto;}
+        .sets-wrap::-webkit-scrollbar{height:3px;}
+        .sets-wrap::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px;}
+        .set-table{width:100%;min-width:220px;border-collapse:separate;border-spacing:0 4px;}
+        .set-table th{font-size:9px;font-weight:700;color:var(--t4);text-transform:uppercase;
+          letter-spacing:.5px;text-align:center;padding:0 4px 4px;}
+        .set-table th:first-child{width:28px;}
+        .set-table th:last-child{width:28px;}
+        .set-table td{padding:0 4px;}
+        .set-table td:first-child{text-align:center;font-size:11px;font-weight:700;color:var(--t3);width:28px;}
+        .set-table td:last-child{width:28px;}
         .set-del{background:none;border:none;cursor:pointer;color:var(--t4);font-size:13px;
           width:26px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;
-          transition:color .12s,background .12s;}
+          transition:color .12s,background .12s;margin:auto;}
         .set-del:hover{color:var(--red);background:rgba(192,57,43,.08);}
         .set-del:disabled{opacity:.3;cursor:default;}
 
         /* ── RPE ── */
-        .rpe-row{display:flex;align-items:center;gap:4px;margin-top:10px;flex-wrap:wrap;}
-        .rpe-lbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-right:2px;}
-        .rpe-btn{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--b1);
+        .rpe-row{display:flex;align-items:center;gap:4px;margin-top:10px;flex-wrap:wrap;row-gap:6px;}
+        .rpe-lbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-right:2px;flex-shrink:0;}
+        .rpe-btn{width:28px;height:28px;border-radius:6px;border:1.5px solid var(--b1);flex-shrink:0;
           background:var(--bg1);font-size:10px;font-weight:700;cursor:pointer;color:var(--t3);
           transition:all .12s;display:flex;align-items:center;justify-content:center;}
         .rpe-btn.sel{border-color:var(--brand1);background:rgba(201,168,76,.12);color:var(--brand1);}
@@ -436,29 +444,39 @@ export default function LogSession() {
                   onClick={() => removeEx(ei)}>✕</button>
               </div>
 
-              {/* Set column headers */}
-              <div className="set-grid" style={{ marginBottom: 2 }}>
-                <div className="set-hdr">Set</div>
-                <div className="set-hdr">Reps</div>
-                <div className="set-hdr">Load (kg)</div>
-                <div />
+              {/* Sets — scrollable table so it never overflows on mobile */}
+              <div className="sets-wrap">
+                <table className="set-table">
+                  <thead>
+                    <tr>
+                      <th>Set</th>
+                      <th>Reps</th>
+                      <th>Load (kg)</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ex.sets.map((s, si) => (
+                      <tr key={si}>
+                        <td>{si + 1}</td>
+                        <td>
+                          <input className="log-inp" type="number" placeholder="10" value={s.reps}
+                            onChange={(e) => updateSet(ei, si, "reps", e.target.value)}
+                            style={{ width: "100%" }} />
+                        </td>
+                        <td>
+                          <input className="log-inp" type="number" placeholder="0" step="0.5" value={s.load}
+                            onChange={(e) => updateSet(ei, si, "load", e.target.value)}
+                            style={{ width: "100%" }} />
+                        </td>
+                        <td>
+                          <button className="set-del" onClick={() => removeSet(ei, si)} disabled={ex.sets.length <= 1}>✕</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-
-              {/* Sets */}
-              {ex.sets.map((s, si) => (
-                <div key={si} className="set-grid">
-                  <div className="set-num">{si + 1}</div>
-                  <input
-                    className="log-inp" type="number" placeholder="10" value={s.reps}
-                    onChange={(e) => updateSet(ei, si, "reps", e.target.value)}
-                  />
-                  <input
-                    className="log-inp" type="number" placeholder="0" step="0.5" value={s.load}
-                    onChange={(e) => updateSet(ei, si, "load", e.target.value)}
-                  />
-                  <button className="set-del" onClick={() => removeSet(ei, si)} disabled={ex.sets.length <= 1}>✕</button>
-                </div>
-              ))}
 
               <button className="btn btn-g btn-xs" style={{ width: "100%", marginTop: 4, marginBottom: 10 }}
                 onClick={() => addSet(ei)}>
