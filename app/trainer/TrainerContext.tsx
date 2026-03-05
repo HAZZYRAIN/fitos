@@ -51,12 +51,12 @@ export interface TrainerContextValue {
   progressClient: string; setProgressClient: (v: string) => void;
   progressTab: string; setProgressTab: (v: string) => void;
   showLogProgress: boolean; setShowLogProgress: (v: boolean) => void;
-  progressSaved: boolean; progressLoading: boolean;
+  progressSaved: boolean; progressError: string; progressLoading: boolean;
   newProgress: any; setNewProgress: (v: any) => void;
   progressHistory: Record<string, any[]>;
   saveProgress: (last?: any) => Promise<void>;
   dietClient: string; setDietClient: (v: string) => void;
-  dietSaved: boolean; dietLoading: boolean;
+  dietSaved: boolean; dietError: string; dietLoading: boolean;
   newDiet: any; setNewDiet: (v: any) => void;
   dietHistory: Record<string, any[]>;
   saveDiet: () => Promise<void>;
@@ -102,8 +102,10 @@ export function TrainerProvider({
   const [progressTab, setProgressTab] = useState("overview");
   const [showLogProgress, setShowLogProgress] = useState(false);
   const [progressSaved, setProgressSaved] = useState(false);
+  const [progressError, setProgressError] = useState("");
   const [progressLoading, setProgressLoading] = useState(false);
   const [dietSaved, setDietSaved] = useState(false);
+  const [dietError, setDietError] = useState("");
   const [dietLoading, setDietLoading] = useState(false);
   const [newProgress, setNewProgress] = useState({
     weight: "", bf: "", chest: "", waist: "", hips: "",
@@ -361,6 +363,7 @@ export function TrainerProvider({
   // ── saveProgress (legacy standalone tab) ────────────────────
   const saveProgress = async (last?: any) => {
     if (!progressClient) return;
+    setProgressError("");
     setProgressLoading(true);
     try {
       const client = myClients.find((c) => c.name === progressClient);
@@ -383,13 +386,16 @@ export function TrainerProvider({
         arms: "", thighs: "", squat: "", bench: "", deadlift: "", pullup: "", notes: "",
       });
       setTimeout(() => setProgressSaved(false), 3000);
-    } catch (err) { console.error("saveProgress:", err); }
-    finally { setProgressLoading(false); }
+    } catch (err: any) {
+      console.error("saveProgress:", err);
+      setProgressError("Failed to save. Please try again.");
+    } finally { setProgressLoading(false); }
   };
 
   // ── saveDiet (legacy standalone tab) ────────────────────────
   const saveDiet = async () => {
     if (!dietClient) return;
+    setDietError("");
     setDietLoading(true);
     try {
       const client = myClients.find((c) => c.name === dietClient);
@@ -411,8 +417,10 @@ export function TrainerProvider({
       setDietSaved(true);
       setNewDiet({ protein: "", water: "", steps: "", sleep: "", sleepQuality: "Good", notes: "" });
       setTimeout(() => setDietSaved(false), 3000);
-    } catch (err) { console.error("saveDiet:", err); }
-    finally { setDietLoading(false); }
+    } catch (err: any) {
+      console.error("saveDiet:", err);
+      setDietError("Failed to save. Please try again.");
+    } finally { setDietLoading(false); }
   };
 
   return (
@@ -439,12 +447,12 @@ export function TrainerProvider({
       progressClient, setProgressClient,
       progressTab, setProgressTab,
       showLogProgress, setShowLogProgress,
-      progressSaved, progressLoading,
+      progressSaved, progressError, progressLoading,
       newProgress, setNewProgress,
       progressHistory,
       saveProgress,
       dietClient, setDietClient,
-      dietSaved, dietLoading,
+      dietSaved, dietError, dietLoading,
       newDiet, setNewDiet,
       dietHistory,
       saveDiet,
