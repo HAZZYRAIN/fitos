@@ -67,27 +67,28 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default function DietHabits() {
-  const {
-    myClients, dietClient, setDietClient,
-    dietSaved, dietError, dietLoading, newDiet, setNewDiet,
-    dietHistory, saveDiet,
-  } = useTrainer();
+// ── INPUT STYLES (defined outside so they are stable references) ──
+const inputStyle: React.CSSProperties = {
+  width: "100%", boxSizing: "border-box",
+  height: 46, padding: "0 12px", borderRadius: 8,
+  border: "1.5px solid var(--b0)", background: "var(--bg2)",
+  fontSize: 16, color: "var(--t1)", outline: "none",
+  fontFamily: "inherit",
+};
+const selectStyle: React.CSSProperties = { ...inputStyle };
 
-  const dh = dietHistory[dietClient] || dietHistory[Object.keys(dietHistory)[0]] || [];
+// ── FIX: LogForm is now OUTSIDE DietHabits so React never recreates it on re-render ──
+interface LogFormProps {
+  newDiet: any;
+  setNewDiet: (fn: (p: any) => any) => void;
+  saveDiet: () => void;
+  dietLoading: boolean;
+  dietSaved: boolean;
+  dietError: string | null;
+}
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", boxSizing: "border-box",
-    height: 46, padding: "0 12px", borderRadius: 8,
-    border: "1.5px solid var(--b0)", background: "var(--bg2)",
-    fontSize: 16, color: "var(--t1)", outline: "none",
-    fontFamily: "inherit",
-  };
-
-  const selectStyle: React.CSSProperties = { ...inputStyle };
-
-  // ── Log form (shared between empty + full view) ───────────
-  const LogForm = () => (
+function LogForm({ newDiet, setNewDiet, saveDiet, dietLoading, dietSaved, dietError }: LogFormProps) {
+  return (
     <div style={{
       background: "var(--bg1)", border: "1px solid var(--b0)",
       borderRadius: 12, padding: "18px 16px",
@@ -167,7 +168,6 @@ export default function DietHabits() {
         {dietLoading ? "Saving..." : "💾 Save Habit Log"}
       </button>
 
-      {/* Inline fallback messages (in case toast is missed) */}
       {dietSaved && (
         <div style={{
           marginTop: 10, padding: "10px 14px", borderRadius: 8,
@@ -184,6 +184,17 @@ export default function DietHabits() {
       )}
     </div>
   );
+}
+
+// ── Main component ────────────────────────────────────────────
+export default function DietHabits() {
+  const {
+    myClients, dietClient, setDietClient,
+    dietSaved, dietError, dietLoading, newDiet, setNewDiet,
+    dietHistory, saveDiet,
+  } = useTrainer();
+
+  const dh = dietHistory[dietClient] || dietHistory[Object.keys(dietHistory)[0]] || [];
 
   // ── Empty state ───────────────────────────────────────────
   if (dh.length === 0) return (
@@ -209,7 +220,11 @@ export default function DietHabits() {
         📊 No habit logs for <strong>{dietClient || "this client"}</strong> yet. Start below.
       </div>
 
-      <LogForm />
+      <LogForm
+        newDiet={newDiet} setNewDiet={setNewDiet}
+        saveDiet={saveDiet} dietLoading={dietLoading}
+        dietSaved={dietSaved} dietError={dietError}
+      />
     </>
   );
 
@@ -221,7 +236,6 @@ export default function DietHabits() {
 
   return (
     <>
-      {/* ── Toast ── */}
       {dietSaved && <Toast message={`Habit log saved for ${dietClient}!`} type="success" />}
       {dietError && <Toast message={dietError} type="error" />}
 
@@ -281,9 +295,11 @@ export default function DietHabits() {
 
       {/* ── Two-column: form + charts ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginBottom: 20 }}>
-
-        {/* Log form */}
-        <LogForm />
+        <LogForm
+          newDiet={newDiet} setNewDiet={setNewDiet}
+          saveDiet={saveDiet} dietLoading={dietLoading}
+          dietSaved={dietSaved} dietError={dietError}
+        />
 
         {/* Charts */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
