@@ -94,31 +94,19 @@ const SECTIONS = [
   { title: "💪 Strength", keys: ["squat","bench","deadlift","pullup"] },
 ];
 
-export default function ProgressTracking() {
-  const {
-    myClients, progressClient, setProgressClient,
-    progressTab, setProgressTab,
-    showLogProgress, setShowLogProgress,
-    progressSaved, progressError, progressLoading,
-    newProgress, setNewProgress,
-    progressHistory, saveProgress,
-  } = useTrainer();
+// ── FIX: LogForm moved OUTSIDE ProgressTracking ───────────────
+interface LogFormProps {
+  last?: any;
+  newProgress: any;
+  handleChange: (k: string, v: string) => void;
+  saveProgress: (last?: any) => void;
+  progressLoading: boolean;
+  progressSaved: boolean;
+  progressError: string | null;
+}
 
-  const ph = progressHistory[progressClient] || progressHistory[Object.keys(progressHistory)[0]] || [];
-
-  const handleChange = (k: string, v: string) =>
-    setNewProgress((p: any) => ({ ...p, [k]: v }));
-
-  const selectStyle: React.CSSProperties = {
-    height: 44, padding: "0 12px", borderRadius: 8,
-    border: "1.5px solid var(--b0)", background: "var(--bg2)",
-    fontSize: 16, color: "var(--t1)", outline: "none",
-    fontFamily: "inherit", width: "auto", minWidth: 160,
-    boxSizing: "border-box",
-  };
-
-  // ── Log form ──────────────────────────────────────────────
-  const LogForm = ({ last }: { last?: any }) => (
+function LogForm({ last, newProgress, handleChange, saveProgress, progressLoading, progressSaved, progressError }: LogFormProps) {
+  return (
     <div style={{
       background: "var(--bg1)", border: "1px solid var(--b0)",
       borderRadius: 12, padding: "18px 16px", marginBottom: 16,
@@ -156,7 +144,6 @@ export default function ProgressTracking() {
         </div>
       ))}
 
-      {/* Save button */}
       <button
         onClick={() => saveProgress(last)}
         disabled={progressLoading}
@@ -171,7 +158,6 @@ export default function ProgressTracking() {
         {progressLoading ? "Saving..." : "📏 Save Progress Entry"}
       </button>
 
-      {/* Inline feedback */}
       {progressSaved && (
         <div style={{
           marginTop: 10, padding: "10px 14px", borderRadius: 8,
@@ -188,6 +174,32 @@ export default function ProgressTracking() {
       )}
     </div>
   );
+}
+
+// ── Select style (outside component — stable reference) ───────
+const selectStyle: React.CSSProperties = {
+  height: 44, padding: "0 12px", borderRadius: 8,
+  border: "1.5px solid var(--b0)", background: "var(--bg2)",
+  fontSize: 16, color: "var(--t1)", outline: "none",
+  fontFamily: "inherit", width: "auto", minWidth: 160,
+  boxSizing: "border-box",
+};
+
+// ── Main component ────────────────────────────────────────────
+export default function ProgressTracking() {
+  const {
+    myClients, progressClient, setProgressClient,
+    progressTab, setProgressTab,
+    showLogProgress, setShowLogProgress,
+    progressSaved, progressError, progressLoading,
+    newProgress, setNewProgress,
+    progressHistory, saveProgress,
+  } = useTrainer();
+
+  const ph = progressHistory[progressClient] || progressHistory[Object.keys(progressHistory)[0]] || [];
+
+  const handleChange = (k: string, v: string) =>
+    setNewProgress((p: any) => ({ ...p, [k]: v }));
 
   // ── Empty state ───────────────────────────────────────────
   if (ph.length === 0) return (
@@ -212,7 +224,14 @@ export default function ProgressTracking() {
         📊 No progress data for <strong>{progressClient}</strong> yet. Log the baseline below.
       </div>
 
-      <LogForm />
+      <LogForm
+        newProgress={newProgress}
+        handleChange={handleChange}
+        saveProgress={saveProgress}
+        progressLoading={progressLoading}
+        progressSaved={progressSaved}
+        progressError={progressError}
+      />
     </>
   );
 
@@ -220,7 +239,6 @@ export default function ProgressTracking() {
 
   return (
     <>
-      {/* Toast */}
       {progressSaved && <Toast message={`Progress entry saved for ${progressClient}!`} type="success" />}
       {progressError && <Toast message={progressError} type="error" />}
 
@@ -249,7 +267,17 @@ export default function ProgressTracking() {
       </div>
 
       {/* Log form (collapsible) */}
-      {showLogProgress && <LogForm last={last} />}
+      {showLogProgress && (
+        <LogForm
+          last={last}
+          newProgress={newProgress}
+          handleChange={handleChange}
+          saveProgress={saveProgress}
+          progressLoading={progressLoading}
+          progressSaved={progressSaved}
+          progressError={progressError}
+        />
+      )}
 
       {/* ── Metric cards ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 20 }}>
@@ -282,8 +310,6 @@ export default function ProgressTracking() {
       {/* ── Overview tab ── */}
       {progressTab === "overview" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
-
-          {/* Weight + Strength charts */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {[
               { label: "Weight (kg)", key: "weight", color: "var(--brand1)", badge: `${Math.abs(last.weight - first.weight).toFixed(1)}kg ${last.weight < first.weight ? "lost" : "gained"}`, good: last.weight <= first.weight },
@@ -306,7 +332,6 @@ export default function ProgressTracking() {
             ))}
           </div>
 
-          {/* Body measurements grid */}
           <div style={{ background: "var(--bg1)", border: "1px solid var(--b0)", borderRadius: 12, padding: "14px 12px" }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: "var(--t1)", marginBottom: 12 }}>Body Measurements</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
@@ -317,10 +342,7 @@ export default function ProgressTracking() {
                 const delta = (last as any)[m.k] - (first as any)[m.k];
                 const good = m.k === "arms" ? delta > 0 : delta < 0;
                 return (
-                  <div key={m.k} style={{
-                    background: "var(--bg2)", borderRadius: 8,
-                    padding: "10px 8px", textAlign: "center",
-                  }}>
+                  <div key={m.k} style={{ background: "var(--bg2)", borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
                     <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--fd)", color: "var(--t1)" }}>
                       {(last as any)[m.k]}{m.unit || "cm"}
                     </div>
@@ -334,7 +356,6 @@ export default function ProgressTracking() {
             </div>
           </div>
 
-          {/* Timeline */}
           <div style={{ background: "var(--bg1)", border: "1px solid var(--b0)", borderRadius: 12, padding: "14px 12px" }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: "var(--t1)", marginBottom: 12 }}>Progress Timeline</div>
             <div>
