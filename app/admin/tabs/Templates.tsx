@@ -726,9 +726,16 @@ export default function Templates() {
   }, []);
 
   const seedPremade = async () => {
-    if (!confirm("This will add 20 premade templates with full workout plans. Continue?")) return;
+    // Only add templates that don't already exist by name
+    const existingNames = new Set(templates.map((t) => t.name));
+    const toAdd = PREMADE_LIST.filter((t) => !existingNames.has(t.name));
+    if (toAdd.length === 0) {
+      alert("All 20 premade templates are already loaded. Use \"🔄 Fill Workout Plans\" to update their exercises.");
+      return;
+    }
+    if (!confirm(`This will add ${toAdd.length} new premade template(s). Continue?`)) return;
     setSeeding(true);
-    for (const t of PREMADE_LIST) {
+    for (const t of toAdd) {
       const days = PREMADE_DAYS[t.name] || [];
       await addDoc(collection(db, "templates"), {
         ...t, status: "active", assignedTo: [],
@@ -739,20 +746,17 @@ export default function Templates() {
     setSeeding(false);
   };
 
-  // Patch existing templates that are missing workoutDays
+  // Force-fill workoutDays into ALL templates that match a premade name
   const patchWorkoutDays = async () => {
-    const missing = templates.filter((t) => !t.workoutDays || t.workoutDays.length === 0);
-    if (missing.length === 0) { alert("All templates already have workout plans!"); return; }
-    if (!confirm(`This will fill workout plans into ${missing.length} template(s) that currently have none. Continue?`)) return;
+    const patchable = templates.filter((t) => PREMADE_DAYS[t.name] && PREMADE_DAYS[t.name].length > 0);
+    if (patchable.length === 0) { alert("No matching premade templates found to fill."); return; }
+    if (!confirm(`This will overwrite workout plans for ${patchable.length} template(s) with the full premade data. Continue?`)) return;
     setSeeding(true);
-    for (const t of missing) {
-      const days = PREMADE_DAYS[t.name];
-      if (days && days.length > 0) {
-        await updateDoc(doc(db, "templates", t.id), { workoutDays: days });
-      }
+    for (const t of patchable) {
+      await updateDoc(doc(db, "templates", t.id), { workoutDays: PREMADE_DAYS[t.name] });
     }
     setSeeding(false);
-    alert("Done! Templates updated with workout plans.");
+    alert(`✓ Done! ${patchable.length} templates filled with workout plans.`);
   };
 
   const openCreate = () => { setEditTarget(null); setForm(EMPTY_FORM); setShowForm(true); };
@@ -997,9 +1001,9 @@ export default function Templates() {
               {seeding ? "Loading..." : "⚡ Add Premade"}
             </button>
           )}
-          {templates.some((t) => !t.workoutDays || t.workoutDays.length === 0) && (
+          {templates.length > 0 && (
             <button className="btn btn-b btn-s" onClick={patchWorkoutDays} disabled={seeding}>
-              {seeding ? "Updating..." : "🔄 Fill Missing Plans"}
+              {seeding ? "Updating..." : "🔄 Fill Workout Plans"}
             </button>
           )}
           <button className="btn btn-p btn-s" onClick={openCreate}>+ Create</button>
