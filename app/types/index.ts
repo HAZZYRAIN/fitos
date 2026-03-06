@@ -3,7 +3,6 @@
 // All Firestore document shapes live here.
 // If you add a field to Firestore, add it here first.
 // ============================================================
-
 export interface Client {
   id: string;
   // Identity
@@ -41,6 +40,8 @@ export interface Client {
   updatedAt?: any;
   // Medical
   medicalNotes?: string;
+  // Injury flag from session logs
+  injuryFlag?: string;
   // Legacy fields (keep for backward compatibility)
   goal?: string;
   phone?: string;
@@ -80,6 +81,7 @@ export interface Instruction {
   title: string;
   body: string;
   priority: "high" | "medium" | "low" | string;
+  target?: string; // "all" or a specific trainer UID
   by: string;
   date: string;
   createdAt?: any;
@@ -99,6 +101,7 @@ export interface Warning {
 export interface SessionLog {
   id: string;
   client: string;
+  clientId?: string;
   trainer: string;
   trainerId: string;
   date: string;
@@ -116,43 +119,57 @@ export interface SessionLog {
 
 export interface ExerciseLog {
   name: string;
+  muscles?: string;
   sets: string;
   reps: string;
   weight: string;
+  rpe?: string;
+  setsDetail?: { reps: string; load: string }[];
 }
 
 export interface ProgressLog {
   id: string;
+  clientId?: string;
   clientName: string;
-  trainer: string;
-  trainerId: string;
+  trainer?: string;
+  trainerId?: string;
   date: string;
-  weight: number;
-  bf: number;
-  chest: number;
-  waist: number;
-  hips: number;
-  arms: number;
-  thighs: number;
-  squat: number;
-  bench: number;
-  deadlift: number;
-  pullup: number;
+  type?: string;
+  source?: string;
+  weight?: number;
+  bf?: number;
+  chest?: number;
+  waist?: number;
+  hips?: number;
+  arms?: number;
+  thighs?: number;
+  squat?: number;
+  bench?: number;
+  deadlift?: number;
+  pullup?: number;
+  pushup?: number;
+  plank?: number;
   notes?: string;
   createdAt?: any;
 }
 
 export interface DietLog {
   id: string;
+  clientId?: string;
   clientName: string;
-  trainer: string;
-  trainerId: string;
+  trainer?: string;
+  trainerId?: string;
   date: string;
-  protein: number;
-  water: number;
-  steps: number;
-  sleep: number;
-  sleepQuality: "Great" | "Good" | "Average" | "Poor" | string;
+  type?: string;
+  protein?: number;
+  calories?: number;
+  carbs?: number;
+  fats?: number;
+  water?: number;
+  steps?: number;
+  sleep?: number;
+  sleepQuality?: "Great" | "Good" | "Average" | "Poor" | string;
+  activeMinutes?: number;
   notes?: string;
   createdAt?: any;
 }
