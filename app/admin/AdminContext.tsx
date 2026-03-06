@@ -150,7 +150,7 @@ export function AdminProvider({
     medicalNotes: "",
     startDate: "",
     endDate: "",
-    sessionsIncluded: "",
+    sessionsIncluded: 0,
     plan: "",
     location: "",
   });
@@ -304,7 +304,7 @@ export function AdminProvider({
         medicalNotes: "",
         startDate: "",
         endDate: "",
-        sessionsIncluded: "",
+        sessionsIncluded: 0,
         plan: "",
         location: "",
       });
