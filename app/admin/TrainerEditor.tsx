@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useAdmin } from "../AdminContext";
+import { useAdmin } from "./AdminContext";
 
 export default function TrainerEditor() {
   const {
@@ -306,9 +306,22 @@ export default function TrainerEditor() {
                                 {c.sessionsLogged || 0}/{c.sessionsIncluded || 0} sessions • {c.compliance || 0}% compliance
                               </div>
                             </div>
-                            <button className="te-client-remove" onClick={() => {
-                              // Handle remove - would need function in context
-                              alert(`Remove ${c.name}? This feature needs implementation.`);
+                            <button className="te-client-remove" onClick={async () => {
+                              if (window.confirm(`Remove ${c.name} from ${selectedTrainer.name}?`)) {
+                                try {
+                                  const { db } = await import("../../lib/firebase");
+                                  const { deleteDoc, doc } = await import("firebase/firestore");
+                                  
+                                  await deleteDoc(doc(db, "trainers", selectedTrainer.id, "clients", c.id));
+                                  setMsg(`✓ ${c.name} removed successfully!`);
+                                  setTimeout(() => setMsg(""), 3000);
+                                  // Force refresh by updating selectedTrainer
+                                  setSelectedTrainer({ ...selectedTrainer });
+                                } catch (err) {
+                                  console.error("Error:", err);
+                                  setMsg("✕ Failed to remove client.");
+                                }
+                              }
                             }}>
                               Remove
                             </button>
