@@ -1,7 +1,7 @@
 "use client";
 // ============================================================
 // MY CLIENTS — TRAINER
-// Same logic as before, cleaner mobile-first layout
+// Fixed: email overflow causing horizontal scroll on iOS
 // ============================================================
 import { useState } from "react";
 import { useTrainer } from "../TrainerContext";
@@ -38,11 +38,20 @@ export default function MyClients() {
   return (
     <>
       <style>{`
+        /* ── Prevent ALL horizontal overflow ── */
+        .mc-root {
+          width: 100%;
+          max-width: 100%;
+          overflow-x: hidden;
+          overscroll-behavior: none;
+        }
+
         /* ── Alerts ── */
         .mc-alert {
           display: flex; gap: 8px; align-items: flex-start;
           padding: 11px 13px; border-radius: 10px; margin-bottom: 9px;
           font-size: 12px; font-weight: 600; line-height: 1.5;
+          word-break: break-word; overflow-wrap: break-word;
         }
         .mc-alert-r { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #ef4444; }
         .mc-alert-y { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #f59e0b; }
@@ -59,9 +68,16 @@ export default function MyClients() {
         .mc-stat-l { font-size: 9px; color: var(--t3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
 
         /* ── Header ── */
-        .mc-sh { margin-bottom: 14px; }
+        .mc-sh { margin-bottom: 14px; overflow: hidden; }
         .mc-sh h2 { margin: 0 0 2px; font-size: 18px; font-weight: 800; color: var(--t1); }
-        .mc-sh p  { margin: 0; font-size: 12px; color: var(--t3); }
+        .mc-sh p  {
+          margin: 0; font-size: 12px; color: var(--t3);
+          /* KEY FIX: truncate long email instead of overflowing */
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
+        }
 
         /* ── Cards list ── */
         .mc-list { display: flex; flex-direction: column; gap: 10px; }
@@ -71,21 +87,30 @@ export default function MyClients() {
           background: var(--bg1); border: 1px solid var(--b0);
           border-radius: 13px; overflow: hidden;
           cursor: pointer; transition: border-color 0.15s;
+          /* Prevent card from ever exceeding viewport */
+          max-width: 100%;
+          width: 100%;
         }
         .mc-card:active { opacity: 0.92; }
         .mc-card-body { padding: 13px 13px 10px; }
 
         /* top row: avatar + info + status */
-        .mc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .mc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; min-width: 0; }
         .mc-av {
           width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
           background: linear-gradient(135deg, var(--brand1), #8b5cf6);
           display: flex; align-items: center; justify-content: center;
           font-size: 14px; font-weight: 800; color: #fff;
         }
-        .mc-info { flex: 1; min-width: 0; }
-        .mc-cname { font-size: 14px; font-weight: 800; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .mc-csub  { font-size: 11px; color: var(--t3); margin-top: 1px; }
+        .mc-info { flex: 1; min-width: 0; overflow: hidden; }
+        .mc-cname {
+          font-size: 14px; font-weight: 800; color: var(--t1);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .mc-csub  {
+          font-size: 11px; color: var(--t3); margin-top: 1px;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
         .mc-sbadge {
           flex-shrink: 0; font-size: 10px; font-weight: 800;
           padding: 3px 9px; border-radius: 20px;
@@ -100,12 +125,13 @@ export default function MyClients() {
           background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.18);
           border-radius: 7px; padding: 6px 9px; margin-bottom: 10px;
           font-size: 11px; color: #f59e0b; font-weight: 600; line-height: 1.4;
+          word-break: break-word;
         }
 
         /* compliance row */
         .mc-comp { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
         .mc-comp-lbl { font-size: 10px; color: var(--t4); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; width: 70px; flex-shrink: 0; }
-        .mc-comp-track { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+        .mc-comp-track { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; min-width: 0; }
         .mc-comp-fill  { height: 100%; border-radius: 3px; transition: width 0.3s; }
         .mc-comp-pct   { font-size: 11px; font-weight: 800; width: 32px; text-align: right; flex-shrink: 0; }
 
@@ -114,6 +140,7 @@ export default function MyClients() {
         .mc-mini-box {
           background: var(--bg2); border: 1px solid var(--b0);
           border-radius: 8px; padding: 8px 6px; text-align: center;
+          overflow: hidden;
         }
         .mc-mini-v { font-size: 14px; font-weight: 800; font-family: var(--fd); }
         .mc-mini-k { font-size: 9px; color: var(--t4); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -130,6 +157,7 @@ export default function MyClients() {
           font-size: 12px; font-weight: 800; cursor: pointer;
           display: flex; align-items: center; justify-content: center; gap: 5px;
           transition: opacity 0.1s; font-family: inherit;
+          -webkit-tap-highlight-color: transparent;
         }
         .mc-btn:active { opacity: 0.75; }
         .mc-btn-p { background: var(--brand1); color: #fff; }
@@ -150,138 +178,142 @@ export default function MyClients() {
         }
       `}</style>
 
-      {/* ── Alerts ── */}
-      {myExpiredClients.length > 0 && (
-        <div className="mc-alert mc-alert-r">
-          <span>📅</span>
-          <span>
-            <b>{myExpiredClients.length} plan{myExpiredClients.length > 1 ? "s" : ""} expired:</b>{" "}
-            {myExpiredClients.map((c) => c.name).join(", ")} — contact admin to renew
-          </span>
-        </div>
-      )}
-      {myLowClassClients.length > 0 && (
-        <div className="mc-alert mc-alert-y">
-          <span>⚠️</span>
-          <span>
-            <b>Low classes:</b>{" "}
-            {myLowClassClients.map((c) => `${c.name} (${c.classesLeft} left)`).join(", ")} — inform admin
-          </span>
-        </div>
-      )}
+      <div className="mc-root">
 
-      {/* ── Header ── */}
-      <div className="mc-sh">
-        <h2>My Clients</h2>
-        <p>{myClients.length} clients · {email}</p>
-      </div>
-
-      {/* ── Stats row ── */}
-      <div className="mc-stats">
-        {[
-          { l: "Active",    v: myClients.length,          c: "var(--blue)"   },
-          { l: "Avg Comp.", v: `${avgCompliance}%`,        c: compColor(avgCompliance) },
-          { l: "Pending",   v: myTrainer?.pendingLogs || 0, c: "var(--red)"  },
-          { l: "Alerts",    v: myClients.filter((c) =>
-              c.status !== "Active" || (c.compliance || 0) < 75 || (c.missedSessions || 0) > 3
-            ).length,                                       c: "var(--yellow)" },
-        ].map((s, i) => (
-          <div key={i} className="mc-stat">
-            <div className="mc-stat-line" style={{ background: s.c }} />
-            <div className="mc-stat-v" style={{ color: s.c }}>{s.v}</div>
-            <div className="mc-stat-l">{s.l}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Client cards ── */}
-      <div className="mc-list">
-        {myClients.map((c) => {
-          const pct = c.compliance || 0;
-          const classesLeft = c.classesLeft || 0;
-          const statusClass =
-            c.status === "Active" ? "mc-sbadge-g" :
-            c.status === "On Hold" ? "mc-sbadge-y" : "mc-sbadge-r";
-
-          return (
-            <div key={c.id} className="mc-card" onClick={() => setDetailClient(c)}>
-              <div className="mc-card-body">
-
-                {/* Avatar + name + status */}
-                <div className="mc-top">
-                  <div className="mc-av">
-                    {(c.name || "?").split(" ").map((n: string) => n[0] || "").join("").slice(0, 2)}
-                  </div>
-                  <div className="mc-info">
-                    <div className="mc-cname">{c.name}</div>
-                    <div className="mc-csub">{c.programType} · {c.location}</div>
-                  </div>
-                  <span className={`mc-sbadge ${statusClass}`}>{c.status}</span>
-                </div>
-
-                {/* Medical note */}
-                {c.medicalNotes && (
-                  <div className="mc-med">
-                    <span>🩹</span><span>{c.medicalNotes}</span>
-                  </div>
-                )}
-
-                {/* Compliance bar */}
-                <div className="mc-comp">
-                  <span className="mc-comp-lbl">Compliance</span>
-                  <div className="mc-comp-track">
-                    <div className="mc-comp-fill" style={{ width: `${pct}%`, background: compColor(pct) }} />
-                  </div>
-                  <span className="mc-comp-pct" style={{ color: compColor(pct) }}>{pct}%</span>
-                </div>
-
-                {/* Mini stats */}
-                <div className="mc-mini">
-                  <div className="mc-mini-box">
-                    <div className="mc-mini-v" style={{ color: "var(--t1)" }}>
-                      {c.sessionsLogged || 0}
-                      <span style={{ fontSize: 10, color: "var(--t4)", fontWeight: 600 }}>/{c.sessionsIncluded || 0}</span>
-                    </div>
-                    <div className="mc-mini-k">Sessions</div>
-                  </div>
-                  <div className="mc-mini-box">
-                    <div className="mc-mini-v" style={{ color: classesLeft <= 3 ? "var(--red)" : "var(--t1)" }}>
-                      {classesLeft}{classesLeft <= 3 ? " ⚠" : ""}
-                    </div>
-                    <div className="mc-mini-k">Remaining</div>
-                  </div>
-                  <div className="mc-mini-box">
-                    <div className="mc-mini-v" style={{ color: compColor(pct) }}>{pct}%</div>
-                    <div className="mc-mini-k">Compliance</div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Action buttons — stop propagation so card click doesn't also fire */}
-              <div className="mc-foot" onClick={(e) => e.stopPropagation()}>
-                <button
-                  className="mc-btn mc-btn-p"
-                  onClick={(e) => { e.stopPropagation(); setLogClient(c.name); setTab("log"); }}
-                >
-                  📝 Log Session
-                </button>
-                <button
-                  className="mc-btn mc-btn-s"
-                  onClick={(e) => { e.stopPropagation(); setDetailClient(c); }}
-                >
-                  👁 View Details
-                </button>
-              </div>
-            </div>
-          );
-        })}
-
-        {myClients.length === 0 && (
-          <div className="mc-empty">
-            No clients assigned yet. Ask admin to assign clients to you.
+        {/* ── Alerts ── */}
+        {myExpiredClients.length > 0 && (
+          <div className="mc-alert mc-alert-r">
+            <span>📅</span>
+            <span>
+              <b>{myExpiredClients.length} plan{myExpiredClients.length > 1 ? "s" : ""} expired:</b>{" "}
+              {myExpiredClients.map((c) => c.name).join(", ")} — contact admin to renew
+            </span>
           </div>
         )}
+        {myLowClassClients.length > 0 && (
+          <div className="mc-alert mc-alert-y">
+            <span>⚠️</span>
+            <span>
+              <b>Low classes:</b>{" "}
+              {myLowClassClients.map((c) => `${c.name} (${c.classesLeft} left)`).join(", ")} — inform admin
+            </span>
+          </div>
+        )}
+
+        {/* ── Header ── */}
+        <div className="mc-sh">
+          <h2>My Clients</h2>
+          <p>{myClients.length} clients · {email}</p>
+        </div>
+
+        {/* ── Stats row ── */}
+        <div className="mc-stats">
+          {[
+            { l: "Active",    v: myClients.length,               c: "var(--blue)"   },
+            { l: "Avg Comp.", v: `${avgCompliance}%`,             c: compColor(avgCompliance) },
+            { l: "Pending",   v: myTrainer?.pendingLogs || 0,     c: "var(--red)"    },
+            { l: "Alerts",    v: myClients.filter((c) =>
+                c.status !== "Active" || (c.compliance || 0) < 75 || (c.missedSessions || 0) > 3
+              ).length,                                            c: "var(--yellow)" },
+          ].map((s, i) => (
+            <div key={i} className="mc-stat">
+              <div className="mc-stat-line" style={{ background: s.c }} />
+              <div className="mc-stat-v" style={{ color: s.c }}>{s.v}</div>
+              <div className="mc-stat-l">{s.l}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Client cards ── */}
+        <div className="mc-list">
+          {myClients.map((c) => {
+            const pct = c.compliance || 0;
+            const classesLeft = c.classesLeft || 0;
+            const statusClass =
+              c.status === "Active"  ? "mc-sbadge-g" :
+              c.status === "On Hold" ? "mc-sbadge-y" : "mc-sbadge-r";
+
+            return (
+              <div key={c.id} className="mc-card" onClick={() => setDetailClient(c)}>
+                <div className="mc-card-body">
+
+                  {/* Avatar + name + status */}
+                  <div className="mc-top">
+                    <div className="mc-av">
+                      {(c.name || "?").split(" ").map((n: string) => n[0] || "").join("").slice(0, 2)}
+                    </div>
+                    <div className="mc-info">
+                      <div className="mc-cname">{c.name}</div>
+                      <div className="mc-csub">{c.programType} · {c.location}</div>
+                    </div>
+                    <span className={`mc-sbadge ${statusClass}`}>{c.status}</span>
+                  </div>
+
+                  {/* Medical note */}
+                  {c.medicalNotes && (
+                    <div className="mc-med">
+                      <span>🩹</span><span>{c.medicalNotes}</span>
+                    </div>
+                  )}
+
+                  {/* Compliance bar */}
+                  <div className="mc-comp">
+                    <span className="mc-comp-lbl">Compliance</span>
+                    <div className="mc-comp-track">
+                      <div className="mc-comp-fill" style={{ width: `${pct}%`, background: compColor(pct) }} />
+                    </div>
+                    <span className="mc-comp-pct" style={{ color: compColor(pct) }}>{pct}%</span>
+                  </div>
+
+                  {/* Mini stats */}
+                  <div className="mc-mini">
+                    <div className="mc-mini-box">
+                      <div className="mc-mini-v" style={{ color: "var(--t1)" }}>
+                        {c.sessionsLogged || 0}
+                        <span style={{ fontSize: 10, color: "var(--t4)", fontWeight: 600 }}>/{c.sessionsIncluded || 0}</span>
+                      </div>
+                      <div className="mc-mini-k">Sessions</div>
+                    </div>
+                    <div className="mc-mini-box">
+                      <div className="mc-mini-v" style={{ color: classesLeft <= 3 ? "var(--red)" : "var(--t1)" }}>
+                        {classesLeft}{classesLeft <= 3 ? " ⚠" : ""}
+                      </div>
+                      <div className="mc-mini-k">Remaining</div>
+                    </div>
+                    <div className="mc-mini-box">
+                      <div className="mc-mini-v" style={{ color: compColor(pct) }}>{pct}%</div>
+                      <div className="mc-mini-k">Compliance</div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Action buttons */}
+                <div className="mc-foot" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="mc-btn mc-btn-p"
+                    onClick={(e) => { e.stopPropagation(); setLogClient(c.name); setTab("log"); }}
+                  >
+                    📝 Log Session
+                  </button>
+                  <button
+                    className="mc-btn mc-btn-s"
+                    onClick={(e) => { e.stopPropagation(); setDetailClient(c); }}
+                  >
+                    👁 View Details
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {myClients.length === 0 && (
+            <div className="mc-empty">
+              No clients assigned yet. Ask admin to assign clients to you.
+            </div>
+          )}
+        </div>
+
       </div>
     </>
   );
