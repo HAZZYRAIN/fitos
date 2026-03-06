@@ -27,33 +27,39 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
   );
 }
 
+function getRpeColor(rpe: number): string {
+  if (rpe <= 4) return "#1e8a4c";
+  if (rpe <= 7) return "#b8860b";
+  return "#c0392b";
+}
+
 export default function ClientProfilePage() {
   const params = useParams();
   const router = useRouter();
   const trainerId = params.trainerId as string;
-  const clientId = params.clientId as string;
+  const clientId  = params.clientId  as string;
 
-  const [client, setClient] = useState<Client | null>(null);
-  const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
+  const [client, setClient]             = useState<Client | null>(null);
+  const [sessionLogs, setSessionLogs]   = useState<SessionLog[]>([]);
   const [progressLogs, setProgressLogs] = useState<ProgressLog[]>([]);
-  const [dietLogs, setDietLogs] = useState<DietLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [activeTab, setActiveTab] = useState<"sessions" | "progress" | "diet" | "photos">("sessions");
+  const [dietLogs, setDietLogs]         = useState<DietLog[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [notFound, setNotFound]         = useState(false);
+  const [activeTab, setActiveTab]       = useState<"sessions" | "progress" | "diet" | "photos">("sessions");
 
   const [editingProfile, setEditingProfile] = useState(false);
-  const [editingPlan, setEditingPlan] = useState(false);
+  const [editingPlan,    setEditingPlan]    = useState(false);
   const [editingMedical, setEditingMedical] = useState(false);
-  const [profileForm, setProfileForm] = useState<any>({});
-  const [planForm, setPlanForm] = useState<any>({});
-  const [medicalForm, setMedicalForm] = useState("");
+  const [profileForm, setProfileForm]       = useState<any>({});
+  const [planForm,    setPlanForm]          = useState<any>({});
+  const [medicalForm, setMedicalForm]       = useState("");
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState("");
+  const [toast,  setToast]  = useState("");
 
   useEffect(() => {
-    let unsubSession: (() => void) | null = null;
+    let unsubSession:  (() => void) | null = null;
     let unsubProgress: (() => void) | null = null;
-    let unsubDiet: (() => void) | null = null;
+    let unsubDiet:     (() => void) | null = null;
 
     async function load() {
       try {
@@ -69,40 +75,32 @@ export default function ClientProfilePage() {
         const clientName = data.name || "";
         const hasId = !!data.id;
 
-        // Session logs — real-time listener
         try {
           const sessionQ = hasId
             ? query(collection(db, "sessionLogs"), where("clientId", "==", data.id))
             : query(collection(db, "sessionLogs"), where("client", "==", clientName));
-
-          unsubSession = onSnapshot(sessionQ, (sessSnap) => {
-            const logs = sessSnap.docs.map((d) => ({ id: d.id, ...d.data() } as SessionLog));
+          unsubSession = onSnapshot(sessionQ, (snap) => {
+            const logs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as SessionLog));
             logs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
             setSessionLogs(logs);
           }, (e) => console.error("sessionLogs:", e));
         } catch (e) { /* non-fatal */ }
 
-        // Progress logs — real-time listener
         try {
           const progressQ = hasId
             ? query(collection(db, "progressLogs"), where("clientId", "==", data.id), orderBy("createdAt", "asc"))
             : query(collection(db, "progressLogs"), where("clientName", "==", clientName), orderBy("createdAt", "asc"));
-
-          unsubProgress = onSnapshot(progressQ, (progSnap) => {
-            const logs = progSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ProgressLog));
-            setProgressLogs(logs);
+          unsubProgress = onSnapshot(progressQ, (snap) => {
+            setProgressLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() } as ProgressLog)));
           }, (e) => console.error("progressLogs:", e));
         } catch (e) { /* non-fatal */ }
 
-        // Diet logs — real-time listener
         try {
           const dietQ = hasId
             ? query(collection(db, "dietLogs"), where("clientId", "==", data.id), orderBy("createdAt", "asc"))
             : query(collection(db, "dietLogs"), where("clientName", "==", clientName), orderBy("createdAt", "asc"));
-
-          unsubDiet = onSnapshot(dietQ, (dietSnap) => {
-            const logs = dietSnap.docs.map((d) => ({ id: d.id, ...d.data() } as DietLog));
-            setDietLogs(logs);
+          unsubDiet = onSnapshot(dietQ, (snap) => {
+            setDietLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() } as DietLog)));
           }, (e) => console.error("dietLogs:", e));
         } catch (e) { /* non-fatal */ }
 
@@ -111,7 +109,6 @@ export default function ClientProfilePage() {
     }
 
     load();
-
     return () => {
       if (unsubSession)  unsubSession();
       if (unsubProgress) unsubProgress();
@@ -153,27 +150,29 @@ export default function ClientProfilePage() {
 
   if (loading) return (
     <><style>{S}</style>
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#050508", color: "var(--t3)", fontFamily: "Outfit,sans-serif" }}>Loading client...</div>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f2f2f7", color: "var(--t3)", fontFamily: "Inter,sans-serif" }}>
+        Loading client...
+      </div>
     </>
   );
 
   if (notFound || !client) return (
     <><style>{S}</style>
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#050508", gap: 16, fontFamily: "Outfit,sans-serif" }}>
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f2f2f7", gap: 16, fontFamily: "Inter,sans-serif" }}>
         <div style={{ color: "var(--t1)", fontSize: 18, fontWeight: 700 }}>Client not found</div>
         <button className="btn btn-g btn-s" onClick={() => router.back()}>← Go Back</button>
       </div>
     </>
   );
 
-  const initials = (client.name || "?").split(" ").map((n) => n[0] || "").join("").toUpperCase();
+  const initials   = (client.name || "?").split(" ").map((n) => n[0] || "").join("").toUpperCase();
   const compliance = client.compliance || 0;
   const classesLeft = client.classesLeft || 0;
 
   return (
     <><style>{S}</style>
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
-      <div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "Outfit,sans-serif" }}>
+      <div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "Inter,sans-serif" }}>
 
         {/* ── TOP NAV ── */}
         <div style={{ background: "var(--s1)", borderBottom: "1px solid var(--b1)", padding: "0 32px", height: 56, display: "flex", alignItems: "center", gap: 16 }}>
@@ -196,13 +195,13 @@ export default function ClientProfilePage() {
               <div style={{ fontSize: 13, color: "var(--t3)", marginTop: 4 }}>
                 Trainer: <span style={{ color: "var(--t2)", fontWeight: 600 }}>{client.trainerName}</span>
                 {client.programType && <> · {client.programType}</>}
-                {client.location && <> · 📍{client.location}</>}
+                {client.location    && <> · 📍{client.location}</>}
               </div>
               <div className="row gap8 mt8">
                 <span className={`badge fs10 ${client.status === "Active" ? "bg" : client.status === "On Hold" ? "by" : "br"}`}>{client.status}</span>
                 {client.gender && <span className="badge bgr fs10">{client.gender}</span>}
-                {client.age && <span className="badge bgr fs10">{client.age} yrs</span>}
-                {client.email && <span className="fs11 t3">{client.email}</span>}
+                {client.age    && <span className="badge bgr fs10">{client.age} yrs</span>}
+                {client.email  && <span className="fs11 t3">{client.email}</span>}
               </div>
             </div>
           </div>
@@ -210,9 +209,9 @@ export default function ClientProfilePage() {
           {/* ── STAT CARDS ── */}
           <div className="g4 mb20">
             <StatCard label="Sessions Included" value={client.sessionsIncluded || 0} />
-            <StatCard label="Sessions Done" value={client.sessionsLogged || 0} color="var(--green)" />
-            <StatCard label="Sessions Left" value={classesLeft} color={classesLeft <= 2 ? "var(--red)" : classesLeft <= 5 ? "var(--yellow)" : "var(--green)"} />
-            <StatCard label="Compliance" value={`${compliance}%`} color={compliance < 70 ? "var(--red)" : compliance < 85 ? "var(--yellow)" : "var(--green)"} />
+            <StatCard label="Sessions Done"     value={client.sessionsLogged   || 0} color="var(--green)" />
+            <StatCard label="Sessions Left"     value={classesLeft} color={classesLeft <= 2 ? "var(--red)" : classesLeft <= 5 ? "var(--yellow)" : "var(--green)"} />
+            <StatCard label="Compliance"        value={`${compliance}%`} color={compliance < 70 ? "var(--red)" : compliance < 85 ? "var(--yellow)" : "var(--green)"} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 20 }}>
@@ -315,7 +314,6 @@ export default function ClientProfilePage() {
                   </>
                 )}
               </div>
-
             </div>
 
             {/* ── RIGHT PANEL ── */}
@@ -328,7 +326,7 @@ export default function ClientProfilePage() {
                 ))}
               </div>
 
-              {/* SESSION HISTORY */}
+              {/* ── SESSION HISTORY ── */}
               {activeTab === "sessions" && (
                 <div className="card" style={{ padding: 0 }}>
                   {sessionLogs.length === 0 ? (
@@ -336,17 +334,58 @@ export default function ClientProfilePage() {
                   ) : (
                     <div className="tw">
                       <table>
-                        <thead><tr><th>Date</th><th>Type</th><th>Status</th><th>Duration</th><th>Late</th><th>Injury Flag</th><th>Notes</th></tr></thead>
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Duration</th>
+                            <th>Late</th>
+                            <th>Injury Flag</th>
+                            <th>Exercises & RPE</th>
+                            <th>Notes</th>
+                          </tr>
+                        </thead>
                         <tbody>
                           {sessionLogs.map((s) => (
                             <tr key={s.id}>
                               <td className="fs11 fw6">{s.date}</td>
                               <td><span className="badge bgr fs10">{s.type}</span></td>
                               <td><span className={`badge fs10 ${s.status === "completed" ? "bg" : s.status === "missed" ? "br" : "by"}`}>{s.status}</span></td>
-                              <td className="fs11 t3">{s.duration > 0 ? `${s.duration}m` : "—"}</td>
-                              <td>{s.late ? <span className="overdue-tag">LATE</span> : <span className="tg fs11">✓</span>}</td>
-                              <td>{s.injuryFlag ? <span className="badge br fs10">{s.injuryFlag}</span> : <span className="fs11 t3">—</span>}</td>
-                              <td className="fs11 t3" style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.notes || "—"}</td>
+                              <td className="fs11 t3">{(s as any).duration > 0 ? `${(s as any).duration}m` : "—"}</td>
+                              <td>{(s as any).late ? <span className="overdue-tag">LATE</span> : <span className="tg fs11">✓</span>}</td>
+                              <td>{(s as any).injuryFlag ? <span className="badge br fs10">{(s as any).injuryFlag}</span> : <span className="fs11 t3">—</span>}</td>
+                              {/* ── Exercises + RPE column ── */}
+                              <td style={{ minWidth: 180 }}>
+                                {(s as any).exercises && (s as any).exercises.length > 0 ? (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                    {(s as any).exercises.map((ex: any, ei: number) => {
+                                      const rpe    = ex.rpe ? Number(ex.rpe) : null;
+                                      const rpeCol = rpe ? getRpeColor(rpe) : null;
+                                      return (
+                                        <div key={ei} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                          <span className="fs11 fw6" style={{ color: "var(--t1)" }}>{ex.name}</span>
+                                          {rpe && rpeCol && (
+                                            <span style={{
+                                              fontSize: 9, fontWeight: 800,
+                                              color: rpeCol,
+                                              background: `${rpeCol}22`,
+                                              border: `1px solid ${rpeCol}44`,
+                                              borderRadius: 4, padding: "1px 6px",
+                                              flexShrink: 0,
+                                            }}>
+                                              RPE {rpe}
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <span className="fs11 t3">—</span>
+                                )}
+                              </td>
+                              <td className="fs11 t3" style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(s as any).notes || "—"}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -356,7 +395,7 @@ export default function ClientProfilePage() {
                 </div>
               )}
 
-              {/* MEASUREMENT HISTORY */}
+              {/* ── MEASUREMENT HISTORY ── */}
               {activeTab === "progress" && (
                 <div className="card" style={{ padding: 0 }}>
                   {progressLogs.length === 0 ? (
@@ -370,13 +409,13 @@ export default function ClientProfilePage() {
                             <tr key={p.id}>
                               <td className="fs11 fw6">{p.date}</td>
                               <td className="fs11">{p.weight ? `${p.weight}kg` : "—"}</td>
-                              <td className="fs11">{p.bf ? `${p.bf}%` : "—"}</td>
-                              <td className="fs11">{p.chest ? `${p.chest}cm` : "—"}</td>
-                              <td className="fs11">{p.waist ? `${p.waist}cm` : "—"}</td>
-                              <td className="fs11">{p.hips ? `${p.hips}cm` : "—"}</td>
-                              <td className="fs11">{p.arms ? `${p.arms}cm` : "—"}</td>
-                              <td className="fs11">{p.squat ? `${p.squat}kg` : "—"}</td>
-                              <td className="fs11">{p.bench ? `${p.bench}kg` : "—"}</td>
+                              <td className="fs11">{p.bf     ? `${p.bf}%`     : "—"}</td>
+                              <td className="fs11">{p.chest  ? `${p.chest}cm` : "—"}</td>
+                              <td className="fs11">{p.waist  ? `${p.waist}cm` : "—"}</td>
+                              <td className="fs11">{p.hips   ? `${p.hips}cm`  : "—"}</td>
+                              <td className="fs11">{p.arms   ? `${p.arms}cm`  : "—"}</td>
+                              <td className="fs11">{p.squat    ? `${p.squat}kg`    : "—"}</td>
+                              <td className="fs11">{p.bench    ? `${p.bench}kg`    : "—"}</td>
                               <td className="fs11">{p.deadlift ? `${p.deadlift}kg` : "—"}</td>
                             </tr>
                           ))}
@@ -387,7 +426,7 @@ export default function ClientProfilePage() {
                 </div>
               )}
 
-              {/* DIET / NUTRITION HISTORY */}
+              {/* ── DIET / NUTRITION HISTORY ── */}
               {activeTab === "diet" && (
                 <div className="card" style={{ padding: 0 }}>
                   {dietLogs.length === 0 ? (
@@ -400,12 +439,12 @@ export default function ClientProfilePage() {
                           {dietLogs.map((d) => (
                             <tr key={d.id}>
                               <td className="fs11 fw6">{d.date}</td>
-                              <td className="fs11 fw7" style={{ color: d.protein >= 100 ? "var(--green)" : "var(--red)" }}>{d.protein ? `${d.protein}g` : "—"}</td>
-                              <td className="fs11">{d.water ? `${d.water}L` : "—"}</td>
-                              <td className="fs11">{d.steps ? d.steps.toLocaleString() : "—"}</td>
-                              <td className="fs11">{d.sleep ? `${d.sleep}h` : "—"}</td>
-                              <td><span className={`badge fs10 ${d.sleepQuality === "Great" ? "bg" : d.sleepQuality === "Good" ? "bb" : d.sleepQuality === "Average" ? "by" : "br"}`}>{d.sleepQuality || "—"}</span></td>
-                              <td className="fs11 t3" style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.notes || "—"}</td>
+                              <td className="fs11 fw7" style={{ color: (d as any).protein >= 100 ? "var(--green)" : "var(--red)" }}>{(d as any).protein ? `${(d as any).protein}g` : "—"}</td>
+                              <td className="fs11">{(d as any).water ? `${(d as any).water}L` : "—"}</td>
+                              <td className="fs11">{(d as any).steps ? Number((d as any).steps).toLocaleString() : "—"}</td>
+                              <td className="fs11">{(d as any).sleep ? `${(d as any).sleep}h` : "—"}</td>
+                              <td><span className={`badge fs10 ${(d as any).sleepQuality === "Great" ? "bg" : (d as any).sleepQuality === "Good" ? "bb" : (d as any).sleepQuality === "Average" ? "by" : "br"}`}>{(d as any).sleepQuality || "—"}</span></td>
+                              <td className="fs11 t3" style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(d as any).notes || "—"}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -415,7 +454,7 @@ export default function ClientProfilePage() {
                 </div>
               )}
 
-              {/* BEFORE / AFTER PHOTOS */}
+              {/* ── BEFORE / AFTER PHOTOS ── */}
               {activeTab === "photos" && (
                 <div className="card">
                   <div className="ch"><span className="ct">Before / After Photos</span><span className="badge by fs10 mla">Coming Soon</span></div>
