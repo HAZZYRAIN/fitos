@@ -739,6 +739,22 @@ export default function Templates() {
     setSeeding(false);
   };
 
+  // Patch existing templates that are missing workoutDays
+  const patchWorkoutDays = async () => {
+    const missing = templates.filter((t) => !t.workoutDays || t.workoutDays.length === 0);
+    if (missing.length === 0) { alert("All templates already have workout plans!"); return; }
+    if (!confirm(`This will fill workout plans into ${missing.length} template(s) that currently have none. Continue?`)) return;
+    setSeeding(true);
+    for (const t of missing) {
+      const days = PREMADE_DAYS[t.name];
+      if (days && days.length > 0) {
+        await updateDoc(doc(db, "templates", t.id), { workoutDays: days });
+      }
+    }
+    setSeeding(false);
+    alert("Done! Templates updated with workout plans.");
+  };
+
   const openCreate = () => { setEditTarget(null); setForm(EMPTY_FORM); setShowForm(true); };
   const openEdit = (t: Template) => {
     setEditTarget(t);
@@ -979,6 +995,11 @@ export default function Templates() {
           {templates.length > 0 && (
             <button className="btn btn-g btn-s" onClick={seedPremade} disabled={seeding}>
               {seeding ? "Loading..." : "⚡ Add Premade"}
+            </button>
+          )}
+          {templates.some((t) => !t.workoutDays || t.workoutDays.length === 0) && (
+            <button className="btn btn-b btn-s" onClick={patchWorkoutDays} disabled={seeding}>
+              {seeding ? "Updating..." : "🔄 Fill Missing Plans"}
             </button>
           )}
           <button className="btn btn-p btn-s" onClick={openCreate}>+ Create</button>
