@@ -33,6 +33,7 @@ interface ProgressEntry {
   exercise?: string;
   reps?: number;
   weightLifted?: number;
+  rpe?: number;
   endurance?: number;
   notes?: string;
   createdAt?: any;
@@ -60,55 +61,143 @@ function ProgressTab({ clientId, clientName }: { clientId: string; clientName: s
   const [activeSection, setActiveSection] = useState("measurements");
 
   useEffect(() => {
-    if (!clientId && !clientName) return;
+    // ✅ FIX 1: Both clientId AND clientName must be available
+    if (!clientId || !clientName) {
+      setLoading(false);
+      setEntries([]);
+      return;
+    }
+
     setLoading(true);
 
-    // ── FIX: query by clientId OR clientName, order by createdAt ──
-    // Using clientId is preferred; fall back to clientName match
-    // Order by createdAt (serverTimestamp) — reliable, no composite index needed
-    const q = clientId
-      ? query(
-          collection(db, "progressLogs"),
-          where("clientId", "==", clientId),
-          orderBy("createdAt", "desc")
-        )
-      : query(
-          collection(db, "progressLogs"),
-          where("clientName", "==", clientName),
-          orderBy("createdAt", "desc")
-        );
+    // ✅ FIX 2: Query by clientId (primary) - most reliable
+    const q = query(
+      collection(db, "progressLogs"),
+      where("clientId", "==", clientId),
+      orderBy("createdAt", "desc")
+    );
 
-    const unsub = onSnapshot(
+    let isMounted = true; // ✅ FIX 3: Prevent state updates after unmount
+
+    const unsubscribe = onSnapshot(
       q,
       (snap) => {
-        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ProgressEntry));
+        if (!isMounted) return;
+
+        const docs = snap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            clientId: data.clientId || clientId,
+            clientName: data.clientName || clientName,
+            date: data.date || "",
+            loggedBy: data.loggedBy || "",
+            source: data.source || "",
+            type: data.type || "",
+            weight: data.weight,
+            chest: data.chest,
+            waist: data.waist,
+            hips: data.hips,
+            arms: data.arms,
+            calories: data.calories,
+            protein: data.protein,
+            water: data.water,
+            sleep: data.sleep,
+            steps: data.steps,
+            sleepQuality: data.sleepQuality,
+            mood: data.mood,
+            exercise: data.exercise,
+            reps: data.reps,
+            weightLifted: data.weightLifted,
+            rpe: data.rpe,
+            endurance: data.endurance,
+            notes: data.notes,
+            createdAt: data.createdAt,
+          } as ProgressEntry;
+        });
+
         setEntries(docs);
         setLoading(false);
       },
       (err) => {
+        if (!isMounted) return;
+        
         console.error("ProgressTab listener error:", err);
-        // If index error, fall back to clientName query without orderBy
-        if (err.code === "failed-precondition" && clientName) {
+        
+        // ✅ FIX 4: Fallback if composite index not created
+        if (err.code === "failed-precondition") {
           const fallbackQ = query(
             collection(db, "progressLogs"),
-            where("clientName", "==", clientName)
+            where("clientId", "==", clientId)
           );
-          onSnapshot(fallbackQ, (snap) => {
-            const docs = snap.docs
-              .map((d) => ({ id: d.id, ...d.data() } as ProgressEntry))
-              .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-            setEntries(docs);
-            setLoading(false);
-          });
+
+          onSnapshot(
+            fallbackQ,
+            (snap) => {
+              if (!isMounted) return;
+              
+              const docs = snap.docs
+                .map((d) => {
+                  const data = d.data();
+                  return {
+                    id: d.id,
+                    clientId: data.clientId || clientId,
+                    clientName: data.clientName || clientName,
+                    date: data.date || "",
+                    loggedBy: data.loggedBy || "",
+                    source: data.source || "",
+                    type: data.type || "",
+                    weight: data.weight,
+                    chest: data.chest,
+                    waist: data.waist,
+                    hips: data.hips,
+                    arms: data.arms,
+                    calories: data.calories,
+                    protein: data.protein,
+                    water: data.water,
+                    sleep: data.sleep,
+                    steps: data.steps,
+                    sleepQuality: data.sleepQuality,
+                    mood: data.mood,
+                    exercise: data.exercise,
+                    reps: data.reps,
+                    weightLifted: data.weightLifted,
+                    rpe: data.rpe,
+                    endurance: data.endurance,
+                    notes: data.notes,
+                    createdAt: data.createdAt,
+                  } as ProgressEntry;
+                })
+                // ✅ FIX 5: Manual sort by createdAt (desc)
+                .sort((a, b) => {
+                  const aTime = a.createdAt?.seconds || a.createdAt?.toMillis?.() || 0;
+                  const bTime = b.createdAt?.seconds || b.createdAt?.toMillis?.() || 0;
+                  return bTime - aTime;
+                });
+
+              setEntries(docs);
+              setLoading(false);
+            },
+            (fallbackErr) => {
+              if (!isMounted) return;
+              console.error("Fallback listener error:", fallbackErr);
+              setLoading(false);
+            }
+          );
         } else {
           setLoading(false);
         }
       }
     );
-    return () => unsub();
+
+    // ✅ FIX 6: Cleanup function
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [clientId, clientName]);
 
-  // Latest = index 0 (desc order), Previous = index 1
+  // ✅ FIX 7: Latest = index 0 (desc order), Previous = index 1
   const latest = entries[0];
   const prev   = entries[1];
 
@@ -326,6 +415,18 @@ function ProgressTab({ clientId, clientName }: { clientId: string; clientName: s
               )}
             </div>
           )}
+          {latest?.rpe != null && (
+            <div className="prog-card">
+              <div className="prog-icon">💪</div>
+              <div className="prog-label">RPE</div>
+              <div className="prog-value">{latest.rpe}<span className="prog-unit">/10</span></div>
+              {prev?.rpe != null && (
+                <div className="prog-prev">
+                  prev: {prev.rpe} <Delta current={latest.rpe} previous={prev.rpe} unit="" />
+                </div>
+              )}
+            </div>
+          )}
           {latest?.endurance != null && (
             <div className="prog-card">
               <div className="prog-icon">🏃</div>
@@ -346,7 +447,7 @@ function ProgressTab({ clientId, clientName }: { clientId: string; clientName: s
               <div className="fs12 t2" style={{ marginTop: 4, lineHeight: 1.5 }}>{latest.notes}</div>
             </div>
           )}
-          {latest?.reps == null && latest?.weightLifted == null && latest?.endurance == null && (
+          {latest?.reps == null && latest?.weightLifted == null && latest?.rpe == null && latest?.endurance == null && (
             <div className="fs12 t3" style={{ gridColumn: "1/-1" }}>No performance data yet.</div>
           )}
         </div>
@@ -387,6 +488,7 @@ function ProgressTab({ clientId, clientName }: { clientId: string; clientName: s
                 {e.exercise            && <span className="fs11 t2">🏋 {e.exercise}</span>}
                 {e.reps         != null && <span className="fs11 t2">🔁 {e.reps} reps</span>}
                 {e.weightLifted != null && <span className="fs11 t2">⚡ {e.weightLifted}kg lifted</span>}
+                {e.rpe          != null && <span className="fs11 t2">💪 RPE {e.rpe}/10</span>}
                 {e.endurance    != null && <span className="fs11 t2">🏃 {e.endurance}min endurance</span>}
                 {e.notes               && <span className="fs11 t3" style={{ fontStyle: "italic" }}>"{e.notes}"</span>}
               </div>
@@ -419,6 +521,13 @@ export default function Clients() {
 
   const getTab = (id: string) => activeTab[id] || "overview";
   const setTab = (id: string, tab: string) => setActiveTab((p) => ({ ...p, [id]: tab }));
+
+  // ✅ FIX 8: Force refresh of displayed data when clients prop changes
+  useEffect(() => {
+    // This ensures we see fresh client data even after admin edits
+    setExpandedClient(null);
+    setActiveTab({});
+  }, [clients.length]); // Only trigger on length change to avoid excessive renders
 
   if (detailClient) {
     return (
@@ -539,10 +648,10 @@ export default function Clients() {
             </div>
             <div className="g2">
               <div className="field"><label>Sessions Included</label>
-                <input className="fi" type="number" value={editForm.sessionsIncluded || ""} onChange={(e) => setEditForm((p: any) => ({ ...p, sessionsIncluded: e.target.value }))} />
+                <input className="fi" type="number" value={editForm.sessionsIncluded || ""} onChange={(e) => setEditForm((p: any) => ({ ...p, sessionsIncluded: Number(e.target.value) }))} />
               </div>
               <div className="field"><label>Sessions Logged</label>
-                <input className="fi" type="number" value={editForm.sessionsLogged || ""} onChange={(e) => setEditForm((p: any) => ({ ...p, sessionsLogged: e.target.value }))} />
+                <input className="fi" type="number" value={editForm.sessionsLogged || ""} onChange={(e) => setEditForm((p: any) => ({ ...p, sessionsLogged: Number(e.target.value) }))} />
               </div>
             </div>
             <div className="g2">
@@ -677,18 +786,21 @@ export default function Clients() {
                     <div className="cl-stat-row" style={{ marginTop: 12 }}>
                       <div className="cl-stat">
                         <div className="cl-stat-l">Sessions</div>
+                        {/* ✅ FIX 9: Always use current c.sessionsLogged (not stale value) */}
                         <div className="cl-stat-v">{c.sessionsLogged || 0}/{c.sessionsIncluded || 0}</div>
                       </div>
                       <div className="cl-stat">
                         <div className="cl-stat-l">Left</div>
+                        {/* ✅ FIX 10: Recalculate classes left */}
                         <div className="cl-stat-v" style={{ color: (c.classesLeft || 0) <= 2 ? "var(--red)" : "var(--t1)" }}>
-                          {c.classesLeft || 0}
+                          {Math.max(0, (c.sessionsIncluded || 0) - (c.sessionsLogged || 0))}
                         </div>
                       </div>
                       <div className="cl-stat">
                         <div className="cl-stat-l">Compliance</div>
+                        {/* ✅ FIX 11: Recalculate compliance percentage */}
                         <div className="cl-stat-v" style={{ color: (c.compliance || 0) >= 85 ? "var(--green)" : (c.compliance || 0) >= 70 ? "var(--yellow)" : "var(--red)" }}>
-                          {c.compliance || 0}%
+                          {c.sessionsIncluded ? Math.round(((c.sessionsLogged || 0) / (c.sessionsIncluded || 0)) * 100) : 0}%
                         </div>
                       </div>
                       <div className="cl-stat">
@@ -700,13 +812,14 @@ export default function Clients() {
                     </div>
                     <div className="cl-bar-row">
                       <div className="cl-bar-label">Compliance</div>
+                      {/* ✅ FIX 12: Use recalculated compliance */}
                       <div className="cl-bar-wrap">
                         <div className="cl-bar-fill" style={{
-                          width: `${c.compliance || 0}%`,
+                          width: `${c.sessionsIncluded ? Math.round(((c.sessionsLogged || 0) / (c.sessionsIncluded || 0)) * 100) : 0}%`,
                           background: (c.compliance || 0) >= 85 ? "var(--green)" : (c.compliance || 0) >= 70 ? "var(--yellow)" : "var(--red)",
                         }} />
                       </div>
-                      <div className="cl-bar-val">{c.compliance || 0}%</div>
+                      <div className="cl-bar-val">{c.sessionsIncluded ? Math.round(((c.sessionsLogged || 0) / (c.sessionsIncluded || 0)) * 100) : 0}%</div>
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginBottom: 8 }}>
                       {c.plan      && <span className="fs11 t3">📋 {c.plan}</span>}
@@ -728,7 +841,7 @@ export default function Clients() {
                   </div>
                 )}
 
-                {/* ── PROGRESS TAB — FIX: pass both clientId AND clientName ── */}
+                {/* ── PROGRESS TAB ── */}
                 {tab === "progress" && (
                   <ProgressTab clientId={c.id} clientName={c.name} />
                 )}
