@@ -158,7 +158,6 @@ export function AdminProvider({
     title: "",
     body: "",
     priority: "medium",
-    target: "all",
   });
   const [newWarning, setNewWarning] = useState<Partial<Warning>>({
     trainer: "",
@@ -395,7 +394,7 @@ export function AdminProvider({
         ...newInstruction,
         createdAt: serverTimestamp(),
       });
-      setNewInstruction({ title: "", body: "", priority: "medium", target: "all" });
+      setNewInstruction({ title: "", body: "", priority: "medium" });
       setShowInstruction(false);
       showToast("✓ Instruction posted", "success");
     } catch (err) {
