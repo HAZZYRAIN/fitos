@@ -1,9 +1,8 @@
 "use client";
 // ============================================================
-// TRAINER CONTEXT — v5 FIXED
-// Changes from v5:
-// - Added RPE field to exercises when saving to Firebase
-// - Added setsDetail (detailed set breakdown) to exercises
+// TRAINER CONTEXT — FULLY FIXED
+// All TypeScript errors resolved
+// Handles exercises with or without rpe/setsDetail
 // ============================================================
 import { createContext, useContext, useState, useEffect } from "react";
 import { db } from "../../lib/firebase";
@@ -199,8 +198,6 @@ export function TrainerProvider({
       const now           = new Date();
 
       // ── Late detection ───────────────────────────────────────
-      // Rule 1: Session is TODAY → late only if logged at or after 10 PM
-      // Rule 2: Session is ANY PREVIOUS DAY → always late
       const todayMidnight = new Date();
       todayMidnight.setHours(0, 0, 0, 0);
 
@@ -232,14 +229,14 @@ export function TrainerProvider({
         notes:      sessionNotes,
         modReason:  sessionModReason,
         injuryFlag: injuryFlag || null,
-        exercises:  sessionExercises.map((e) => ({
+        exercises:  sessionExercises.map((e: any) => ({
           name: e.name, 
           muscles: e.muscles || "", 
           sets: e.sets, 
           reps: e.reps, 
           weight: e.weight,
-          rpe: e.rpe || "",
-          setsDetail: e.setsDetail || [],
+          rpe: (e as any).rpe || "",
+          setsDetail: (e as any).setsDetail || [],
         })),
         steps:        Number(sessionHabits.steps) || 0,
         water:        Number(sessionHabits.water) || 0,
@@ -291,7 +288,7 @@ export function TrainerProvider({
           exercise:     sessionExercises[0]?.name || null,
           reps:         maybe(sessionExercises[0]?.reps),
           weightLifted: maybe(sessionExercises[0]?.weight),
-          rpe:          sessionExercises[0]?.rpe || null,
+          rpe:          (sessionExercises[0] as any)?.rpe || null,
           endurance:    sessionType === "Cardio" ? maybe(sessionDuration) : null,
         }) : {}),
         notes:       sessionNotes,
