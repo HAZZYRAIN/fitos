@@ -56,7 +56,7 @@ interface AdminContextType {
   renewTarget: Client | null;
 
   editForm: Partial<Client> | null;
-  setEditForm: (form: Partial<Client> | null) => void;
+ setEditForm: React.Dispatch<React.SetStateAction<Partial<Client> | null>>;
 
   // Using React.Dispatch so both direct values AND function updaters work
   newTrainer: Partial<Trainer>;
