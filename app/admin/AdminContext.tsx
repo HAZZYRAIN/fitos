@@ -266,6 +266,7 @@ export function AdminProvider({
     const clientName = newClient.name.trim();
     const trainerId  = newClient.trainerId;
     try {
+      // 1. Create client doc
       const docRef = await addDoc(collection(db, "trainers", trainerId, "clients"), {
         name: clientName,
         email: newClient.email?.trim() || "",
@@ -290,13 +291,53 @@ export function AdminProvider({
         createdAt: serverTimestamp(),
       });
       await updateDoc(docRef, { id: docRef.id });
+
+      // 2. Auto-sync trainer stats from all their clients in memory
+      const trainerClients = [
+        ...clients.filter((c) => c.trainerId === trainerId),
+        // include the new client we just created (not yet in state)
+        {
+          trainerId,
+          sessionsIncluded,
+          sessionsLogged: 0,
+          classesLeft: sessionsIncluded,
+          compliance: 0,
+          missedSessions: 0,
+          status: newClient.status || "Active",
+        } as Client,
+      ];
+
+      const totalSessions  = trainerClients.reduce((s, c) => s + (c.sessionsIncluded || 0), 0);
+      const totalLogged    = trainerClients.reduce((s, c) => s + (c.sessionsLogged || 0), 0);
+      const totalMissed    = trainerClients.reduce((s, c) => s + (c.missedSessions || 0), 0);
+      const activeCount    = trainerClients.filter((c) => c.status !== "Inactive").length;
+      const avgCompliance  = trainerClients.length
+        ? Math.round(trainerClients.reduce((s, c) => s + (c.compliance || 0), 0) / trainerClients.length)
+        : 0;
+
+      // Accountability: penalise for missed sessions and late logs
+      const existingTrainer = trainers.find((t) => t.id === trainerId);
+      const lateCount       = existingTrainer?.lateSubmissions || 0;
+      const accountability  = Math.max(0, Math.min(100,
+        100 - (totalMissed * 5) - (lateCount * 3)
+      ));
+
+      await updateDoc(doc(db, "trainers", trainerId), {
+        clientCount:        activeCount,
+        sessionsAssigned:   totalSessions,
+        sessions:           totalLogged,
+        missedSessions:     totalMissed,
+        accountabilityScore: accountability,
+        updatedAt:          serverTimestamp(),
+      });
+
       setNewClient({ name: "", email: "", gender: "", age: "", trainerId: "", trainerName: "", programType: "1-on-1", status: "Active", medicalNotes: "", startDate: "", endDate: "", sessionsIncluded: 0, plan: "", location: "" });
       setShowAddClient(false);
-      showToast(`✓ Client "${clientName}" added!`, "success");
+      showToast(`✓ Client "${clientName}" added! Trainer stats updated.`, "success");
     } catch {
       showToast("Failed to add client", "error");
     }
-  }, [newClient, showToast]);
+  }, [newClient, clients, trainers, showToast]);
 
   const openEditClient = useCallback((client: Client) => {
     setEditForm(client);
@@ -305,18 +346,44 @@ export function AdminProvider({
 
   const saveEditClient = useCallback(async () => {
     if (!editForm?.id || !editForm?.trainerId) return;
+    const trainerId = editForm.trainerId;
     try {
       await updateDoc(
-        doc(db, "trainers", editForm.trainerId, "clients", editForm.id),
+        doc(db, "trainers", trainerId, "clients", editForm.id),
         { ...editForm, updatedAt: serverTimestamp() }
       );
+
+      // Re-sync trainer stats with updated client data
+      const trainerClients = clients.map((c) =>
+        c.id === editForm.id ? { ...c, ...editForm } as Client : c
+      ).filter((c) => c.trainerId === trainerId);
+
+      const totalSessions = trainerClients.reduce((s, c) => s + (c.sessionsIncluded || 0), 0);
+      const totalLogged   = trainerClients.reduce((s, c) => s + (c.sessionsLogged || 0), 0);
+      const totalMissed   = trainerClients.reduce((s, c) => s + (c.missedSessions || 0), 0);
+      const activeCount   = trainerClients.filter((c) => c.status !== "Inactive").length;
+      const existingTrainer = trainers.find((t) => t.id === trainerId);
+      const lateCount     = existingTrainer?.lateSubmissions || 0;
+      const accountability = Math.max(0, Math.min(100,
+        100 - (totalMissed * 5) - (lateCount * 3)
+      ));
+
+      await updateDoc(doc(db, "trainers", trainerId), {
+        clientCount:         activeCount,
+        sessionsAssigned:    totalSessions,
+        sessions:            totalLogged,
+        missedSessions:      totalMissed,
+        accountabilityScore: accountability,
+        updatedAt:           serverTimestamp(),
+      });
+
       setShowEditClient(false);
       setEditForm(null);
-      showToast("✓ Client updated", "success");
+      showToast("✓ Client updated & trainer stats synced", "success");
     } catch {
       showToast("Failed to update client", "error");
     }
-  }, [editForm, showToast]);
+  }, [editForm, clients, trainers, showToast]);
 
   const openRenewClient = useCallback((client: Client) => {
     setRenewTarget(client);
