@@ -560,9 +560,529 @@ const PREMADE_LIST: Omit<Template, "id" | "status" | "createdAt">[] = [
   { name: "Pre-Wedding Transformation",         category: "Muscle Gain", level: "Intermediate", days: "5x / week", duration: "55 min", description: "12-week body composition program for brides/grooms.", assignedTo: [] },
 ];
 
+
+// ── NEW 20 TEMPLATES (Batch 2) ────────────────────────────────
+const PREMADE_DAYS_2: Record<string, WorkoutDay[]> = {
+
+  // ── STRENGTH ─────────────────────────────────────────────
+  "Strength Reboot (30s)": [
+    { dayLabel: "Day 1", focus: "Lower Body Strength", exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",        sets: "4", reps: "6",  rest: "3 min", notes: "Focus on depth and bracing" },
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",           sets: "3", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Walking Lunge",         muscles: "Quads, Glutes",        sets: "3", reps: "10", rest: "90s",   notes: "Each leg" },
+      { name: "Leg Curl",              muscles: "Hamstrings",           sets: "3", reps: "12", rest: "75s",   notes: "" },
+      { name: "Calf Raise",            muscles: "Calves",               sets: "4", reps: "15", rest: "60s",   notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Upper Body Strength", exercises: [
+      { name: "Barbell Bench Press",   muscles: "Chest",                sets: "4", reps: "6",  rest: "3 min", notes: "" },
+      { name: "Barbell Row",           muscles: "Back",                 sets: "4", reps: "6",  rest: "3 min", notes: "" },
+      { name: "Overhead Press",        muscles: "Shoulders",            sets: "3", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Weighted Pull-Up",      muscles: "Back, Biceps",         sets: "3", reps: "6",  rest: "2 min", notes: "Use band if needed" },
+      { name: "Tricep Dips",           muscles: "Triceps",              sets: "3", reps: "10", rest: "90s",   notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Full Body Power", exercises: [
+      { name: "Deadlift",              muscles: "Full Posterior Chain", sets: "4", reps: "5",  rest: "3 min", notes: "Main lift of the week" },
+      { name: "Incline Dumbbell Press",muscles: "Upper Chest",          sets: "3", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Seated Cable Row",      muscles: "Back",                 sets: "3", reps: "10", rest: "90s",   notes: "" },
+      { name: "Farmer's Carry",        muscles: "Full Body, Grip",      sets: "3", reps: "40m",rest: "90s",   notes: "" },
+      { name: "Plank Hold",            muscles: "Core",                 sets: "3", reps: "45s",rest: "45s",   notes: "" },
+    ]},
+    { dayLabel: "Day 4", focus: "Accessory + Weak Points", exercises: [
+      { name: "Bulgarian Split Squat", muscles: "Quads, Glutes",        sets: "3", reps: "8",  rest: "2 min", notes: "Each leg" },
+      { name: "Face Pull",             muscles: "Rear Delts",           sets: "4", reps: "15", rest: "60s",   notes: "For shoulder health" },
+      { name: "Lateral Raise",         muscles: "Side Delts",           sets: "4", reps: "15", rest: "60s",   notes: "" },
+      { name: "Barbell Curl",          muscles: "Biceps",               sets: "3", reps: "10", rest: "75s",   notes: "" },
+      { name: "Ab Circuit",            muscles: "Core",                 sets: "3", reps: "60s",rest: "30s",   notes: "Plank, dead bug, pallof press" },
+    ]},
+  ],
+
+  "Intermediate Strength & Conditioning": [
+    { dayLabel: "Day 1", focus: "Squat + Conditioning", exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",   sets: "4", reps: "6",   rest: "3 min", notes: "" },
+      { name: "Box Jump",              muscles: "Power, Quads",    sets: "3", reps: "5",   rest: "2 min", notes: "Explosive" },
+      { name: "Kettlebell Swing",      muscles: "Posterior Chain", sets: "4", reps: "15",  rest: "60s",   notes: "" },
+      { name: "Sled Push",             muscles: "Full Body",       sets: "4", reps: "20m", rest: "90s",   notes: "Or prowler sprint" },
+    ]},
+    { dayLabel: "Day 2", focus: "Press + Pull Circuit", exercises: [
+      { name: "Overhead Press",        muscles: "Shoulders",       sets: "4", reps: "6",   rest: "2 min", notes: "" },
+      { name: "Weighted Pull-Up",      muscles: "Back, Biceps",    sets: "4", reps: "6",   rest: "2 min", notes: "" },
+      { name: "Dumbbell Complex",      muscles: "Full Body",       sets: "4", reps: "6 each", rest: "90s",notes: "Press, row, squat, no rest between" },
+      { name: "Battle Ropes",          muscles: "Cardio, Arms",    sets: "5", reps: "30s", rest: "30s",   notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Deadlift + Metcon", exercises: [
+      { name: "Conventional Deadlift", muscles: "Full Posterior Chain", sets: "4", reps: "5", rest: "3 min", notes: "" },
+      { name: "Barbell Row",           muscles: "Back",            sets: "3", reps: "8",   rest: "2 min", notes: "" },
+      { name: "Metcon Circuit",        muscles: "Full Body",       sets: "4", reps: "4 rounds", rest: "2 min", notes: "10 burpees, 15 swings, 20 box steps" },
+    ]},
+    { dayLabel: "Day 4", focus: "Conditioning Only", exercises: [
+      { name: "Assault Bike / Row",    muscles: "Cardio",          sets: "8", reps: "30s", rest: "30s",   notes: "Max effort intervals" },
+      { name: "Tyre Flip / Sled Row",  muscles: "Full Body",       sets: "5", reps: "5",   rest: "90s",   notes: "" },
+      { name: "Core Circuit",          muscles: "Core",            sets: "3", reps: "60s", rest: "30s",   notes: "Plank, V-up, hollow hold" },
+    ]},
+  ],
+
+  "Advanced Strength Peaking": [
+    { dayLabel: "Day 1", focus: "Max Squat Day",   exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",        sets: "6", reps: "3",  rest: "4 min", notes: "Work up to 90%+ 1RM" },
+      { name: "Pause Squat",           muscles: "Quads",                sets: "3", reps: "3",  rest: "3 min", notes: "3s pause" },
+      { name: "Leg Press",             muscles: "Quads",                sets: "3", reps: "8",  rest: "2 min", notes: "Back off set" },
+      { name: "GHD / Nordic Curl",     muscles: "Hamstrings",           sets: "3", reps: "6",  rest: "2 min", notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Max Bench Day",   exercises: [
+      { name: "Barbell Bench Press",   muscles: "Chest",                sets: "6", reps: "3",  rest: "4 min", notes: "90%+ 1RM" },
+      { name: "Spoto Press",           muscles: "Chest",                sets: "3", reps: "4",  rest: "3 min", notes: "Pause 1in off chest" },
+      { name: "Close-Grip Bench",      muscles: "Triceps, Chest",       sets: "3", reps: "5",  rest: "2 min", notes: "" },
+      { name: "Skull Crusher",         muscles: "Triceps",              sets: "3", reps: "8",  rest: "90s",   notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Max Deadlift Day", exercises: [
+      { name: "Conventional Deadlift", muscles: "Full Posterior Chain", sets: "6", reps: "2",  rest: "5 min", notes: "95%+ 1RM singles" },
+      { name: "Deficit Deadlift",      muscles: "Hamstrings, Back",     sets: "3", reps: "3",  rest: "3 min", notes: "2in deficit" },
+      { name: "Barbell Row",           muscles: "Back",                 sets: "4", reps: "6",  rest: "2 min", notes: "" },
+      { name: "Band Pull-Apart",       muscles: "Rear Delts",           sets: "4", reps: "20", rest: "30s",   notes: "" },
+    ]},
+    { dayLabel: "Day 4", focus: "Deload / Accessory", exercises: [
+      { name: "Tempo Squat (3-1-3)",   muscles: "Quads",                sets: "3", reps: "5",  rest: "2 min", notes: "60% 1RM only" },
+      { name: "Light Overhead Press",  muscles: "Shoulders",            sets: "3", reps: "8",  rest: "90s",   notes: "50% 1RM" },
+      { name: "Face Pull",             muscles: "Rear Delts",           sets: "4", reps: "20", rest: "45s",   notes: "Recovery" },
+      { name: "Ab / Core Work",        muscles: "Core",                 sets: "3", reps: "10", rest: "60s",   notes: "" },
+    ]},
+  ],
+
+  // ── CONDITIONING ─────────────────────────────────────────
+  "Beginner Conditioning Kickstart": [
+    { dayLabel: "Day 1", focus: "Full Body Circuit", exercises: [
+      { name: "Bodyweight Squat",      muscles: "Quads, Glutes",  sets: "3", reps: "15", rest: "45s", notes: "" },
+      { name: "Push-Up",               muscles: "Chest",          sets: "3", reps: "10", rest: "45s", notes: "Knees if needed" },
+      { name: "Dumbbell Row",          muscles: "Back",           sets: "3", reps: "12", rest: "45s", notes: "Each arm" },
+      { name: "Jumping Jacks",         muscles: "Cardio",         sets: "3", reps: "45s",rest: "30s", notes: "" },
+      { name: "Plank",                 muscles: "Core",           sets: "3", reps: "20s",rest: "30s", notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Cardio Base", exercises: [
+      { name: "Brisk Walk / Light Jog",muscles: "Cardio",         sets: "1", reps: "20 min", rest: "—", notes: "Zone 2, conversational pace" },
+      { name: "Step-Ups",              muscles: "Quads, Glutes",  sets: "3", reps: "12", rest: "45s", notes: "Each leg" },
+      { name: "Glute Bridge",          muscles: "Glutes",         sets: "3", reps: "15", rest: "45s", notes: "" },
+      { name: "Bicycle Crunch",        muscles: "Core",           sets: "3", reps: "20", rest: "30s", notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Strength + Intervals", exercises: [
+      { name: "Goblet Squat",          muscles: "Quads, Glutes",  sets: "3", reps: "12", rest: "60s", notes: "" },
+      { name: "Dumbbell Shoulder Press",muscles: "Shoulders",     sets: "3", reps: "12", rest: "60s", notes: "" },
+      { name: "Lat Pulldown",          muscles: "Back",           sets: "3", reps: "12", rest: "60s", notes: "" },
+      { name: "Walk-Jog Intervals",    muscles: "Cardio",         sets: "6", reps: "1 min jog", rest: "1 min walk", notes: "" },
+    ]},
+  ],
+
+  "Intermediate Conditioning & Cardio": [
+    { dayLabel: "Day 1", focus: "Lift + Conditioning", exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",  sets: "4", reps: "8",   rest: "2 min", notes: "" },
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",     sets: "3", reps: "10",  rest: "90s",   notes: "" },
+      { name: "AMRAP Finisher",        muscles: "Full Body",      sets: "1", reps: "10 min AMRAP", rest: "—", notes: "5 burpees, 10 swings, 15 box steps" },
+    ]},
+    { dayLabel: "Day 2", focus: "Zone 2 Aerobic", exercises: [
+      { name: "Steady State Cardio",   muscles: "Cardio",         sets: "1", reps: "35 min", rest: "—", notes: "65% max HR, bike or row preferred" },
+      { name: "Core Circuit",          muscles: "Core",           sets: "3", reps: "45s", rest: "30s", notes: "Plank, dead bug, hollow hold" },
+    ]},
+    { dayLabel: "Day 3", focus: "Upper + HIIT", exercises: [
+      { name: "Bench Press",           muscles: "Chest",          sets: "4", reps: "8",   rest: "90s",   notes: "" },
+      { name: "Barbell Row",           muscles: "Back",           sets: "4", reps: "8",   rest: "90s",   notes: "" },
+      { name: "Sprint Intervals",      muscles: "Cardio",         sets: "8", reps: "20s", rest: "40s",   notes: "90% effort" },
+    ]},
+    { dayLabel: "Day 4", focus: "Active Recovery + Mobility", exercises: [
+      { name: "Light Cycle or Walk",   muscles: "Cardio",         sets: "1", reps: "25 min", rest: "—", notes: "Easy pace" },
+      { name: "Hip Flexor Stretch",    muscles: "Hips",           sets: "2", reps: "60s", rest: "—", notes: "Each side" },
+      { name: "Thoracic Rotation",     muscles: "T-Spine",        sets: "3", reps: "10",  rest: "—", notes: "Each side" },
+      { name: "Foam Roll Full Body",   muscles: "Recovery",       sets: "1", reps: "10 min", rest: "—", notes: "" },
+    ]},
+  ],
+
+  "Advanced Conditioning & GPP": [
+    { dayLabel: "Day 1", focus: "Heavy Lower + Metcon", exercises: [
+      { name: "Deadlift",              muscles: "Full Body",      sets: "5", reps: "3",   rest: "4 min", notes: "85%+ 1RM" },
+      { name: "Trap Bar Jump",         muscles: "Power",          sets: "4", reps: "4",   rest: "2 min", notes: "Explosive" },
+      { name: "Metcon",                muscles: "Full Body",      sets: "1", reps: "3 rounds", rest: "2 min", notes: "400m run, 15 GHD sit-ups, 10 pull-ups" },
+    ]},
+    { dayLabel: "Day 2", focus: "Aerobic Power", exercises: [
+      { name: "Row Intervals",         muscles: "Cardio, Back",   sets: "6", reps: "500m", rest: "2 min", notes: "Max pace" },
+      { name: "Double Kettlebell Complex", muscles: "Full Body",  sets: "5", reps: "5 each", rest: "90s", notes: "Clean, press, squat, no rest" },
+      { name: "Hollow Body Hold",      muscles: "Core",           sets: "4", reps: "30s", rest: "30s",   notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Heavy Upper + Carry", exercises: [
+      { name: "Overhead Press",        muscles: "Shoulders",      sets: "5", reps: "4",   rest: "3 min", notes: "" },
+      { name: "Weighted Pull-Up",      muscles: "Back",           sets: "5", reps: "4",   rest: "3 min", notes: "" },
+      { name: "Farmer's Carry",        muscles: "Full Body, Grip",sets: "4", reps: "50m", rest: "90s",   notes: "Heavy" },
+      { name: "Handstand Push-Up / Pike Push-Up", muscles: "Shoulders", sets: "3", reps: "8", rest: "90s", notes: "" },
+    ]},
+    { dayLabel: "Day 4", focus: "Threshold Cardio", exercises: [
+      { name: "Tempo Run",             muscles: "Cardio",         sets: "1", reps: "25 min", rest: "—", notes: "85% effort, comfortably uncomfortable" },
+      { name: "Box Jump",              muscles: "Power",          sets: "4", reps: "6",   rest: "90s",   notes: "" },
+      { name: "Assault Bike Sprint",   muscles: "Cardio",         sets: "6", reps: "15s", rest: "45s",   notes: "All out" },
+    ]},
+    { dayLabel: "Day 5", focus: "Long Aerobic + Recovery", exercises: [
+      { name: "Zone 2 Run / Bike",     muscles: "Cardio",         sets: "1", reps: "45 min", rest: "—", notes: "60-65% max HR" },
+      { name: "Mobility Flow",         muscles: "Full Body",      sets: "1", reps: "15 min", rest: "—", notes: "" },
+    ]},
+  ],
+
+  // ── FAT LOSS ─────────────────────────────────────────────
+  "Women's Fat Loss — Beginner": [
+    { dayLabel: "Day 1", focus: "Full Body Tone", exercises: [
+      { name: "Goblet Squat",          muscles: "Quads, Glutes",  sets: "3", reps: "15", rest: "45s", notes: "" },
+      { name: "Dumbbell Romanian Deadlift", muscles: "Hamstrings, Glutes", sets: "3", reps: "12", rest: "60s", notes: "" },
+      { name: "Push-Up",               muscles: "Chest",          sets: "3", reps: "10", rest: "45s", notes: "" },
+      { name: "Dumbbell Row",          muscles: "Back",           sets: "3", reps: "12", rest: "45s", notes: "Each arm" },
+      { name: "Plank Hold",            muscles: "Core",           sets: "3", reps: "25s",rest: "30s", notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Cardio & Core", exercises: [
+      { name: "Brisk Walk / Jog",      muscles: "Cardio",         sets: "1", reps: "25 min", rest: "—", notes: "" },
+      { name: "Bicycle Crunch",        muscles: "Core",           sets: "3", reps: "20", rest: "30s", notes: "" },
+      { name: "Leg Raises",            muscles: "Lower Abs",      sets: "3", reps: "12", rest: "30s", notes: "" },
+      { name: "Hip Thrust",            muscles: "Glutes",         sets: "3", reps: "15", rest: "45s", notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Lower Body Burn", exercises: [
+      { name: "Sumo Squat",            muscles: "Glutes, Inner Thigh", sets: "3", reps: "15", rest: "45s", notes: "" },
+      { name: "Reverse Lunge",         muscles: "Quads, Glutes",  sets: "3", reps: "12", rest: "45s", notes: "Each leg" },
+      { name: "Glute Kickback",        muscles: "Glutes",         sets: "3", reps: "15", rest: "30s", notes: "Each leg, cable or band" },
+      { name: "Side-Lying Clamshell",  muscles: "Glute Med",      sets: "3", reps: "15", rest: "30s", notes: "Each side, band" },
+      { name: "Jump Rope / Step Touch",muscles: "Cardio",         sets: "4", reps: "45s",rest: "30s", notes: "" },
+    ]},
+  ],
+
+  "Metabolic Fat Burn — Intermediate": [
+    { dayLabel: "Day 1", focus: "Lower Metabolic", exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",  sets: "4", reps: "10", rest: "75s", notes: "" },
+      { name: "Hip Thrust",            muscles: "Glutes",         sets: "4", reps: "12", rest: "75s", notes: "" },
+      { name: "Jump Squat",            muscles: "Power, Quads",   sets: "3", reps: "10", rest: "60s", notes: "" },
+      { name: "Wall Sit",              muscles: "Quads",          sets: "3", reps: "45s",rest: "45s", notes: "" },
+      { name: "Step-Up to Knee Drive", muscles: "Quads, Cardio",  sets: "3", reps: "12", rest: "45s", notes: "Each leg" },
+    ]},
+    { dayLabel: "Day 2", focus: "Upper Metabolic", exercises: [
+      { name: "Dumbbell Bench Press",  muscles: "Chest",          sets: "4", reps: "12", rest: "60s", notes: "" },
+      { name: "Seated Cable Row",      muscles: "Back",           sets: "4", reps: "12", rest: "60s", notes: "" },
+      { name: "Arnold Press",          muscles: "Shoulders",      sets: "3", reps: "12", rest: "60s", notes: "" },
+      { name: "Tricep Pushdown",       muscles: "Triceps",        sets: "3", reps: "15", rest: "45s", notes: "" },
+      { name: "Dumbbell Curl",         muscles: "Biceps",         sets: "3", reps: "15", rest: "45s", notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "HIIT Cardio", exercises: [
+      { name: "Burpees",               muscles: "Full Body",      sets: "4", reps: "10", rest: "30s", notes: "" },
+      { name: "Mountain Climbers",     muscles: "Core, Cardio",   sets: "4", reps: "30s",rest: "30s", notes: "" },
+      { name: "High Knees",            muscles: "Cardio",         sets: "4", reps: "30s",rest: "30s", notes: "" },
+      { name: "Plyo Lunge",            muscles: "Quads, Cardio",  sets: "3", reps: "10", rest: "45s", notes: "Each leg" },
+      { name: "Jump Rope",             muscles: "Cardio",         sets: "4", reps: "60s",rest: "30s", notes: "" },
+    ]},
+    { dayLabel: "Day 4", focus: "Full Body + Core Finisher", exercises: [
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",     sets: "3", reps: "12", rest: "90s", notes: "" },
+      { name: "Overhead Press",        muscles: "Shoulders",      sets: "3", reps: "12", rest: "75s", notes: "" },
+      { name: "Pull-Up / Lat Pulldown",muscles: "Back",           sets: "3", reps: "10", rest: "75s", notes: "" },
+      { name: "Core Finisher Circuit", muscles: "Core",           sets: "3", reps: "45s each", rest: "30s", notes: "Plank, V-sit, Russian twist" },
+    ]},
+  ],
+
+  "Advanced Shred Protocol": [
+    { dayLabel: "Day 1", focus: "Lower Body Shred", exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",  sets: "5", reps: "6",  rest: "2 min", notes: "" },
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",     sets: "4", reps: "8",  rest: "90s",   notes: "" },
+      { name: "Walking Lunge",         muscles: "Quads, Glutes",  sets: "3", reps: "12", rest: "75s",   notes: "Each leg" },
+      { name: "Leg Press Drop Set",    muscles: "Quads",          sets: "3", reps: "15+drop", rest: "90s", notes: "Drop weight 20%, go to failure" },
+      { name: "Sprint Finisher",       muscles: "Cardio",         sets: "6", reps: "20s",rest: "40s",   notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Upper Body Shred", exercises: [
+      { name: "Bench Press",           muscles: "Chest",          sets: "4", reps: "8",  rest: "90s",   notes: "" },
+      { name: "Weighted Pull-Up",      muscles: "Back",           sets: "4", reps: "6",  rest: "2 min", notes: "" },
+      { name: "Dumbbell Shoulder Press",muscles: "Shoulders",     sets: "3", reps: "10", rest: "75s",   notes: "" },
+      { name: "Cable Flye",            muscles: "Chest",          sets: "3", reps: "15", rest: "60s",   notes: "" },
+      { name: "Battle Ropes",          muscles: "Cardio",         sets: "5", reps: "30s",rest: "30s",   notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "HIIT + Core", exercises: [
+      { name: "Barbell Complex",       muscles: "Full Body",      sets: "5", reps: "5 each", rest: "2 min", notes: "Deadlift, row, clean, press, squat" },
+      { name: "Assault Bike",          muscles: "Cardio",         sets: "8", reps: "15s",rest: "45s",   notes: "All out effort" },
+      { name: "Hanging Leg Raise",     muscles: "Core",           sets: "4", reps: "12", rest: "45s",   notes: "" },
+      { name: "Ab Wheel",              muscles: "Core",           sets: "3", reps: "10", rest: "60s",   notes: "" },
+    ]},
+    { dayLabel: "Day 4", focus: "Active Cardio", exercises: [
+      { name: "Zone 2 Run",            muscles: "Cardio",         sets: "1", reps: "30 min", rest: "—", notes: "Steady state 65% HR" },
+      { name: "Mobility Work",         muscles: "Full Body",      sets: "1", reps: "10 min", rest: "—", notes: "" },
+    ]},
+    { dayLabel: "Day 5", focus: "Full Body Superset", exercises: [
+      { name: "Deadlift",              muscles: "Full Body",      sets: "4", reps: "5",  rest: "3 min", notes: "" },
+      { name: "Incline Press + Row Superset", muscles: "Chest, Back", sets: "4", reps: "10 each", rest: "90s", notes: "No rest between" },
+      { name: "Kettlebell Swing",      muscles: "Posterior Chain",sets: "4", reps: "20", rest: "60s",   notes: "" },
+      { name: "Sprint Intervals",      muscles: "Cardio",         sets: "8", reps: "15s",rest: "45s",   notes: "" },
+    ]},
+  ],
+
+  // ── BODY RECOMPOSITION ───────────────────────────────────
+  "Recomposition — Beginner (Lose Fat, Build Muscle)": [
+    { dayLabel: "Day 1", focus: "Full Body A", exercises: [
+      { name: "Goblet Squat",          muscles: "Quads, Glutes",  sets: "3", reps: "12", rest: "90s", notes: "" },
+      { name: "Dumbbell Bench Press",  muscles: "Chest",          sets: "3", reps: "12", rest: "90s", notes: "" },
+      { name: "Dumbbell Row",          muscles: "Back",           sets: "3", reps: "12", rest: "75s", notes: "Each arm" },
+      { name: "Glute Bridge",          muscles: "Glutes",         sets: "3", reps: "15", rest: "60s", notes: "" },
+      { name: "Plank",                 muscles: "Core",           sets: "3", reps: "30s",rest: "30s", notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Cardio & Habits", exercises: [
+      { name: "Brisk Walk",            muscles: "Cardio",         sets: "1", reps: "30 min", rest: "—", notes: "10,000 step goal" },
+      { name: "Bodyweight Circuit",    muscles: "Full Body",      sets: "2", reps: "10 min", rest: "—", notes: "Squats, push-ups, lunges, plank" },
+    ]},
+    { dayLabel: "Day 3", focus: "Full Body B", exercises: [
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",     sets: "3", reps: "12", rest: "90s", notes: "" },
+      { name: "Overhead Press",        muscles: "Shoulders",      sets: "3", reps: "12", rest: "90s", notes: "" },
+      { name: "Lat Pulldown",          muscles: "Back",           sets: "3", reps: "12", rest: "75s", notes: "" },
+      { name: "Hip Thrust",            muscles: "Glutes",         sets: "3", reps: "15", rest: "75s", notes: "" },
+      { name: "Bicycle Crunch",        muscles: "Core",           sets: "3", reps: "20", rest: "30s", notes: "" },
+    ]},
+    { dayLabel: "Day 4", focus: "Light Cardio + Stretch", exercises: [
+      { name: "Light Jog or Cycle",    muscles: "Cardio",         sets: "1", reps: "20 min", rest: "—", notes: "Easy pace" },
+      { name: "Full Body Stretch",     muscles: "Mobility",       sets: "1", reps: "10 min", rest: "—", notes: "" },
+    ]},
+  ],
+
+  "Recomposition — Intermediate (Lean Bulk)": [
+    { dayLabel: "Day 1", focus: "Upper Hypertrophy", exercises: [
+      { name: "Barbell Bench Press",   muscles: "Chest",          sets: "4", reps: "10", rest: "90s",   notes: "" },
+      { name: "Barbell Row",           muscles: "Back",           sets: "4", reps: "10", rest: "90s",   notes: "" },
+      { name: "Dumbbell Shoulder Press",muscles: "Shoulders",     sets: "3", reps: "12", rest: "75s",   notes: "" },
+      { name: "Cable Curl",            muscles: "Biceps",         sets: "3", reps: "15", rest: "60s",   notes: "" },
+      { name: "Tricep Rope Pushdown",  muscles: "Triceps",        sets: "3", reps: "15", rest: "60s",   notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Lower Hypertrophy", exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",  sets: "4", reps: "10", rest: "2 min", notes: "" },
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",     sets: "4", reps: "10", rest: "90s",   notes: "" },
+      { name: "Leg Press",             muscles: "Quads",          sets: "3", reps: "12", rest: "90s",   notes: "" },
+      { name: "Hip Thrust",            muscles: "Glutes",         sets: "4", reps: "12", rest: "75s",   notes: "" },
+      { name: "Calf Raise",            muscles: "Calves",         sets: "4", reps: "15", rest: "60s",   notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Cardio + Core", exercises: [
+      { name: "Moderate Cardio",       muscles: "Cardio",         sets: "1", reps: "25 min", rest: "—", notes: "70% HR, steady state" },
+      { name: "Core Superset",         muscles: "Core",           sets: "4", reps: "45s each", rest: "30s", notes: "Plank + dead bug" },
+    ]},
+    { dayLabel: "Day 4", focus: "Full Body Strength", exercises: [
+      { name: "Deadlift",              muscles: "Full Body",      sets: "4", reps: "6",  rest: "3 min", notes: "" },
+      { name: "Weighted Pull-Up",      muscles: "Back",           sets: "3", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Incline Dumbbell Press",muscles: "Upper Chest",    sets: "3", reps: "10", rest: "90s",   notes: "" },
+      { name: "Farmer's Carry",        muscles: "Full Body",      sets: "3", reps: "40m",rest: "90s",   notes: "" },
+    ]},
+  ],
+
+  "Recomposition — Advanced (Cut & Build)": [
+    { dayLabel: "Day 1", focus: "Heavy Lower + Pump", exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",  sets: "4", reps: "5",  rest: "3 min", notes: "Heavy compound" },
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",     sets: "4", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Leg Extension",         muscles: "Quads",          sets: "3", reps: "15", rest: "60s",   notes: "Pump finisher" },
+      { name: "Leg Curl",              muscles: "Hamstrings",     sets: "3", reps: "15", rest: "60s",   notes: "" },
+      { name: "Sprint Finisher",       muscles: "Cardio",         sets: "5", reps: "20s",rest: "40s",   notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Heavy Push + Cardio", exercises: [
+      { name: "Bench Press",           muscles: "Chest",          sets: "4", reps: "5",  rest: "3 min", notes: "" },
+      { name: "Overhead Press",        muscles: "Shoulders",      sets: "3", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Incline Dumbbell Press",muscles: "Upper Chest",    sets: "3", reps: "12", rest: "75s",   notes: "" },
+      { name: "Cable Flye",            muscles: "Chest",          sets: "3", reps: "15", rest: "60s",   notes: "" },
+      { name: "Zone 2 Cardio",         muscles: "Cardio",         sets: "1", reps: "20 min", rest: "—", notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Heavy Pull + HIIT", exercises: [
+      { name: "Deadlift",              muscles: "Full Body",      sets: "4", reps: "4",  rest: "3 min", notes: "" },
+      { name: "Weighted Pull-Up",      muscles: "Back, Biceps",   sets: "4", reps: "5",  rest: "2 min", notes: "" },
+      { name: "Face Pull",             muscles: "Rear Delts",     sets: "3", reps: "20", rest: "60s",   notes: "" },
+      { name: "HIIT",                  muscles: "Cardio",         sets: "6", reps: "30s",rest: "30s",   notes: "Bike or rower" },
+    ]},
+    { dayLabel: "Day 4", focus: "Arms + Shoulders Pump", exercises: [
+      { name: "Lateral Raise",         muscles: "Side Delts",     sets: "5", reps: "15", rest: "45s",   notes: "Drop set last set" },
+      { name: "Barbell Curl",          muscles: "Biceps",         sets: "4", reps: "10", rest: "60s",   notes: "" },
+      { name: "Skull Crusher",         muscles: "Triceps",        sets: "4", reps: "10", rest: "60s",   notes: "" },
+      { name: "Cable Curl",            muscles: "Biceps",         sets: "3", reps: "15", rest: "45s",   notes: "" },
+      { name: "Overhead Tricep Ext",   muscles: "Triceps",        sets: "3", reps: "15", rest: "45s",   notes: "" },
+    ]},
+    { dayLabel: "Day 5", focus: "Legs + Active Recovery", exercises: [
+      { name: "Hip Thrust",            muscles: "Glutes",         sets: "4", reps: "12", rest: "90s",   notes: "" },
+      { name: "Bulgarian Split Squat", muscles: "Quads, Glutes",  sets: "3", reps: "10", rest: "2 min", notes: "Each leg" },
+      { name: "Light Cardio",          muscles: "Cardio",         sets: "1", reps: "20 min", rest: "—", notes: "Zone 2" },
+      { name: "Full Body Stretch",     muscles: "Mobility",       sets: "1", reps: "10 min", rest: "—", notes: "" },
+    ]},
+  ],
+
+  // ── AGE-SPECIFIC: 30–50 ──────────────────────────────────
+  "Fit at 30 — Beginner": [
+    { dayLabel: "Day 1", focus: "Full Body Strength", exercises: [
+      { name: "Goblet Squat",          muscles: "Quads, Glutes",  sets: "3", reps: "12", rest: "90s",   notes: "Great for learning squat pattern" },
+      { name: "Dumbbell Bench Press",  muscles: "Chest",          sets: "3", reps: "12", rest: "90s",   notes: "" },
+      { name: "Seated Cable Row",      muscles: "Back",           sets: "3", reps: "12", rest: "75s",   notes: "" },
+      { name: "Glute Bridge",          muscles: "Glutes",         sets: "3", reps: "15", rest: "60s",   notes: "" },
+      { name: "Plank",                 muscles: "Core",           sets: "3", reps: "30s",rest: "30s",   notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Cardio & Mobility", exercises: [
+      { name: "Brisk Walk",            muscles: "Cardio",         sets: "1", reps: "30 min", rest: "—", notes: "" },
+      { name: "Hip Flexor Stretch",    muscles: "Hips",           sets: "2", reps: "60s", rest: "—",   notes: "Each side, desk workers especially" },
+      { name: "Thoracic Rotation",     muscles: "Spine",          sets: "3", reps: "10",  rest: "—",   notes: "Each side" },
+    ]},
+    { dayLabel: "Day 3", focus: "Lower + Core", exercises: [
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",     sets: "3", reps: "12", rest: "90s",   notes: "" },
+      { name: "Reverse Lunge",         muscles: "Quads, Glutes",  sets: "3", reps: "10", rest: "75s",   notes: "Each leg" },
+      { name: "Lateral Band Walk",     muscles: "Glute Med",      sets: "3", reps: "15", rest: "45s",   notes: "Each direction" },
+      { name: "Dead Bug",              muscles: "Core",           sets: "3", reps: "8",  rest: "45s",   notes: "Each side" },
+    ]},
+  ],
+
+  "Fit at 30 — Intermediate": [
+    { dayLabel: "Day 1", focus: "Lower Strength", exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",  sets: "4", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",     sets: "3", reps: "10", rest: "90s",   notes: "" },
+      { name: "Hip Thrust",            muscles: "Glutes",         sets: "3", reps: "12", rest: "90s",   notes: "" },
+      { name: "Calf Raise",            muscles: "Calves",         sets: "3", reps: "15", rest: "60s",   notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Upper Strength", exercises: [
+      { name: "Barbell Bench Press",   muscles: "Chest",          sets: "4", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Barbell Row",           muscles: "Back",           sets: "4", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Overhead Press",        muscles: "Shoulders",      sets: "3", reps: "10", rest: "90s",   notes: "" },
+      { name: "Face Pull",             muscles: "Rear Delts",     sets: "3", reps: "15", rest: "60s",   notes: "Shoulder health" },
+    ]},
+    { dayLabel: "Day 3", focus: "Conditioning + Core", exercises: [
+      { name: "Kettlebell Swing",      muscles: "Posterior Chain",sets: "4", reps: "15", rest: "60s",   notes: "" },
+      { name: "Moderate Cardio",       muscles: "Cardio",         sets: "1", reps: "20 min", rest: "—", notes: "70% HR" },
+      { name: "Pallof Press",          muscles: "Core",           sets: "3", reps: "12", rest: "45s",   notes: "Each side, anti-rotation" },
+      { name: "McGill Big 3",          muscles: "Core / Spine",   sets: "3", reps: "10", rest: "45s",   notes: "Bird dog, modified curl-up, side plank" },
+    ]},
+    { dayLabel: "Day 4", focus: "Full Body + Mobility", exercises: [
+      { name: "Deadlift",              muscles: "Full Body",      sets: "3", reps: "6",  rest: "3 min", notes: "" },
+      { name: "Incline Dumbbell Press",muscles: "Chest",          sets: "3", reps: "10", rest: "90s",   notes: "" },
+      { name: "Pull-Up / Lat Pulldown",muscles: "Back",           sets: "3", reps: "10", rest: "90s",   notes: "" },
+      { name: "World's Greatest Stretch", muscles: "Full Body Mobility", sets: "3", reps: "5", rest: "—", notes: "Each side" },
+    ]},
+  ],
+
+  "Fit at 40 — Strength & Longevity": [
+    { dayLabel: "Day 1", focus: "Lower Body (Joint-Friendly)", exercises: [
+      { name: "Trap Bar Deadlift",     muscles: "Full Posterior Chain", sets: "4", reps: "8", rest: "2 min", notes: "Easier on lower back than barbell" },
+      { name: "Leg Press",             muscles: "Quads",          sets: "3", reps: "12", rest: "90s",   notes: "" },
+      { name: "Hip Thrust",            muscles: "Glutes",         sets: "3", reps: "15", rest: "75s",   notes: "" },
+      { name: "Leg Curl",              muscles: "Hamstrings",     sets: "3", reps: "12", rest: "75s",   notes: "" },
+      { name: "Calf Raise",            muscles: "Calves",         sets: "3", reps: "15", rest: "60s",   notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Upper Body Push & Pull", exercises: [
+      { name: "Dumbbell Bench Press",  muscles: "Chest",          sets: "4", reps: "10", rest: "90s",   notes: "Dumbbells are easier on shoulders" },
+      { name: "Seated Cable Row",      muscles: "Back",           sets: "4", reps: "10", rest: "90s",   notes: "" },
+      { name: "Dumbbell Shoulder Press",muscles: "Shoulders",     sets: "3", reps: "12", rest: "75s",   notes: "" },
+      { name: "Face Pull",             muscles: "Rear Delts, Rotator Cuff", sets: "4", reps: "20", rest: "45s", notes: "Key for shoulder health at 40+" },
+      { name: "Band Pull-Apart",       muscles: "Rear Delts",     sets: "3", reps: "20", rest: "30s",   notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Mobility & Recovery", exercises: [
+      { name: "Yoga Flow / Stretching",muscles: "Full Body",      sets: "1", reps: "20 min", rest: "—", notes: "Hip, spine, shoulder focus" },
+      { name: "Foam Rolling",          muscles: "Full Body",      sets: "1", reps: "10 min", rest: "—", notes: "" },
+      { name: "Light Walk",            muscles: "Cardio",         sets: "1", reps: "20 min", rest: "—", notes: "Zone 1" },
+    ]},
+    { dayLabel: "Day 4", focus: "Full Body + Cardio", exercises: [
+      { name: "Goblet Squat",          muscles: "Quads, Glutes",  sets: "3", reps: "12", rest: "90s",   notes: "" },
+      { name: "Single-Arm Dumbbell Row",muscles: "Back",          sets: "3", reps: "12", rest: "75s",   notes: "Each arm" },
+      { name: "Incline Push-Up",       muscles: "Chest",          sets: "3", reps: "15", rest: "60s",   notes: "" },
+      { name: "Moderate Cardio",       muscles: "Cardio",         sets: "1", reps: "20 min", rest: "—", notes: "Bike or walk, 65–70% HR" },
+    ]},
+  ],
+
+  "Fit at 40 — Intermediate Recomp": [
+    { dayLabel: "Day 1", focus: "Strength Lower", exercises: [
+      { name: "Barbell Back Squat",    muscles: "Quads, Glutes",  sets: "4", reps: "6",  rest: "3 min", notes: "" },
+      { name: "Romanian Deadlift",     muscles: "Hamstrings",     sets: "4", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Bulgarian Split Squat", muscles: "Quads, Glutes",  sets: "3", reps: "8",  rest: "2 min", notes: "Each leg" },
+      { name: "Leg Curl",              muscles: "Hamstrings",     sets: "3", reps: "12", rest: "75s",   notes: "" },
+    ]},
+    { dayLabel: "Day 2", focus: "Strength Upper", exercises: [
+      { name: "Barbell Bench Press",   muscles: "Chest",          sets: "4", reps: "6",  rest: "3 min", notes: "" },
+      { name: "Barbell Row",           muscles: "Back",           sets: "4", reps: "6",  rest: "3 min", notes: "" },
+      { name: "Overhead Press",        muscles: "Shoulders",      sets: "3", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Face Pull",             muscles: "Rear Delts",     sets: "4", reps: "20", rest: "45s",   notes: "Non-negotiable at 40+" },
+    ]},
+    { dayLabel: "Day 3", focus: "Cardio + Core", exercises: [
+      { name: "Zone 2 Cardio",         muscles: "Cardio",         sets: "1", reps: "30 min", rest: "—", notes: "65% HR — great for fat loss + heart health" },
+      { name: "McGill Big 3",          muscles: "Spine / Core",   sets: "3", reps: "10", rest: "45s",   notes: "Bird dog, curl-up, side plank" },
+      { name: "Thoracic Mobility",     muscles: "Spine",          sets: "3", reps: "10", rest: "—",     notes: "Each side" },
+    ]},
+    { dayLabel: "Day 4", focus: "Deadlift + Accessory", exercises: [
+      { name: "Deadlift",              muscles: "Full Posterior Chain", sets: "4", reps: "5", rest: "3 min", notes: "" },
+      { name: "Pull-Up / Lat Pulldown",muscles: "Back",           sets: "3", reps: "8",  rest: "2 min", notes: "" },
+      { name: "Dumbbell Curl",         muscles: "Biceps",         sets: "3", reps: "12", rest: "60s",   notes: "" },
+      { name: "Tricep Pushdown",       muscles: "Triceps",        sets: "3", reps: "12", rest: "60s",   notes: "" },
+    ]},
+  ],
+
+  "Fit at 50 — Low Impact Strength": [
+    { dayLabel: "Day 1", focus: "Lower Body (Easy on Joints)", exercises: [
+      { name: "Leg Press",             muscles: "Quads",          sets: "3", reps: "12", rest: "90s",   notes: "Safer than squats for bad knees" },
+      { name: "Hip Thrust",            muscles: "Glutes",         sets: "3", reps: "15", rest: "75s",   notes: "" },
+      { name: "Leg Curl",              muscles: "Hamstrings",     sets: "3", reps: "12", rest: "75s",   notes: "" },
+      { name: "Seated Calf Raise",     muscles: "Calves",         sets: "3", reps: "15", rest: "60s",   notes: "" },
+      { name: "Balance Stand",         muscles: "Stability",      sets: "3", reps: "30s",rest: "30s",   notes: "Each leg — prevents falls" },
+    ]},
+    { dayLabel: "Day 2", focus: "Upper Body (Shoulder-Safe)", exercises: [
+      { name: "Seated Cable Row",      muscles: "Back",           sets: "3", reps: "12", rest: "90s",   notes: "" },
+      { name: "Chest Press Machine",   muscles: "Chest",          sets: "3", reps: "12", rest: "90s",   notes: "Machine safer for 50+ shoulder" },
+      { name: "Lat Pulldown",          muscles: "Back",           sets: "3", reps: "12", rest: "75s",   notes: "" },
+      { name: "Lateral Raise (light)", muscles: "Shoulders",      sets: "3", reps: "15", rest: "60s",   notes: "" },
+      { name: "Band Pull-Apart",       muscles: "Rear Delts",     sets: "3", reps: "20", rest: "30s",   notes: "" },
+    ]},
+    { dayLabel: "Day 3", focus: "Mobility + Cardio", exercises: [
+      { name: "Recumbent Bike",        muscles: "Cardio",         sets: "1", reps: "20 min", rest: "—", notes: "Low impact, joint friendly" },
+      { name: "Hip Flexor Stretch",    muscles: "Hips",           sets: "2", reps: "60s", rest: "—",   notes: "Each side" },
+      { name: "Cat-Cow",               muscles: "Spine",          sets: "3", reps: "10", rest: "—",    notes: "" },
+      { name: "Seated Spinal Twist",   muscles: "Spine, Glutes",  sets: "2", reps: "60s",rest: "—",    notes: "Each side" },
+      { name: "Neck & Shoulder Rolls", muscles: "Neck",           sets: "2", reps: "5",  rest: "—",    notes: "" },
+    ]},
+  ],
+
+  "Fit at 50 — Intermediate Vitality": [
+    { dayLabel: "Day 1", focus: "Full Body Strength A", exercises: [
+      { name: "Trap Bar Deadlift",     muscles: "Full Body",      sets: "4", reps: "6",  rest: "2 min", notes: "Preferred over barbell at 50+" },
+      { name: "Dumbbell Bench Press",  muscles: "Chest",          sets: "3", reps: "10", rest: "90s",   notes: "" },
+      { name: "Seated Cable Row",      muscles: "Back",           sets: "3", reps: "12", rest: "90s",   notes: "" },
+      { name: "Pallof Press",          muscles: "Core",           sets: "3", reps: "12", rest: "45s",   notes: "Each side" },
+    ]},
+    { dayLabel: "Day 2", focus: "Cardio + Mobility", exercises: [
+      { name: "Zone 2 Bike / Walk",    muscles: "Cardio",         sets: "1", reps: "30 min", rest: "—", notes: "65% HR — best for heart health" },
+      { name: "World's Greatest Stretch", muscles: "Full Body",   sets: "3", reps: "5",  rest: "—",    notes: "Each side" },
+      { name: "Thoracic Extension",    muscles: "T-Spine",        sets: "3", reps: "60s",rest: "—",    notes: "On foam roller" },
+    ]},
+    { dayLabel: "Day 3", focus: "Full Body Strength B", exercises: [
+      { name: "Leg Press",             muscles: "Quads",          sets: "4", reps: "10", rest: "90s",   notes: "" },
+      { name: "Hip Thrust",            muscles: "Glutes",         sets: "3", reps: "12", rest: "90s",   notes: "" },
+      { name: "Overhead Press",        muscles: "Shoulders",      sets: "3", reps: "10", rest: "90s",   notes: "" },
+      { name: "Lat Pulldown",          muscles: "Back",           sets: "3", reps: "12", rest: "75s",   notes: "" },
+      { name: "McGill Big 3",          muscles: "Spine / Core",   sets: "3", reps: "10", rest: "45s",   notes: "Non-negotiable for spine health" },
+    ]},
+    { dayLabel: "Day 4", focus: "Active Recovery", exercises: [
+      { name: "Gentle Walk",           muscles: "Cardio",         sets: "1", reps: "25 min", rest: "—", notes: "" },
+      { name: "Full Body Yoga / Stretch", muscles: "Mobility",    sets: "1", reps: "20 min", rest: "—", notes: "" },
+    ]},
+  ],
+};
+
+const PREMADE_LIST_2: Omit<Template, "id" | "status" | "createdAt">[] = [
+  // Strength
+  { name: "Strength Reboot (30s)",                    category: "Strength",         level: "Beginner",     days: "4x / week", duration: "55 min", description: "Foundational strength program for clients in their 30s. Big lifts with accessory work and joint health built in.", assignedTo: [] },
+  { name: "Intermediate Strength & Conditioning",     category: "Strength",         level: "Intermediate", days: "4x / week", duration: "60 min", description: "Combines heavy compound lifts with metabolic conditioning. Build strength and work capacity together.", assignedTo: [] },
+  { name: "Advanced Strength Peaking",                category: "Strength",         level: "Advanced",     days: "4x / week", duration: "75 min", description: "Intensity-focused peaking program. Near-maximal loads on squat, bench, deadlift with strategic deload.", assignedTo: [] },
+  // Conditioning
+  { name: "Beginner Conditioning Kickstart",          category: "Conditioning",     level: "Beginner",     days: "3x / week", duration: "40 min", description: "Build a cardio base from scratch. Full body circuits + steady state cardio for clients new to fitness.", assignedTo: [] },
+  { name: "Intermediate Conditioning & Cardio",       category: "Conditioning",     level: "Intermediate", days: "4x / week", duration: "50 min", description: "Lift heavy then condition hard. Zone 2 aerobic work combined with strength training for total fitness.", assignedTo: [] },
+  { name: "Advanced Conditioning & GPP",              category: "Conditioning",     level: "Advanced",     days: "5x / week", duration: "65 min", description: "General Physical Preparedness for advanced athletes. Heavy lifts, metcons, aerobic threshold and long cardio.", assignedTo: [] },
+  // Fat Loss
+  { name: "Women's Fat Loss — Beginner",              category: "Fat Loss",         level: "Beginner",     days: "3x / week", duration: "40 min", description: "Beginner-friendly fat loss program designed for women. Glute and lower body focus with cardio integrated.", assignedTo: [] },
+  { name: "Metabolic Fat Burn — Intermediate",        category: "Fat Loss",         level: "Intermediate", days: "4x / week", duration: "55 min", description: "Metabolic resistance training to torch calories. High-rep strength work combined with HIIT cardio finishers.", assignedTo: [] },
+  { name: "Advanced Shred Protocol",                  category: "Fat Loss",         level: "Advanced",     days: "5x / week", duration: "65 min", description: "Elite fat loss program for advanced clients. Heavy compound lifts + HIIT + Zone 2 cardio for maximum calorie burn.", assignedTo: [] },
+  // Recomposition
+  { name: "Recomposition — Beginner (Lose Fat, Build Muscle)", category: "Recomposition", level: "Beginner", days: "4x / week", duration: "45 min", description: "Simultaneously lose fat and build muscle. Strength training + light cardio + habit-building for transformation.", assignedTo: [] },
+  { name: "Recomposition — Intermediate (Lean Bulk)", category: "Recomposition",    level: "Intermediate", days: "4x / week", duration: "60 min", description: "Build muscle while staying lean. High-protein training, progressive overload and controlled cardio.", assignedTo: [] },
+  { name: "Recomposition — Advanced (Cut & Build)",   category: "Recomposition",    level: "Advanced",     days: "5x / week", duration: "70 min", description: "Advanced body recomposition. Heavy strength work, pump training and cardio — all in the same week.", assignedTo: [] },
+  // Age: 30s
+  { name: "Fit at 30 — Beginner",                    category: "Age 30–50",        level: "Beginner",     days: "3x / week", duration: "45 min", description: "Designed for clients in their 30s starting fresh. Full body strength + mobility to prevent the desk-job posture decline.", assignedTo: [] },
+  { name: "Fit at 30 — Intermediate",                category: "Age 30–50",        level: "Intermediate", days: "4x / week", duration: "55 min", description: "Intermediate program for 30-somethings. Strength, conditioning and mobility combined for long-term athleticism.", assignedTo: [] },
+  // Age: 40s
+  { name: "Fit at 40 — Strength & Longevity",        category: "Age 30–50",        level: "Beginner",     days: "4x / week", duration: "50 min", description: "Built for clients in their 40s. Joint-friendly exercises, shoulder health, and mobility — strength that lasts.", assignedTo: [] },
+  { name: "Fit at 40 — Intermediate Recomp",         category: "Age 30–50",        level: "Intermediate", days: "4x / week", duration: "60 min", description: "Recomposition program for 40s. Build lean muscle, lose stubborn fat, and protect the spine and joints.", assignedTo: [] },
+  // Age: 50s
+  { name: "Fit at 50 — Low Impact Strength",         category: "Age 30–50",        level: "Beginner",     days: "3x / week", duration: "40 min", description: "Low-impact strength program for clients 50+. Machine-based, joint-safe, with balance and mobility work.", assignedTo: [] },
+  { name: "Fit at 50 — Intermediate Vitality",       category: "Age 30–50",        level: "Intermediate", days: "4x / week", duration: "55 min", description: "Intermediate vitality program for 50s. Trap bar deadlifts, Zone 2 cardio, and spine health — built for longevity.", assignedTo: [] },
+];
+
 const categoryColor: Record<string, string> = {
   "Fat Loss": "by", "Strength": "bo", "Mobility": "bb",
-  "Performance": "bp", "Rehab": "bg", "HIIT": "br", "Muscle Gain": "bp"
+  "Performance": "bp", "Rehab": "bg", "HIIT": "br", "Muscle Gain": "bp",
+  "Conditioning": "bo", "Recomposition": "by", "Age 30–50": "bb"
 };
 const levelColor: Record<string, string> = {
   "Beginner": "bg", "Intermediate": "by", "Advanced": "br"
@@ -770,14 +1290,35 @@ export default function Templates() {
     alert(`✓ Done! ${totalDupes} duplicate(s) removed.`);
   };
 
+  const seedPremade2 = async () => {
+    const existingNames = new Set(templates.map((t) => t.name));
+    const toAdd = PREMADE_LIST_2.filter((t) => !existingNames.has(t.name));
+    if (toAdd.length === 0) {
+      alert("All new templates are already loaded.");
+      return;
+    }
+    if (!confirm(`This will add ${toAdd.length} new templates (Strength, Conditioning, Fat Loss, Recomposition, Age 30–50). Continue?`)) return;
+    setSeeding(true);
+    for (const t of toAdd) {
+      const days = (PREMADE_DAYS_2 as any)[t.name] || [];
+      await addDoc(collection(db, "templates"), {
+        ...t, status: "active", assignedTo: [],
+        workoutDays: days,
+        createdAt: serverTimestamp()
+      });
+    }
+    setSeeding(false);
+  };
+
   // Force-fill workoutDays into ALL templates that match a premade name
   const patchWorkoutDays = async () => {
-    const patchable = templates.filter((t) => PREMADE_DAYS[t.name] && PREMADE_DAYS[t.name].length > 0);
+    const allDays = { ...PREMADE_DAYS, ...(PREMADE_DAYS_2 as any) };
+    const patchable = templates.filter((t) => allDays[t.name] && allDays[t.name].length > 0);
     if (patchable.length === 0) { alert("No matching premade templates found to fill."); return; }
     if (!confirm(`This will overwrite workout plans for ${patchable.length} template(s) with the full premade data. Continue?`)) return;
     setSeeding(true);
     for (const t of patchable) {
-      await updateDoc(doc(db, "templates", t.id), { workoutDays: PREMADE_DAYS[t.name] });
+      await updateDoc(doc(db, "templates", t.id), { workoutDays: allDays[t.name] });
     }
     setSeeding(false);
     alert(`✓ Done! ${patchable.length} templates filled with workout plans.`);
@@ -1025,6 +1566,9 @@ export default function Templates() {
               {seeding ? "Loading..." : "⚡ Add Premade"}
             </button>
           )}
+          <button className="btn btn-b btn-s" onClick={seedPremade2} disabled={seeding}>
+            {seeding ? "Loading..." : "⚡ Add 20 New"}
+          </button>
           {templates.length > 0 && (
             <button className="btn btn-b btn-s" onClick={patchWorkoutDays} disabled={seeding}>
               {seeding ? "Updating..." : "🔄 Fill Workout Plans"}
