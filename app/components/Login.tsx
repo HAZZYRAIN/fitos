@@ -12,13 +12,20 @@ const LOGIN_STYLES = `
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html, body {
+    height: -webkit-fill-available;
+  }
+
   body {
     font-family: 'Inter', sans-serif;
     background: #faf8f4;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 
   .lw {
     min-height: 100vh;
+    min-height: -webkit-fill-available;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -97,11 +104,13 @@ const LOGIN_STYLES = `
     border-radius: 8px;
     border: 1.5px solid #e8e2d8;
     background: #fdfcfa;
-    font-size: 14px;
+    font-size: 16px;
     font-family: 'Inter', sans-serif;
     color: #1a1a1a;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
   }
 
   .li:focus {
@@ -127,6 +136,8 @@ const LOGIN_STYLES = `
     margin-top: 22px;
     transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
     letter-spacing: 0.2px;
+    min-height: 46px;
+    touch-action: manipulation;
   }
 
   .lbtn:hover:not(:disabled) {
@@ -156,8 +167,8 @@ const LOGIN_STYLES = `
 export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
-  const [err, setErr] = useState("");
+  const [pass,  setPass]  = useState("");
+  const [err,   setErr]   = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,7 +201,7 @@ export default function Login() {
           {/* Error */}
           {err && <div className="lerr">⚠ {err}</div>}
 
-          {/* Form */}
+          {/* Form — no autoFocus on any input (prevents iOS zoom on load) */}
           <form onSubmit={handleSubmit}>
             <label className="lb">Email</label>
             <input
@@ -199,6 +210,7 @@ export default function Login() {
               placeholder="you@yourtrainer.in"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               required
             />
 
@@ -209,6 +221,7 @@ export default function Login() {
               placeholder="••••••••"
               value={pass}
               onChange={(e) => setPass(e.target.value)}
+              autoComplete="current-password"
               required
             />
 
