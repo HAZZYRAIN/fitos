@@ -1,8 +1,9 @@
 "use client";
 // ============================================================
-// TRAINER CONTEXT — v5
-// Changes from v4:
-// - saveSession blocks future dates (UI + server-side validation)
+// TRAINER CONTEXT — v5 FIXED
+// Changes from v5:
+// - Added RPE field to exercises when saving to Firebase
+// - Added setsDetail (detailed set breakdown) to exercises
 // ============================================================
 import { createContext, useContext, useState, useEffect } from "react";
 import { db } from "../../lib/firebase";
@@ -232,7 +233,13 @@ export function TrainerProvider({
         modReason:  sessionModReason,
         injuryFlag: injuryFlag || null,
         exercises:  sessionExercises.map((e) => ({
-          name: e.name, sets: e.sets, reps: e.reps, weight: e.weight,
+          name: e.name, 
+          muscles: e.muscles || "", 
+          sets: e.sets, 
+          reps: e.reps, 
+          weight: e.weight,
+          rpe: e.rpe || "",
+          setsDetail: e.setsDetail || [],
         })),
         steps:        Number(sessionHabits.steps) || 0,
         water:        Number(sessionHabits.water) || 0,
@@ -284,6 +291,7 @@ export function TrainerProvider({
           exercise:     sessionExercises[0]?.name || null,
           reps:         maybe(sessionExercises[0]?.reps),
           weightLifted: maybe(sessionExercises[0]?.weight),
+          rpe:          sessionExercises[0]?.rpe || null,
           endurance:    sessionType === "Cardio" ? maybe(sessionDuration) : null,
         }) : {}),
         notes:       sessionNotes,
