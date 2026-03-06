@@ -746,6 +746,30 @@ export default function Templates() {
     setSeeding(false);
   };
 
+  // Delete duplicate templates — keep the one with most data (workoutDays) per name
+  const dedupTemplates = async () => {
+    const grouped: Record<string, Template[]> = {};
+    templates.forEach((t) => {
+      if (!grouped[t.name]) grouped[t.name] = [];
+      grouped[t.name].push(t);
+    });
+    const duplicates = Object.values(grouped).filter((g) => g.length > 1);
+    if (duplicates.length === 0) { alert("No duplicates found!"); return; }
+    const totalDupes = duplicates.reduce((s, g) => s + g.length - 1, 0);
+    if (!confirm(`Found ${totalDupes} duplicate(s) across ${duplicates.length} template name(s). Delete them now?`)) return;
+    setSeeding(true);
+    for (const group of duplicates) {
+      // Keep the one with the most workoutDays, delete the rest
+      const sorted = [...group].sort((a, b) => (b.workoutDays?.length || 0) - (a.workoutDays?.length || 0));
+      const toDelete = sorted.slice(1);
+      for (const t of toDelete) {
+        await deleteDoc(doc(db, "templates", t.id));
+      }
+    }
+    setSeeding(false);
+    alert(`✓ Done! ${totalDupes} duplicate(s) removed.`);
+  };
+
   // Force-fill workoutDays into ALL templates that match a premade name
   const patchWorkoutDays = async () => {
     const patchable = templates.filter((t) => PREMADE_DAYS[t.name] && PREMADE_DAYS[t.name].length > 0);
@@ -1004,6 +1028,11 @@ export default function Templates() {
           {templates.length > 0 && (
             <button className="btn btn-b btn-s" onClick={patchWorkoutDays} disabled={seeding}>
               {seeding ? "Updating..." : "🔄 Fill Workout Plans"}
+            </button>
+          )}
+          {templates.length > 0 && (
+            <button className="btn btn-dn btn-s" onClick={dedupTemplates} disabled={seeding}>
+              {seeding ? "Cleaning..." : "🧹 Remove Duplicates"}
             </button>
           )}
           <button className="btn btn-p btn-s" onClick={openCreate}>+ Create</button>
