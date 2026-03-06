@@ -89,7 +89,7 @@ export default function TrainerEditor() {
           background: var(--bg2); border: 1px solid var(--b0);
           font-size: 18px; cursor: pointer; display: flex;
           align-items: center; justify-content: center;
-          border: none; font-family: inherit;
+          font-family: inherit;
         }
 
         /* Tabs */
@@ -139,7 +139,11 @@ export default function TrainerEditor() {
           outline: none; transition: border-color 0.2s;
         }
         .te-input:focus { border-color: var(--brand1); background: var(--bg1); }
-        .te-select { padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--b0); background: var(--bg2); font-size: 13px; color: var(--t1); font-family: inherit; cursor: pointer; outline: none; }
+        .te-select { 
+          padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--b0); 
+          background: var(--bg2); font-size: 13px; color: var(--t1); 
+          font-family: inherit; cursor: pointer; outline: none; 
+        }
 
         /* Client list */
         .te-client-item {
@@ -204,26 +208,42 @@ export default function TrainerEditor() {
           <div className="te-header">
             <div className="te-header-left">
               <div className="te-av">
-                {selectedTrainer.avatar || selectedTrainer.name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                {selectedTrainer?.avatar || (selectedTrainer?.name || "")
+                  .split(" ")
+                  .map((n: string) => n[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
               </div>
               <div className="te-info">
-                <h3>{selectedTrainer.name}</h3>
-                <p>{selectedTrainer.speciality}</p>
+                <h3>{selectedTrainer?.name}</h3>
+                <p>{selectedTrainer?.speciality}</p>
               </div>
             </div>
-            <button className="te-close" onClick={() => setSelectedTrainer(null)}>✕</button>
+            <button className="te-close" onClick={() => setSelectedTrainer(null)}>
+              ✕
+            </button>
           </div>
 
           {/* Tabs */}
           {!editMode && (
             <div className="te-tabs">
-              <button className={`te-tab ${activeTab === "details" ? "on" : ""}`} onClick={() => setActiveTab("details")}>
+              <button
+                className={`te-tab ${activeTab === "details" ? "on" : ""}`}
+                onClick={() => setActiveTab("details")}
+              >
                 Details
               </button>
-              <button className={`te-tab ${activeTab === "clients" ? "on" : ""}`} onClick={() => setActiveTab("clients")}>
+              <button
+                className={`te-tab ${activeTab === "clients" ? "on" : ""}`}
+                onClick={() => setActiveTab("clients")}
+              >
                 Clients ({trainerClients.length})
               </button>
-              <button className={`te-tab ${activeTab === "stats" ? "on" : ""}`} onClick={() => setActiveTab("stats")}>
+              <button
+                className={`te-tab ${activeTab === "stats" ? "on" : ""}`}
+                onClick={() => setActiveTab("stats")}
+              >
                 Performance
               </button>
             </div>
@@ -231,7 +251,11 @@ export default function TrainerEditor() {
 
           {/* Content */}
           <div className="te-content">
-            {msg && <div className={`te-msg ${msg.startsWith("✓") ? "te-msg-ok" : "te-msg-err"}`}>{msg}</div>}
+            {msg && (
+              <div className={`te-msg ${msg.startsWith("✓") ? "te-msg-ok" : "te-msg-err"}`}>
+                {msg}
+              </div>
+            )}
 
             {!editMode ? (
               <>
@@ -242,46 +266,87 @@ export default function TrainerEditor() {
                       <div className="te-section-title">Account Info</div>
                       <div className="te-grid">
                         <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>Name</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>{selectedTrainer.name}</div>
+                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
+                            Name
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>
+                            {selectedTrainer?.name}
+                          </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>Email</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>{selectedTrainer.email || "—"}</div>
+                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
+                            Email
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>
+                            {selectedTrainer?.email || "—"}
+                          </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>Status</div>
-                          <span style={{ fontSize: 12, fontWeight: 800, padding: "4px 10px", borderRadius: 6, background: selectedTrainer.status === "active" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: selectedTrainer.status === "active" ? "#22c55e" : "#ef4444" }}>
-                            {selectedTrainer.status}
+                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
+                            Status
+                          </div>
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 800,
+                              padding: "4px 10px",
+                              borderRadius: 6,
+                              background:
+                                selectedTrainer?.status === "active"
+                                  ? "rgba(34,197,94,0.1)"
+                                  : "rgba(239,68,68,0.1)",
+                              color:
+                                selectedTrainer?.status === "active" ? "#22c55e" : "#ef4444",
+                            }}
+                          >
+                            {selectedTrainer?.status}
                           </span>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>Plan</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>{selectedTrainer.plan}</div>
+                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
+                            Plan
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>
+                            {selectedTrainer?.plan}
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     <div className="te-section">
                       <div className="te-section-title">Specialization</div>
-                      <div style={{ fontSize: 13, color: "var(--t1)", lineHeight: 1.6 }}>{selectedTrainer.speciality}</div>
+                      <div style={{ fontSize: 13, color: "var(--t1)", lineHeight: 1.6 }}>
+                        {selectedTrainer?.speciality}
+                      </div>
                     </div>
 
                     <div className="te-section">
                       <div className="te-section-title">Additional Info</div>
                       <div className="te-grid">
                         <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>Joined</div>
-                          <div style={{ fontSize: 13, color: "var(--t1)" }}>{selectedTrainer.joined || "—"}</div>
+                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
+                            Joined
+                          </div>
+                          <div style={{ fontSize: 13, color: "var(--t1)" }}>
+                            {selectedTrainer?.joined || "—"}
+                          </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>Rating</div>
-                          <div style={{ fontSize: 13, color: "var(--t1)" }}>⭐ {selectedTrainer.rating || 0}/5</div>
+                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
+                            Rating
+                          </div>
+                          <div style={{ fontSize: 13, color: "var(--t1)" }}>
+                            ⭐ {selectedTrainer?.rating || 0}/5
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <button className="te-btn te-btn-p" style={{ width: "100%", marginTop: 20 }} onClick={handleEditClick}>
+                    <button
+                      className="te-btn te-btn-p"
+                      style={{ width: "100%", marginTop: 20 }}
+                      onClick={handleEditClick}
+                    >
                       ✏️ Edit Trainer Info
                     </button>
                   </div>
@@ -301,28 +366,41 @@ export default function TrainerEditor() {
                           <div key={c.id} className="te-client-item">
                             <div className="te-client-info">
                               <div className="te-client-name">{c.name}</div>
-                              <div className="te-client-detail">{c.programType} • {c.status}</div>
+                              <div className="te-client-detail">
+                                {c.programType} • {c.status}
+                              </div>
                               <div style={{ fontSize: 10, color: "var(--t4)", marginTop: 4 }}>
-                                {c.sessionsLogged || 0}/{c.sessionsIncluded || 0} sessions • {c.compliance || 0}% compliance
+                                {c.sessionsLogged || 0}/{c.sessionsIncluded || 0} sessions •{" "}
+                                {c.compliance || 0}% compliance
                               </div>
                             </div>
-                            <button className="te-client-remove" onClick={async () => {
-                              if (window.confirm(`Remove ${c.name} from ${selectedTrainer.name}?`)) {
-                                try {
-                                  const { db } = await import("../../lib/firebase");
-                                  const { deleteDoc, doc } = await import("firebase/firestore");
-                                  
-                                  await deleteDoc(doc(db, "trainers", selectedTrainer.id, "clients", c.id));
-                                  setMsg(`✓ ${c.name} removed successfully!`);
-                                  setTimeout(() => setMsg(""), 3000);
-                                  // Force refresh by updating selectedTrainer
-                                  setSelectedTrainer({ ...selectedTrainer });
-                                } catch (err) {
-                                  console.error("Error:", err);
-                                  setMsg("✕ Failed to remove client.");
+                            <button
+                              className="te-client-remove"
+                              onClick={async () => {
+                                if (
+                                  window.confirm(
+                                    `Remove ${c.name} from ${selectedTrainer?.name}?`
+                                  )
+                                ) {
+                                  try {
+                                    const { db } = await import("../../lib/firebase");
+                                    const { deleteDoc, doc } = await import(
+                                      "firebase/firestore"
+                                    );
+
+                                    await deleteDoc(
+                                      doc(db, "trainers", selectedTrainer?.id, "clients", c.id)
+                                    );
+                                    setMsg(`✓ ${c.name} removed successfully!`);
+                                    setTimeout(() => setMsg(""), 3000);
+                                    setSelectedTrainer({ ...selectedTrainer });
+                                  } catch (err) {
+                                    console.error("Error:", err);
+                                    setMsg("✕ Failed to remove client.");
+                                  }
                                 }
-                              }
-                            }}>
+                              }}
+                            >
                               Remove
                             </button>
                           </div>
@@ -339,19 +417,23 @@ export default function TrainerEditor() {
                       <div className="te-section-title">Performance Metrics</div>
                       <div className="te-stat-row">
                         <div className="te-stat-card">
-                          <div className="te-stat-value">{selectedTrainer.sessions || 0}</div>
+                          <div className="te-stat-value">{selectedTrainer?.sessions || 0}</div>
                           <div className="te-stat-label">Sessions Logged</div>
                         </div>
                         <div className="te-stat-card">
-                          <div className="te-stat-value">{selectedTrainer.lateSubmissions || 0}</div>
+                          <div className="te-stat-value">
+                            {selectedTrainer?.lateSubmissions || 0}
+                          </div>
                           <div className="te-stat-label">Late Submissions</div>
                         </div>
                         <div className="te-stat-card">
-                          <div className="te-stat-value">{selectedTrainer.clientCount || 0}</div>
+                          <div className="te-stat-value">{selectedTrainer?.clientCount || 0}</div>
                           <div className="te-stat-label">Active Clients</div>
                         </div>
                         <div className="te-stat-card">
-                          <div className="te-stat-value">{selectedTrainer.accountabilityScore || 0}%</div>
+                          <div className="te-stat-value">
+                            {selectedTrainer?.accountabilityScore || 0}%
+                          </div>
                           <div className="te-stat-label">Accountability</div>
                         </div>
                       </div>
@@ -361,19 +443,43 @@ export default function TrainerEditor() {
                       <div className="te-section-title">Financial</div>
                       <div className="te-grid">
                         <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>Total Revenue</div>
-                          <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--fd)", color: "var(--brand1)" }}>₹{(selectedTrainer.revenue || 0).toLocaleString()}</div>
+                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
+                            Total Revenue
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 18,
+                              fontWeight: 800,
+                              fontFamily: "var(--fd)",
+                              color: "var(--brand1)",
+                            }}
+                          >
+                            ₹{((selectedTrainer?.revenue || 0) as number).toLocaleString()}
+                          </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>Retention Rate</div>
-                          <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--fd)", color: selectedTrainer.retention >= 80 ? "#22c55e" : "var(--brand1)" }}>
-                            {selectedTrainer.retention || 0}%
+                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
+                            Retention Rate
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 18,
+                              fontWeight: 800,
+                              fontFamily: "var(--fd)",
+                              color: (selectedTrainer?.retention || 0) >= 80 ? "#22c55e" : "var(--brand1)",
+                            }}
+                          >
+                            {selectedTrainer?.retention || 0}%
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <button className="te-btn te-btn-p" style={{ width: "100%", marginTop: 20 }} onClick={handleEditClick}>
+                    <button
+                      className="te-btn te-btn-p"
+                      style={{ width: "100%", marginTop: 20 }}
+                      onClick={handleEditClick}
+                    >
                       ✏️ Edit Stats
                     </button>
                   </div>
@@ -387,19 +493,40 @@ export default function TrainerEditor() {
                   <div className="te-grid">
                     <div className="te-field">
                       <label className="te-label">Full Name</label>
-                      <input className="te-input" type="text" value={editData.name || ""} onChange={(e) => setEditData({ ...editData, name: e.target.value })} />
+                      <input
+                        className="te-input"
+                        type="text"
+                        value={editData?.name || ""}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Email</label>
-                      <input className="te-input" type="email" value={editData.email || ""} onChange={(e) => setEditData({ ...editData, email: e.target.value })} />
+                      <input
+                        className="te-input"
+                        type="email"
+                        value={editData?.email || ""}
+                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Speciality</label>
-                      <input className="te-input" type="text" value={editData.speciality || ""} onChange={(e) => setEditData({ ...editData, speciality: e.target.value })} />
+                      <input
+                        className="te-input"
+                        type="text"
+                        value={editData?.speciality || ""}
+                        onChange={(e) =>
+                          setEditData({ ...editData, speciality: e.target.value })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Status</label>
-                      <select className="te-select" value={editData.status || "active"} onChange={(e) => setEditData({ ...editData, status: e.target.value })}>
+                      <select
+                        className="te-select"
+                        value={editData?.status || "active"}
+                        onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                      >
                         <option value="active">Active</option>
                         <option value="suspended">Suspended</option>
                         <option value="inactive">Inactive</option>
@@ -407,14 +534,24 @@ export default function TrainerEditor() {
                     </div>
                     <div className="te-field">
                       <label className="te-label">Plan</label>
-                      <select className="te-select" value={editData.plan || "Starter"} onChange={(e) => setEditData({ ...editData, plan: e.target.value })}>
+                      <select
+                        className="te-select"
+                        value={editData?.plan || "Starter"}
+                        onChange={(e) => setEditData({ ...editData, plan: e.target.value })}
+                      >
                         <option value="Starter">Starter</option>
                         <option value="Pro">Pro</option>
                       </select>
                     </div>
                     <div className="te-field">
                       <label className="te-label">Joined Date</label>
-                      <input className="te-input" type="text" value={editData.joined || ""} onChange={(e) => setEditData({ ...editData, joined: e.target.value })} placeholder="e.g. Mar 2024" />
+                      <input
+                        className="te-input"
+                        type="text"
+                        value={editData?.joined || ""}
+                        onChange={(e) => setEditData({ ...editData, joined: e.target.value })}
+                        placeholder="e.g. Mar 2024"
+                      />
                     </div>
                   </div>
                 </div>
@@ -424,35 +561,101 @@ export default function TrainerEditor() {
                   <div className="te-grid">
                     <div className="te-field">
                       <label className="te-label">Sessions Logged</label>
-                      <input className="te-input" type="number" value={editData.sessions || 0} onChange={(e) => setEditData({ ...editData, sessions: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        value={editData?.sessions || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, sessions: Number(e.target.value) })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Late Submissions</label>
-                      <input className="te-input" type="number" value={editData.lateSubmissions || 0} onChange={(e) => setEditData({ ...editData, lateSubmissions: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        value={editData?.lateSubmissions || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, lateSubmissions: Number(e.target.value) })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Active Clients</label>
-                      <input className="te-input" type="number" value={editData.clientCount || 0} onChange={(e) => setEditData({ ...editData, clientCount: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        value={editData?.clientCount || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, clientCount: Number(e.target.value) })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Accountability Score (%)</label>
-                      <input className="te-input" type="number" min="0" max="100" value={editData.accountabilityScore || 0} onChange={(e) => setEditData({ ...editData, accountabilityScore: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={editData?.accountabilityScore || 0}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            accountabilityScore: Number(e.target.value),
+                          })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Total Revenue (₹)</label>
-                      <input className="te-input" type="number" value={editData.revenue || 0} onChange={(e) => setEditData({ ...editData, revenue: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        value={editData?.revenue || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, revenue: Number(e.target.value) })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Retention Rate (%)</label>
-                      <input className="te-input" type="number" min="0" max="100" value={editData.retention || 0} onChange={(e) => setEditData({ ...editData, retention: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={editData?.retention || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, retention: Number(e.target.value) })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Rating (★)</label>
-                      <input className="te-input" type="number" min="0" max="5" step="0.1" value={editData.rating || 0} onChange={(e) => setEditData({ ...editData, rating: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        value={editData?.rating || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, rating: Number(e.target.value) })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Warnings</label>
-                      <input className="te-input" type="number" value={editData.warnings || 0} onChange={(e) => setEditData({ ...editData, warnings: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        value={editData?.warnings || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, warnings: Number(e.target.value) })
+                        }
+                      />
                     </div>
                   </div>
                 </div>
@@ -462,19 +665,50 @@ export default function TrainerEditor() {
                   <div className="te-grid">
                     <div className="te-field">
                       <label className="te-label">Missed Sessions</label>
-                      <input className="te-input" type="number" value={editData.missedSessions || 0} onChange={(e) => setEditData({ ...editData, missedSessions: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        value={editData?.missedSessions || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, missedSessions: Number(e.target.value) })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Pending Logs</label>
-                      <input className="te-input" type="number" value={editData.pendingLogs || 0} onChange={(e) => setEditData({ ...editData, pendingLogs: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        value={editData?.pendingLogs || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, pendingLogs: Number(e.target.value) })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Progress Updates This Month</label>
-                      <input className="te-input" type="number" value={editData.progressUpdatesThisMonth || 0} onChange={(e) => setEditData({ ...editData, progressUpdatesThisMonth: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        value={editData?.progressUpdatesThisMonth || 0}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            progressUpdatesThisMonth: Number(e.target.value),
+                          })
+                        }
+                      />
                     </div>
                     <div className="te-field">
                       <label className="te-label">Sessions Assigned</label>
-                      <input className="te-input" type="number" value={editData.sessionsAssigned || 0} onChange={(e) => setEditData({ ...editData, sessionsAssigned: Number(e.target.value) })} />
+                      <input
+                        className="te-input"
+                        type="number"
+                        value={editData?.sessionsAssigned || 0}
+                        onChange={(e) =>
+                          setEditData({ ...editData, sessionsAssigned: Number(e.target.value) })
+                        }
+                      />
                     </div>
                   </div>
                 </div>
@@ -486,16 +720,30 @@ export default function TrainerEditor() {
           <div className="te-actions">
             {editMode && (
               <>
-                <button className="te-btn te-btn-g" onClick={() => { setEditMode(false); setEditData(null); }}>
+                <button
+                  className="te-btn te-btn-g"
+                  onClick={() => {
+                    setEditMode(false);
+                    setEditData(null);
+                  }}
+                >
                   Cancel
                 </button>
-                <button className={`te-btn te-btn-p ${saving ? "te-disabled" : ""}`} onClick={handleSave} disabled={saving}>
+                <button
+                  className={`te-btn te-btn-p ${saving ? "te-disabled" : ""}`}
+                  onClick={handleSave}
+                  disabled={saving}
+                >
                   {saving ? "Saving..." : "✓ Save Changes"}
                 </button>
               </>
             )}
             {!editMode && (
-              <button className="te-btn te-btn-g" onClick={() => setSelectedTrainer(null)} style={{ flex: 1 }}>
+              <button
+                className="te-btn te-btn-g"
+                onClick={() => setSelectedTrainer(null)}
+                style={{ flex: 1 }}
+              >
                 Close
               </button>
             )}
