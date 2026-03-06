@@ -51,14 +51,15 @@ interface AdminContextType {
   showChangePw: boolean;
   setShowChangePw: (show: boolean) => void;
 
+  selectedClient: Client | null;
+  setSelectedClient: (client: Client | null) => void;
   selectedTrainer: Trainer | null;
   setSelectedTrainer: (trainer: Trainer | null) => void;
   renewTarget: Client | null;
 
   editForm: Partial<Client> | null;
- setEditForm: React.Dispatch<React.SetStateAction<Partial<Client> | null>>;
+  setEditForm: React.Dispatch<React.SetStateAction<Partial<Client> | null>>;
 
-  // Using React.Dispatch so both direct values AND function updaters work
   newTrainer: Partial<Trainer>;
   setNewTrainer: React.Dispatch<React.SetStateAction<Partial<Trainer>>>;
   newClient: Partial<Client>;
@@ -137,6 +138,7 @@ export function AdminProvider({
   const [showRenewClient, setShowRenewClient] = useState(false);
   const [showChangePw,    setShowChangePw]    = useState(false);
 
+  const [selectedClient,  setSelectedClient]  = useState<Client | null>(null);
   const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null);
   const [renewTarget,     setRenewTarget]     = useState<Client | null>(null);
 
@@ -149,11 +151,11 @@ export function AdminProvider({
   const [pwForm,         setPwForm]         = useState<any>({ newPw: "", confirmPw: "" });
   const [pwTarget,       setPwTarget]       = useState<Trainer | null>(null);
 
-  const [pwMsg,        setPwMsg]        = useState("");
-  const [renewMsg,     setRenewMsg]     = useState("");
-  const [renewLoading, setRenewLoading] = useState(false);
-  const [toast,        setToast]        = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const [tab,          setTab]          = useState("overview");
+  const [pwMsg,         setPwMsg]         = useState("");
+  const [renewMsg,      setRenewMsg]      = useState("");
+  const [renewLoading,  setRenewLoading]  = useState(false);
+  const [toast,         setToast]         = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [tab,           setTab]           = useState("overview");
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -176,12 +178,10 @@ export function AdminProvider({
     return expired || lowClasses || lowCompliance;
   }), [clients]);
 
-  // Clients with injury flags or medical notes
   const flaggedClients = useMemo(() => clients.filter((c) =>
-    !!c.medicalNotes || !!(c as any).injuryFlag
+    !!c.medicalNotes || !!c.injuryFlag
   ), [clients]);
 
-  // Clients with compliance below 70%
   const lowAttendance = useMemo(() => clients.filter((c) =>
     (c.sessionsLogged || 0) > 0 && (c.compliance || 0) < 70
   ), [clients]);
@@ -332,6 +332,7 @@ export function AdminProvider({
     showWarning,     setShowWarning,
     showRenewClient, setShowRenewClient,
     showChangePw,    setShowChangePw,
+    selectedClient,  setSelectedClient,
     selectedTrainer, setSelectedTrainer,
     renewTarget,
     editForm, setEditForm,
