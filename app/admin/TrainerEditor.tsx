@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAdmin } from "./AdminContext";
 
 export default function TrainerEditor() {
@@ -10,11 +10,18 @@ export default function TrainerEditor() {
 
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("details"); // details | clients | stats
+  const [activeTab, setActiveTab] = useState("details");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // When a trainer is selected, initialize editData
+  // ✅ FIX: Close modal if trainer deleted elsewhere
+  useEffect(() => {
+    if (!selectedTrainer) {
+      setEditMode(false);
+      setEditData(null);
+    }
+  }, [selectedTrainer]);
+
   const handleEditClick = () => {
     setEditData({ ...selectedTrainer });
     setEditMode(true);
@@ -35,11 +42,16 @@ export default function TrainerEditor() {
         updatedAt: serverTimestamp(),
       });
 
-      // Update selected trainer in UI
-      setSelectedTrainer({ ...editData });
-      setEditMode(false);
       setMsg("✓ Changes saved successfully!");
-      setTimeout(() => setMsg(""), 3000);
+      
+      // ✅ FIX: Force modal refresh with proper timing
+      setTimeout(() => {
+        setSelectedTrainer(null);
+        setTimeout(() => {
+          setSelectedTrainer({ ...editData });
+          setEditMode(false);
+        }, 500);
+      }, 1500);
     } catch (err) {
       console.error("Save error:", err);
       setMsg("✕ Failed to save. Please try again.");
@@ -69,7 +81,6 @@ export default function TrainerEditor() {
           max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
 
-        /* Header */
         .te-header {
           display: flex; align-items: center; justify-content: space-between;
           padding: 20px; border-bottom: 1px solid var(--b0);
@@ -92,7 +103,6 @@ export default function TrainerEditor() {
           font-family: inherit;
         }
 
-        /* Tabs */
         .te-tabs {
           display: flex; gap: 0; border-bottom: 1px solid var(--b0);
           padding: 0 20px; background: var(--bg1);
@@ -110,10 +120,8 @@ export default function TrainerEditor() {
           color: var(--brand1); border-bottom-color: var(--brand1);
         }
 
-        /* Content */
         .te-content { padding: 20px; }
 
-        /* Section */
         .te-section { margin-bottom: 24px; }
         .te-section-title {
           font-size: 12px; font-weight: 800; color: var(--t4);
@@ -121,13 +129,10 @@ export default function TrainerEditor() {
           margin-bottom: 12px;
         }
 
-        /* Grid */
         .te-grid {
           display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
         }
-        .te-grid.full { grid-template-columns: 1fr; }
 
-        /* Field */
         .te-field { display: flex; flex-direction: column; gap: 6px; }
         .te-label {
           font-size: 12px; font-weight: 700; color: var(--t1);
@@ -145,7 +150,6 @@ export default function TrainerEditor() {
           font-family: inherit; cursor: pointer; outline: none; 
         }
 
-        /* Client list */
         .te-client-item {
           display: flex; align-items: center; justify-content: space-between;
           padding: 12px; background: var(--bg2); border: 1px solid var(--b0);
@@ -161,7 +165,6 @@ export default function TrainerEditor() {
           font-family: inherit;
         }
 
-        /* Stats */
         .te-stat-row {
           display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
         }
@@ -178,7 +181,6 @@ export default function TrainerEditor() {
           text-transform: uppercase; letter-spacing: 0.3px;
         }
 
-        /* Actions */
         .te-actions {
           display: flex; gap: 10px;
           padding: 20px; border-top: 1px solid var(--b0);
@@ -320,28 +322,6 @@ export default function TrainerEditor() {
                       </div>
                     </div>
 
-                    <div className="te-section">
-                      <div className="te-section-title">Additional Info</div>
-                      <div className="te-grid">
-                        <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
-                            Joined
-                          </div>
-                          <div style={{ fontSize: 13, color: "var(--t1)" }}>
-                            {selectedTrainer?.joined || "—"}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: "var(--t4)", marginBottom: 4 }}>
-                            Rating
-                          </div>
-                          <div style={{ fontSize: 13, color: "var(--t1)" }}>
-                            ⭐ {selectedTrainer?.rating || 0}/5
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
                     <button
                       className="te-btn te-btn-p"
                       style={{ width: "100%", marginTop: 20 }}
@@ -379,7 +359,7 @@ export default function TrainerEditor() {
                               onClick={async () => {
                                 if (
                                   window.confirm(
-                                    `Remove ${c.name} from ${selectedTrainer?.name}?`
+                                    `Remove ${c.name} from ${selectedTrainer?.name}? This cannot be undone.`
                                   )
                                 ) {
                                   try {
@@ -392,8 +372,14 @@ export default function TrainerEditor() {
                                       doc(db, "trainers", selectedTrainer?.id, "clients", c.id)
                                     );
                                     setMsg(`✓ ${c.name} removed successfully!`);
-                                    setTimeout(() => setMsg(""), 3000);
-                                    setSelectedTrainer({ ...selectedTrainer });
+                                    
+                                    // ✅ FIX: Refresh modal to update client list
+                                    setTimeout(() => {
+                                      setSelectedTrainer(null);
+                                      setTimeout(() => {
+                                        setSelectedTrainer({ ...selectedTrainer });
+                                      }, 300);
+                                    }, 1500);
                                   } catch (err) {
                                     console.error("Error:", err);
                                     setMsg("✕ Failed to remove client.");
@@ -466,7 +452,10 @@ export default function TrainerEditor() {
                               fontSize: 18,
                               fontWeight: 800,
                               fontFamily: "var(--fd)",
-                              color: (selectedTrainer?.retention || 0) >= 80 ? "#22c55e" : "var(--brand1)",
+                              color:
+                                (selectedTrainer?.retention || 0) >= 80
+                                  ? "#22c55e"
+                                  : "var(--brand1)",
                             }}
                           >
                             {selectedTrainer?.retention || 0}%
