@@ -75,6 +75,29 @@ export default function LogSession() {
     prefillApplied.current = true;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Keep a ref so saveSession can read exercises without
+  //    writing back to context (avoids re-triggering prefill) ──
+  const exercisesRef = useRef<LoggedEx[]>([]);
+  exercisesRef.current = exercises;
+
+  // ── AUTO-SYNC exercises to context as they change ──
+  // ⭐ THIS IS THE FIX: Exercises now sync to Firebase in real-time
+  //    instead of only when submitting on Step 5
+  useEffect(() => {
+    if (exercises.length === 0) return;
+    setSessionExercises(
+      exercises.map((ex) => ({
+        name:       ex.name,
+        muscles:    ex.muscles,
+        sets:       String(ex.sets.length),
+        reps:       ex.sets.map((s) => s.reps || "0").join("/"),
+        weight:     ex.sets.map((s) => s.load || "0").join("/"),
+        rpe:        ex.rpe,
+        setsDetail: ex.sets,
+      }))
+    );
+  }, [exercises, setSessionExercises]);
+
   // ── Stepper ───────────────────────────────────────────────
   const [step, setStep] = useState(1);
 
@@ -102,11 +125,6 @@ export default function LogSession() {
       setTemplates(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
     );
   }, [uid]);
-
-  // ── Keep a ref so saveSession can read exercises without
-  //    writing back to context (avoids re-triggering prefill) ──
-  const exercisesRef = useRef<LoggedEx[]>([]);
-  exercisesRef.current = exercises;
 
   // ── Helpers ───────────────────────────────────────────────
   const getHabit       = (k: HabitKey)       => sessionHabits[k]       || "";
@@ -791,21 +809,7 @@ export default function LogSession() {
             <button
               className="btn btn-p"
               style={{ flex: 2, padding: "13px", fontSize: 14, opacity: sessionLoading ? 0.7 : 1 }}
-              onClick={() => {
-                // Push local exercises into context right before saving
-                setSessionExercises(
-                  exercisesRef.current.map((ex) => ({
-                    name:       ex.name,
-                    muscles:    ex.muscles,
-                    sets:       String(ex.sets.length),
-                    reps:       ex.sets.map((s) => s.reps || "0").join("/"),
-                    weight:     ex.sets.map((s) => s.load || "0").join("/"),
-                    rpe:        ex.rpe,
-                    setsDetail: ex.sets,
-                  }))
-                );
-                saveSession();
-              }}
+              onClick={() => saveSession()}
               disabled={sessionLoading}
             >
               {sessionLoading ? "Saving..." : "✓ Submit Session Log"}
