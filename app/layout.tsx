@@ -20,7 +20,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
              iOS home screen.
           ─────────────────────────────────────────────────────────────────
         */}
-        <meta
+        <script
+  dangerouslySetInnerHTML={{
+    __html: `
+      if (history.scrollRestoration) {
+        history.scrollRestoration = 'manual';
+      }
+      window.scrollTo(0, 0);
+    `,
+  }}
+/>        <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
         />
