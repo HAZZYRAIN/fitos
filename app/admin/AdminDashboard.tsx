@@ -13,6 +13,7 @@ import Flags             from "./tabs/Flags";
 import Templates         from "./tabs/Templates";
 import Instructions      from "./tabs/Instructions";
 import TrainersList      from "./tabs/TrainersList";
+import TrainerEditor     from "./TrainerEditor";
 
 const NAV_ITEMS = [
   { id: "overview",      icon: "◼",  label: "Control Room"         },
@@ -363,34 +364,8 @@ function AdminInner() {
         </div>
       )}
 
-      {selectedTrainer && (
-        <div className="overlay" onClick={() => setSelectedTrainer(null)}>
-          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="row mb16">
-              <div className="av av-t" style={{ width: 48, height: 48 }}>
-                {(selectedTrainer.name || "").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
-              </div>
-              <div style={{ marginLeft: 12 }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "var(--t1)" }}>{selectedTrainer.name}</div>
-                <div style={{ fontSize: 12, color: "var(--t3)" }}>{selectedTrainer.speciality}</div>
-                <div className="row gap8 mt4">
-                  <span className={`badge fs10 ${selectedTrainer.status === "active" ? "bg" : "br"}`}>{selectedTrainer.status}</span>
-                  <span className={`badge fs10 ${selectedTrainer.plan === "Pro" ? "bo" : "bgr"}`}>{selectedTrainer.plan}</span>
-                </div>
-              </div>
-              <button className="btn btn-g btn-xs mla" onClick={() => setSelectedTrainer(null)}>✕</button>
-            </div>
-            <div className="row gap8 flex-wrap mt16">
-              <button className={`btn btn-s ${selectedTrainer.status === "active" ? "btn-dn" : "btn-ok"}`} onClick={() => toggleTrainerStatus(selectedTrainer.id, selectedTrainer.status || "active")}>
-                {selectedTrainer.status === "active" ? "Suspend" : "Activate"}
-              </button>
-              <button className="btn btn-warn btn-s" onClick={() => { setNewWarning((p: any) => ({ ...p, trainer: selectedTrainer.name })); setSelectedTrainer(null); setShowWarning(true); }}>Warn</button>
-              <button className="btn btn-g btn-s" onClick={() => { setPwTarget(selectedTrainer); setSelectedTrainer(null); setShowChangePw(true); }}>🔑 Password</button>
-              <button className="btn btn-p btn-s mla" onClick={() => { setNC((p: any) => ({ ...p, trainerName: selectedTrainer.name, trainerId: selectedTrainer.id })); setSelectedTrainer(null); setShowAddClient(true); }}>+ Client</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── TRAINER EDITOR MODAL ── */}
+      <TrainerEditor />
 
       {/* ── DESKTOP SIDEBAR ── */}
       <div className="sb">
