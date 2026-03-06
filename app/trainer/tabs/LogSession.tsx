@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTrainer } from "../TrainerContext";
 import { WORKOUT_LIBRARY } from "../../data/workoutLibrary";
 import { db } from "../../../lib/firebase";
@@ -41,12 +41,52 @@ export default function LogSession() {
     sessionHabits,    setSessionHabits,
     sessionMeasurements, setSessionMeasurements,
     sessionError, sessionLoading, sessionSaved,
+    sessionExercises,       // ← read context pre-fill
     setSessionExercises,
     saveSession,
   } = useTrainer();
 
   // ── Local exercise state ──────────────────────────────────
   const [exercises, setExercises] = useState<LoggedEx[]>([]);
+
+  // ── Track whether we've already imported a pre-fill ──────
+  // Prevents overwriting exercises the trainer has already added
+  const prefillApplied = useRef(false);
+
+  // ── On mount: if context has pre-filled exercises (from "Use Day"),
+  //    convert them to local LoggedEx format ──────────────────
+  useEffect(() => {
+    if (prefillApplied.current) return;
+    if (!sessionExercises || sessionExercises.length === 0) return;
+
+    // Check if this looks like a pre-fill (has name field)
+    const hasValidData = sessionExercises.some((e: any) => e.name && e.name.trim());
+    if (!hasValidData) return;
+
+    const converted: LoggedEx[] = sessionExercises.map((e: any) => {
+      // Parse reps/weight — may be slash-separated from old format or single value
+      const repsArr   = String(e.reps   || "").split("/");
+      const weightArr = String(e.weight || "").split("/");
+      const numSets   = Math.max(parseInt(String(e.sets || "3")) || 3, 1);
+
+      const sets: ExSet[] = Array.from({ length: numSets }, (_, i) => ({
+        reps: repsArr[i] || repsArr[0] || "",
+        load: weightArr[i] || weightArr[0] || "0",
+      }));
+
+      return {
+        name:    e.name    || "",
+        muscles: e.muscles || "",
+        sets,
+        rpe: e.rpe || "",
+      };
+    });
+
+    setExercises(converted);
+    prefillApplied.current = true;
+    // Clear context so next session starts fresh
+    setSessionExercises([]);
+  }, [sessionExercises]);
 
   // ── Stepper ───────────────────────────────────────────────
   const [step, setStep] = useState(1);
@@ -58,6 +98,9 @@ export default function LogSession() {
   const [libSearch, setLibSearch]       = useState("");
   const [manualName, setManualName]     = useState("");
   const [manualMuscle, setManualMuscle] = useState("");
+
+  // ── Template day picker ───────────────────────────────────
+  const [expandedTmplId, setExpandedTmplId] = useState<string | null>(null);
 
   // ── Templates assigned to this trainer ───────────────────
   const [templates, setTemplates] = useState<any[]>([]);
@@ -74,18 +117,15 @@ export default function LogSession() {
   }, [uid]);
 
   // ── Sync exercises back to context before save ────────────
-  // TrainerContext.saveSession reads sessionExercises
   useEffect(() => {
     setSessionExercises(
       exercises.map((ex) => ({
         name:       ex.name,
         muscles:    ex.muscles,
-        // legacy flat fields (context still reads these)
         sets:       String(ex.sets.length),
         reps:       ex.sets.map((s) => s.reps || "0").join("/"),
         weight:     ex.sets.map((s) => s.load || "0").join("/"),
         rpe:        ex.rpe,
-        // rich detail for Firestore
         setsDetail: ex.sets,
       }))
     );
@@ -106,7 +146,7 @@ export default function LogSession() {
     setExercises((p) => [...p, blankEx(name, muscles)]);
     setShowPicker(false); setManualName(""); setManualMuscle(""); setLibSearch("");
   };
-  const removeEx = (i: number)                       => setExercises((p) => p.filter((_, j) => j !== i));
+  const removeEx = (i: number) => setExercises((p) => p.filter((_, j) => j !== i));
   const updateSet= (ei: number, si: number, f: keyof ExSet, v: string) =>
     setExercises((p) => p.map((ex, i) => i !== ei ? ex : {
       ...ex, sets: ex.sets.map((s, j) => j !== si ? s : { ...s, [f]: v }),
@@ -119,8 +159,22 @@ export default function LogSession() {
     }));
   const setRpe   = (ei: number, v: string) =>
     setExercises((p) => p.map((ex, i) => i !== ei ? ex : { ...ex, rpe: v }));
-  const loadTemplate = (t: any) => {
-    addEx(`${t.name} — Exercise 1`, t.category || "");
+
+  // ── Load a full workout day from template ─────────────────
+  const loadTemplateDay = (day: any) => {
+    if (!day?.exercises?.length) return;
+    const converted: LoggedEx[] = day.exercises.map((e: any) => ({
+      name:    e.name    || "",
+      muscles: e.muscles || "",
+      sets: Array.from({ length: parseInt(e.sets) || 3 }, () => ({
+        reps: e.reps || "",
+        load: "0",
+      })),
+      rpe: "",
+    }));
+    setExercises((prev) => [...prev, ...converted]);
+    setShowPicker(false);
+    setExpandedTmplId(null);
   };
 
   // ── Library filtered list ─────────────────────────────────
@@ -178,8 +232,7 @@ export default function LogSession() {
         .ex-name{font-size:13px;font-weight:700;color:var(--t1);}
         .ex-muscle{font-size:10px;color:var(--t3);margin-top:1px;}
 
-        /* ── set grid ── */
-        /* ── set cards — big mobile inputs ── */
+        /* ── set cards ── */
         .set-card{background:var(--bg1);border:1.5px solid var(--b0);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
         .set-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
         .set-badge{font-size:10px;font-weight:800;color:var(--brand1);
@@ -198,10 +251,6 @@ export default function LogSession() {
         }
         .set-big-inp::-webkit-outer-spin-button,.set-big-inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
         .set-big-inp:focus{border-color:var(--brand1);background:var(--bg1);}
-        .set-del{background:none;border:none;cursor:pointer;color:var(--t4);font-size:14px;
-          padding:4px 6px;border-radius:6px;transition:color .12s,background .12s;line-height:1;}
-        .set-del:hover{color:var(--red);background:rgba(192,57,43,.08);}
-        .set-del:disabled{opacity:.25;cursor:default;}
 
         /* ── RPE ── */
         .rpe-row{display:flex;align-items:center;gap:4px;margin-top:10px;flex-wrap:wrap;row-gap:6px;}
@@ -244,11 +293,25 @@ export default function LogSession() {
           margin-bottom:6px;background:var(--bg2);transition:border-color .12s,background .12s;}
         .lib-row:hover{border-color:var(--brand1);background:var(--bg1);}
 
-        /* ── template row ── */
-        .tmpl-row{padding:11px 12px;border-radius:8px;cursor:pointer;
-          border:1px solid var(--b0);margin-bottom:8px;
-          background:var(--bg2);transition:border-color .12s;}
-        .tmpl-row:hover{border-color:var(--brand1);}
+        /* ── template rows ── */
+        .tmpl-row{border:1px solid var(--b0);border-radius:10px;margin-bottom:8px;
+          background:var(--bg2);overflow:hidden;}
+        .tmpl-row-head{display:flex;align-items:center;gap:8px;padding:11px 12px;cursor:pointer;
+          transition:background .12s;}
+        .tmpl-row-head:hover{background:var(--bg1);}
+        .tmpl-day-row{display:flex;align-items:center;gap:8px;padding:9px 14px;
+          border-top:1px solid var(--b0);cursor:pointer;transition:background .12s;}
+        .tmpl-day-row:hover{background:rgba(201,168,76,.06);}
+        .tmpl-day-label{font-size:10px;font-weight:800;color:var(--brand1);
+          background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);
+          padding:2px 8px;border-radius:5px;flex-shrink:0;}
+
+        /* ── prefill banner ── */
+        .prefill-banner{
+          display:flex;align-items:center;gap:10px;
+          background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);
+          border-radius:10px;padding:11px 14px;margin-bottom:14px;
+        }
 
         /* ── nav ── */
         .wiz-nav{display:flex;gap:10px;margin-top:20px;}
@@ -357,13 +420,13 @@ export default function LogSession() {
           <div className="g2">
             <div className="field">
               <label>Date *</label>
-             <input
-  className="fi"
-  type="date"
-  value={sessionDate}
-  max={new Date().toISOString().split("T")[0]}
-  onChange={(e) => setSessionDate(e.target.value)}
-/>
+              <input
+                className="fi"
+                type="date"
+                value={sessionDate}
+                max={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setSessionDate(e.target.value)}
+              />
             </div>
             <div className="field">
               <label>Duration (min)</label>
@@ -437,6 +500,18 @@ export default function LogSession() {
         <div className="wiz-card">
           <div className="wiz-title">🏋 Exercises <span style={{ fontSize: 12, fontWeight: 500, color: "var(--t3)" }}>({exercises.length})</span></div>
 
+          {/* Pre-fill banner */}
+          {exercises.length > 0 && prefillApplied.current && (
+            <div className="prefill-banner">
+              <span style={{ fontSize: 20 }}>📋</span>
+              <div style={{ flex: 1 }}>
+                <div className="fs12 fw7 t1">{exercises.length} exercises loaded from template</div>
+                <div className="fs11 t3">Fill in reps & load for each set, then continue</div>
+              </div>
+              <button className="btn btn-dn btn-xs" onClick={() => { setExercises([]); prefillApplied.current = false; }}>Clear</button>
+            </div>
+          )}
+
           {exercises.length === 0 && (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>🏋</div>
@@ -451,7 +526,6 @@ export default function LogSession() {
               background:"var(--bg2)", border:"1px solid var(--b0)",
               borderRadius:10, padding:12, marginBottom:12,
             }}>
-
               {/* ── Name row ── */}
               <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:14 }}>
                 <div>
@@ -464,14 +538,13 @@ export default function LogSession() {
                 >✕</button>
               </div>
 
-              {/* ── Sets — each set is a full-width vertical card ── */}
+              {/* ── Sets ── */}
               {ex.sets.map((s, si) => (
                 <div key={si} style={{
                   display:"block", width:"100%", boxSizing:"border-box",
                   background:"var(--bg1)", border:"1.5px solid var(--b0)",
                   borderRadius:10, padding:"10px 12px", marginBottom:8,
                 }}>
-                  {/* Set header */}
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
                     <span style={{
                       fontSize:11, fontWeight:800, color:"var(--brand1)",
@@ -488,15 +561,11 @@ export default function LogSession() {
                       }}
                     >Remove</button>
                   </div>
-                  {/* Reps + Load side by side */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                     <div>
                       <div style={{ fontSize:9, fontWeight:700, color:"var(--t4)", textTransform:"uppercase", letterSpacing:.5, textAlign:"center", marginBottom:5 }}>Reps</div>
                       <input
-                        type="number"
-                        inputMode="numeric"
-                        placeholder="10"
-                        value={s.reps}
+                        type="number" inputMode="numeric" placeholder="10" value={s.reps}
                         onChange={(e) => updateSet(ei, si, "reps", e.target.value)}
                         style={{
                           display:"block", width:"100%", boxSizing:"border-box",
@@ -510,11 +579,7 @@ export default function LogSession() {
                     <div>
                       <div style={{ fontSize:9, fontWeight:700, color:"var(--t4)", textTransform:"uppercase", letterSpacing:.5, textAlign:"center", marginBottom:5 }}>Load (kg)</div>
                       <input
-                        type="number"
-                        inputMode="decimal"
-                        placeholder="0"
-                        step="0.5"
-                        value={s.load}
+                        type="number" inputMode="decimal" placeholder="0" step="0.5" value={s.load}
                         onChange={(e) => updateSet(ei, si, "load", e.target.value)}
                         style={{
                           display:"block", width:"100%", boxSizing:"border-box",
@@ -529,7 +594,6 @@ export default function LogSession() {
                 </div>
               ))}
 
-              {/* ── Add set ── */}
               <button
                 onClick={() => addSet(ei)}
                 style={{
@@ -550,31 +614,24 @@ export default function LogSession() {
                     const sel = ex.rpe === String(r);
                     const col = r <= 4 ? "#1e8a4c" : r <= 7 ? "#b8860b" : "#c0392b";
                     return (
-                      <button
-                        key={r}
-                        onClick={() => setRpe(ei, String(r))}
+                      <button key={r} onClick={() => setRpe(ei, String(r))}
                         style={{
                           width:38, height:38, borderRadius:8, flexShrink:0,
                           border: sel ? `2px solid ${col}` : "1.5px solid var(--b1)",
                           background: sel ? `${col}22` : "var(--bg1)",
                           fontSize:13, fontWeight:800,
-                          color: sel ? col : "var(--t3)",
-                          cursor:"pointer",
+                          color: sel ? col : "var(--t3)", cursor:"pointer",
                         }}
                       >{r}</button>
                     );
                   })}
                 </div>
                 {ex.rpe && (
-                  <div style={{
-                    fontSize:12, fontWeight:700, marginTop:8,
-                    color: Number(ex.rpe) <= 4 ? "#1e8a4c" : Number(ex.rpe) <= 7 ? "#b8860b" : "#c0392b",
-                  }}>
+                  <div style={{ fontSize:12, fontWeight:700, marginTop:8, color: Number(ex.rpe) <= 4 ? "#1e8a4c" : Number(ex.rpe) <= 7 ? "#b8860b" : "#c0392b" }}>
                     RPE {ex.rpe} — {rpeLabel(Number(ex.rpe))}
                   </div>
                 )}
               </div>
-
             </div>
           ))}
 
@@ -598,7 +655,6 @@ export default function LogSession() {
         <div className="wiz-card">
           <div className="wiz-title">🔁 Habits & Nutrition</div>
 
-          {/* Habits — required */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <span className="fs12 fw7 t2">Daily Habits</span>
             <span className="stag stag-req">Required</span>
@@ -628,7 +684,6 @@ export default function LogSession() {
             </div>
           </div>
 
-          {/* Measurements — optional */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 0 10px" }}>
             <span className="fs12 fw7 t2">📏 Body Measurements</span>
             <span className="stag stag-opt">Optional</span>
@@ -653,7 +708,6 @@ export default function LogSession() {
           </div>
           {hasMeasData && <div className="alert al-g fs11 mt8">✓ Measurements saved to client progress tab</div>}
 
-          {/* Nutrition — optional */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 0 10px" }}>
             <span className="fs12 fw7 t2">🥩 Nutrition</span>
             <span className="stag stag-opt">Optional</span>
@@ -699,7 +753,6 @@ export default function LogSession() {
         <div className="wiz-card">
           <div className="wiz-title">✅ Review & Submit</div>
 
-          {/* Summary box */}
           <div style={{ background: "var(--bg2)", border: "1px solid var(--b0)", borderRadius: 10, padding: 14, marginBottom: 14 }}>
             <div className="sum-row"><span className="t3">Client</span>      <span className="fw7 t1">{logClient || "—"}</span></div>
             <div className="sum-row"><span className="t3">Date</span>        <span className="fw6 t1">{sessionDate}</span></div>
@@ -711,31 +764,29 @@ export default function LogSession() {
               <span className="t3">Steps / Water / Sleep</span>
               <span className="fw6 t1">{sessionHabits.steps||"—"} / {sessionHabits.water||"—"}L / {sessionHabits.sleep||"—"}h</span>
             </div>
-            {hasMeasData    && <div className="sum-row"><span className="t3">Measurements</span><span className="fw6 tg">✓ Included</span></div>}
-            {hasNutrition   && <div className="sum-row"><span className="t3">Nutrition</span><span className="fw6 tg">✓ Included</span></div>}
-            {injuryFlag     && <div className="sum-row"><span className="t3">Injury Flag</span><span className="fw6 tr">{injuryFlag}</span></div>}
+            {hasMeasData  && <div className="sum-row"><span className="t3">Measurements</span><span className="fw6 tg">✓ Included</span></div>}
+            {hasNutrition && <div className="sum-row"><span className="t3">Nutrition</span><span className="fw6 tg">✓ Included</span></div>}
+            {injuryFlag   && <div className="sum-row"><span className="t3">Injury Flag</span><span className="fw6 tr">{injuryFlag}</span></div>}
           </div>
 
-          {/* What saves where */}
           <div className="card" style={{ marginBottom: 14 }}>
             <div className="ch"><span className="ct">What Gets Saved</span></div>
             <div className="col gap6 fs11">
               {[
-                { l: "Session log → Admin Sessions tab",       ok: true              },
-                { l: "Habits → Client progress",               ok: true              },
+                { l: "Session log → Admin Sessions tab",            ok: true              },
+                { l: "Habits → Client progress",                    ok: true              },
                 { l: `Exercises (${exercises.length}) → Session log`, ok: exercises.length > 0 },
-                { l: "Measurements → Client progress",         ok: hasMeasData       },
-                { l: "Nutrition → Client progress",            ok: hasNutrition      },
+                { l: "Measurements → Client progress",              ok: hasMeasData       },
+                { l: "Nutrition → Client progress",                 ok: hasNutrition      },
               ].map((item, i) => (
                 <div key={i} className="row gap8">
                   <span style={{ color: item.ok ? "var(--green)" : "var(--t4)" }}>{item.ok ? "✓" : "○"}</span>
-                  <span style={{ color: item.ok ? "var(--t2)"   : "var(--t4)" }}>{item.l}</span>
+                  <span style={{ color: item.ok ? "var(--t2)" : "var(--t4)" }}>{item.l}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Exercise detail preview */}
           {exercises.length > 0 && (
             <div className="card" style={{ marginBottom: 14 }}>
               <div className="ch"><span className="ct">Exercise Summary</span></div>
@@ -799,7 +850,7 @@ export default function LogSession() {
               ))}
             </div>
 
-            {/* Library */}
+            {/* ── Library ── */}
             {pickerTab === "library" && (
               <div className="picker-body">
                 <input className="fi" style={{ marginBottom: 10 }}
@@ -828,7 +879,7 @@ export default function LogSession() {
               </div>
             )}
 
-            {/* Templates */}
+            {/* ── Templates — shows real workout days ── */}
             {pickerTab === "template" && (
               <div className="picker-body">
                 {templates.length === 0 ? (
@@ -837,21 +888,51 @@ export default function LogSession() {
                     <div className="fs13 fw6 t2">No templates assigned to you</div>
                     <div className="fs11 t3 mt4">Admin assigns templates from the Templates section</div>
                   </div>
-                ) : templates.map((t) => (
-                  <div key={t.id} className="tmpl-row" onClick={() => loadTemplate(t)}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <span className="fs13 fw7 t1">{t.name}</span>
-                      <span className={`badge fs10 mla ${t.level === "Beginner" ? "bg" : t.level === "Intermediate" ? "by" : "br"}`}>{t.level}</span>
+                ) : templates.map((t) => {
+                  const isOpen = expandedTmplId === t.id;
+                  const dayCount = (t.workoutDays || []).length;
+                  return (
+                    <div key={t.id} className="tmpl-row">
+                      {/* Template header — click to expand days */}
+                      <div className="tmpl-row-head" onClick={() => setExpandedTmplId(isOpen ? null : t.id)}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                            <span className="fs13 fw7 t1">{t.name}</span>
+                            <span className={`badge fs10 ${t.level === "Beginner" ? "bg" : t.level === "Intermediate" ? "by" : "br"}`}>{t.level}</span>
+                          </div>
+                          <div className="fs11 t3">{t.category} · {t.days} · {t.duration}
+                            {dayCount > 0 && <span style={{ color: "var(--brand1)", fontWeight: 600 }}> · {dayCount} days</span>}
+                          </div>
+                        </div>
+                        <span style={{ fontSize: 13, color: "var(--t3)", transition: "transform .2s", transform: isOpen ? "rotate(180deg)" : "none" }}>▼</span>
+                      </div>
+
+                      {/* Day list */}
+                      {isOpen && (
+                        <>
+                          {dayCount === 0 ? (
+                            <div style={{ padding: "10px 14px", fontSize: 11, color: "var(--t3)", borderTop: "1px solid var(--b0)" }}>
+                              No workout days added to this template yet.
+                            </div>
+                          ) : (t.workoutDays || []).map((day: any, di: number) => (
+                            <div key={di} className="tmpl-day-row" onClick={() => loadTemplateDay(day)}>
+                              <span className="tmpl-day-label">{day.dayLabel}</span>
+                              <div style={{ flex: 1 }}>
+                                <div className="fs12 fw6 t1">{day.focus || "Workout Day"}</div>
+                                <div className="fs10 t3">{day.exercises?.length || 0} exercises</div>
+                              </div>
+                              <span style={{ fontSize: 18, color: "var(--brand1)", fontWeight: 700 }}>+</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </div>
-                    <div className="fs11 t3">{t.category} · {t.days} · {t.duration}</div>
-                    {t.description && <div className="fs11 t2 mt4" style={{ lineHeight: 1.4 }}>{t.description}</div>}
-                    <div className="fs11 mt6" style={{ color: "var(--brand1)", fontWeight: 600 }}>Tap to add as exercise →</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
-            {/* Manual */}
+            {/* ── Manual ── */}
             {pickerTab === "manual" && (
               <div className="picker-body">
                 <div className="field">
