@@ -53,40 +53,27 @@ export default function LogSession() {
   // Prevents overwriting exercises the trainer has already added
   const prefillApplied = useRef(false);
 
-  // ── On mount: if context has pre-filled exercises (from "Use Day"),
-  //    convert them to local LoggedEx format ──────────────────
+  // ── One-time prefill on mount (from WorkoutPlans "Use Day") ─
+  // Empty deps [] = runs exactly once. Clears context immediately
+  // so the sync-back effect below never re-triggers this.
   useEffect(() => {
-    if (prefillApplied.current) return;
-    if (!sessionExercises || sessionExercises.length === 0) return;
+    const snap = sessionExercises;
+    if (!snap || snap.length === 0) return;
+    if (!snap.some((e: any) => e.name && e.name.trim())) return;
 
-    // Check if this looks like a pre-fill (has name field)
-    const hasValidData = sessionExercises.some((e: any) => e.name && e.name.trim());
-    if (!hasValidData) return;
-
-    const converted: LoggedEx[] = sessionExercises.map((e: any) => {
-      // Parse reps/weight — may be slash-separated from old format or single value
-      const repsArr   = String(e.reps   || "").split("/");
-      const weightArr = String(e.weight || "").split("/");
-      const numSets   = Math.max(parseInt(String(e.sets || "3")) || 3, 1);
-
-      const sets: ExSet[] = Array.from({ length: numSets }, (_, i) => ({
-        reps: repsArr[i] || repsArr[0] || "",
-        load: weightArr[i] || weightArr[0] || "0",
-      }));
-
-      return {
+    setSessionExercises([]); // clear FIRST — prevents loop
+    setExercises(
+      snap.map((e: any) => ({
         name:    e.name    || "",
         muscles: e.muscles || "",
-        sets,
-        rpe: e.rpe || "",
-      };
-    });
-
-    setExercises(converted);
+        sets: Array.from({ length: Math.max(parseInt(String(e.sets || "3")) || 3, 1) }, () => ({
+          reps: "", load: "",
+        })),
+        rpe: "",
+      }))
+    );
     prefillApplied.current = true;
-    // Clear context so next session starts fresh
-    setSessionExercises([]);
-  }, [sessionExercises]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Stepper ───────────────────────────────────────────────
   const [step, setStep] = useState(1);
@@ -116,20 +103,10 @@ export default function LogSession() {
     );
   }, [uid]);
 
-  // ── Sync exercises back to context before save ────────────
-  useEffect(() => {
-    setSessionExercises(
-      exercises.map((ex) => ({
-        name:       ex.name,
-        muscles:    ex.muscles,
-        sets:       String(ex.sets.length),
-        reps:       ex.sets.map((s) => s.reps || "0").join("/"),
-        weight:     ex.sets.map((s) => s.load || "0").join("/"),
-        rpe:        ex.rpe,
-        setsDetail: ex.sets,
-      }))
-    );
-  }, [exercises]);
+  // ── Keep a ref so saveSession can read exercises without
+  //    writing back to context (avoids re-triggering prefill) ──
+  const exercisesRef = useRef<LoggedEx[]>([]);
+  exercisesRef.current = exercises;
 
   // ── Helpers ───────────────────────────────────────────────
   const getHabit       = (k: HabitKey)       => sessionHabits[k]       || "";
@@ -814,7 +791,21 @@ export default function LogSession() {
             <button
               className="btn btn-p"
               style={{ flex: 2, padding: "13px", fontSize: 14, opacity: sessionLoading ? 0.7 : 1 }}
-              onClick={saveSession}
+              onClick={() => {
+                // Push local exercises into context right before saving
+                setSessionExercises(
+                  exercisesRef.current.map((ex) => ({
+                    name:       ex.name,
+                    muscles:    ex.muscles,
+                    sets:       String(ex.sets.length),
+                    reps:       ex.sets.map((s) => s.reps || "0").join("/"),
+                    weight:     ex.sets.map((s) => s.load || "0").join("/"),
+                    rpe:        ex.rpe,
+                    setsDetail: ex.sets,
+                  }))
+                );
+                saveSession();
+              }}
               disabled={sessionLoading}
             >
               {sessionLoading ? "Saving..." : "✓ Submit Session Log"}
