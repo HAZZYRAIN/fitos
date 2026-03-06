@@ -110,34 +110,28 @@ button {
   h2 { font-size: 17px !important; }
   h3 { font-size: 15px !important; }
 
-  /* Topbar title */
   .tb-t {
     font-size: 15px !important;
   }
 
-  /* General text */
   .fs12 { font-size: 13px !important; }
   .fs11 { font-size: 12px !important; }
   .fs10 { font-size: 11px !important; }
 
-  /* Card padding */
   .card {
     padding: 14px 12px !important;
   }
 
-  /* Field inputs */
   .fi {
     font-size: 16px !important;
     padding: 11px 12px !important;
     min-height: 46px !important;
   }
 
-  /* Labels */
   label {
     font-size: 13px !important;
   }
 
-  /* Buttons */
   .btn-p, .btn-g {
     min-height: 46px !important;
     font-size: 14px !important;
@@ -181,7 +175,7 @@ button {
   .modal {
     width: 100% !important;
     max-width: 100% !important;
-    border-radius: 16px 16px 0 0 !important;
+    border-radius: 22px 22px 0 0 !important;
     max-height: 90vh !important;
     overflow-y: auto !important;
     padding: 20px 16px max(20px, env(safe-area-inset-bottom)) !important;
