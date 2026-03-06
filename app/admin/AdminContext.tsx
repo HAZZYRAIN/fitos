@@ -57,7 +57,7 @@ interface AdminContextType {
   editForm: Partial<Client> | null;
   setEditForm: (form: Partial<Client> | null) => void;
   newTrainer: Partial<Trainer>;
-  setNewTrainer: (trainer: Partial<Trainer>) => void;
+  setNewTrainer: (trainer: Partial<Trainer> | ((prev: Partial<Trainer>) => Partial<Trainer>)) => void;
   newClient: Partial<Client>;
   setNewClient: (client: Partial<Client>) => void;
   newInstruction: Partial<Instruction>;
